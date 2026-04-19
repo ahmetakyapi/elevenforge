@@ -1,225 +1,309 @@
-# ElevenForge
+<div align="center">
+
+# ⚽ ElevenForge
 
 **16 arkadaş. 1 lig. 1 efsane.**
 
-Sosyal online futbol menajerlik oyunu. Arkadaşlarınla kapalı lig kurar, her gün 21:00'de maçları simüle edip sonuçları canlı anlatım ile izlersin, transfer pazarında AI botlar ve insan rakiplerinle yarışır, haftalık gazete okuyup oyuncu moralini şekillendirirsin.
+Türkçe, çoklu-oyunculu online futbol menajerlik oyunu — OSM'in oyun derinliği +
+modern menajerlik oyunlarının kalitesinde animasyon ve UX.
+
+[Canlı Demo](https://elevenforge.vercel.app) · [Hata bildir](https://github.com/ahmetakyapi/elevenforge/issues)
+
+</div>
+
+---
+
+## Neler var?
+
+### 🏟 Lig & Maç
+- **16-takımlı arkadaş ligleri** — davet kodu ile katıl, bot kalan slotu doldur
+- **Günlük cron-tetiklemeli maç simülasyonu** — lig kuran kişinin seçtiği saatte
+- **Deterministik motor** — fixture id → seed; replay aynı skoru üretir
+- **Hakem kişiliği** (8 isim × strictness 1-5) — kart sıklığı + agresif oyun davranışı
+- **Stadyum boost'u** (L1→L5) — ev avantajı 2.5'tan 4.5'a kadar tırmanır
+- **Maç-içi 3 değişiklik planı** — dakika + giren/çıkan; engine 75'te subbed-off bir golcüyü skor atan listesinden çıkarır
+- **Tek-eleme 16-takım kupa** — lig sezonuna paralel; final + prestij + €15M ödül
+- **5 sarı kart kuralı** + **kırmızı kart 2 maç ceza** + **sezon-sonu emeklilik** (yaş ≥40)
+
+### 🛒 Transfer & Ekonomi
+- **Pazar** — listing, fiyat decay, bot AI alış/satış
+- **Optimistic locking** — eşzamanlı 10 alıcı, sadece 1 kazanır (race-safe)
+- **Auto-bid** — max fiyat ayarla, fiyat o seviyeye düşünce otomatik alınır
+- **Loan transfers** — 30 gün, %20 fee; sezon-roll önce snap-back
+- **Free agent havuzu** — sözleşmesi biten oyunculara imza bonusu (1/5 değer) ile imzalama
+- **Sponsor sözleşmeleri** (3 tier × 6 marka) — maç başı + galibiyet bonusu + sezon bonusu
+- **Sezon prize money** (top 4: €30M/€20M/€10M/€5M) + prestij artışı
+
+### 👥 Kadro & Personel
+- **Taktik board** — 6 formasyon × 7 saved preset
+- **Pozisyon-bazlı 4 antrenman slotu** (1 GK + 1 DEF + 1 MID + 1 FWD)
+- **Genç gelişim** (≤19 yaş %52/gün +1 OVR şansı, kapsamlı age tier'ları)
+- **Personel** (3 slot × 3 tier): Başantrenör + Fizyoterapist + Baş Kaşif. Physio sakatlık riskini × (1 - tier·0.18) ölçekler, scout her görevde +tier ek aday getirir
+- **Tesis upgrade** — Stadyum + Antrenman L1→L5 (€5M / €10M / €20M / €40M)
+- **Casus** — rakibe €1M ile casus gönder; formasyon + 11 + tactic dial'leri rapor edilir; fixture başına idempotent
+
+### 🏆 Sosyal & UX
+- **Multi-league switcher** — bir kullanıcı birden fazla ligde olabiliyor
+- **Board objectives** — prestij'e göre auto-hedef + güven barı; 0'a düşerse kovulma
+- **Achievements** — şampiyon, kupa kazanan, perfect-season, top-scorer-team rozetleri
+- **Real-time chat** (5sn polling, tab-visible aware)
+- **Dashboard auto-refresh** — diğer oyuncuların aksiyonları yenilemeden gözükür
+- **Push notifications** — VAPID + service worker (match-day, scout-return, transfer)
+- **Login streak** rewards (gün × €200K + 7. gün €500K bonus)
+- **Mobile-landscape-first responsive** — TopNav + bottom-nav
+
+### 🛡 Çoklu-oyuncu sağlamlığı
+- **Davet kodu ile katılma** — bot-club claim race-safe (optimistic UPDATE)
+- **Commissioner-only week advance** — bir oyuncu tüm ligi tek başına ileri saramıyor
+- **Per-fixture deterministic seed** — refresh exploit yok
+- **Atomic balance updates** — `UPDATE balance = balance - X` SQL düzeyinde
+- **Invite-code collision retry** (10 deneme)
+
+### 🎨 Görsel
+- Premium glass aesthetic — `backdrop-filter: blur(16px)` + radial gradient indigo/emerald
+- Custom Manrope + JetBrains Mono font pairing
+- Easing `[0.22, 1, 0.36, 1]` her animasyonda
+- Dark-by-default, `data-theme="dark"`
+
+---
 
 ## Stack
 
 | Katman | Tercih |
 |--------|--------|
-| Framework | Next.js 16 (App Router) + React 19 + Turbopack |
+| Framework | **Next.js 16** (App Router) + React 19 + Turbopack |
 | Stil | Tailwind v4 + CSS tokens |
 | Tipleme | TypeScript strict |
-| Veritabanı | Postgres (pglite lokal, Neon prod) + Drizzle ORM |
-| Auth | next-auth v5 (credentials + JWT session + bcrypt) |
-| Cron | QStash prod + node setInterval dev |
-| Push | Native Web Push (VAPID) |
+| Veritabanı | Postgres — **pglite** lokal (WASM, zero-config) / **Neon** prod |
+| ORM | **Drizzle** (pg-core, single schema, dual driver) |
+| Auth | **next-auth v5** (Credentials + JWT + bcrypt) |
+| Cron | **Upstash QStash** prod / `setInterval` dev |
+| Push | Native Web Push (**VAPID**) + custom service worker |
 | Animasyon | Framer Motion |
 | İkon | lucide-react |
+| Deploy | **Vercel** + Neon |
 
-Lokal geliştirmede hiçbir credential ya da harici servis gerektirmez — tek komutla kurulur, çalışır.
+---
 
 ## Hızlı Başlangıç
 
+Lokal geliştirme **hiçbir credential** ya da harici servis gerektirmez. Tek komutla kurulup çalışır.
+
 ```bash
-# 1. Bağımlılıklar
+# 1. Klonla
+git clone https://github.com/ahmetakyapi/elevenforge
+cd elevenforge
+
+# 2. Bağımlılıklar
 npm install
 
-# 2. AUTH_SECRET üret, DB migrasyonları uygula, demo lig seed'le
+# 3. Env (sadece AUTH_SECRET; DB pglite ile lokal çalışır)
 cp .env.example .env.local
-openssl rand -base64 32  # bu değeri .env.local > AUTH_SECRET içine koy
+# .env.local içindeki AUTH_SECRET'a değer üret:
+echo "AUTH_SECRET=\"$(openssl rand -base64 32)\"" >> .env.local
+
+# 4. DB migrate + demo lig seed
 npm run db:migrate
 npm run db:seed
 
-# 3. Uygulama + arka plan cron
-npm run dev        # http://localhost:3000
-npm run cron:dev   # (ayrı terminal) oyun döngüsünü ilerletir
+# 5. Çalıştır
+npm run dev
+# → http://localhost:3000
 ```
 
-Demo giriş: `baran@elevenforge.app` / `eleven123`
+**Demo giriş:** `ahmet@elevenforge.app` / `eleven123` · davet kodu `AKYAPI`
+
+---
+
+## Production Deploy (Vercel + Neon)
+
+1. **Neon'da yeni proje aç** → connection string'i kopyala
+2. **Vercel'e import et** — GitHub repo'yu bağla
+3. **Vercel project settings → Environment Variables**:
+   ```
+   DATABASE_URL  = <Neon connection string, sslmode=require>
+   AUTH_SECRET   = <openssl rand -base64 32>
+   ```
+4. **Migration uygula** — terminal'de:
+   ```bash
+   DATABASE_URL="<...>" npm run db:migrate
+   DATABASE_URL="<...>" npm run db:seed   # opsiyonel demo veri
+   ```
+5. **Deploy** — push ettiğin her commit otomatik build alır.
+
+### Cron schedule (production)
+
+[Upstash QStash](https://upstash.com/qstash) free tier yeterli (10 schedule). Aşağıdaki endpoint'leri ekle:
+
+| Endpoint | Periyot |
+|----------|---------|
+| `POST /api/cron/match-day` | her gün, lig matchTime saatinde |
+| `POST /api/cron/transfer-bots` | saatte bir |
+| `POST /api/cron/price-decay` | 6 saatte bir |
+| `POST /api/cron/scout-returns` | 15 dk'da bir |
+| `POST /api/cron/training` | günde bir |
+| `POST /api/cron/newspaper` | match-day'den hemen sonra |
+| `POST /api/cron/economy` | haftada bir |
+
+Her birine `Authorization: Bearer <CRON_SECRET>` header ekle (env'e `CRON_SECRET` koy).
+
+### Web Push (opsiyonel)
+
+```bash
+npx web-push generate-vapid-keys
+# .env / Vercel env:
+NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."
+VAPID_PRIVATE_KEY="..."
+VAPID_SUBJECT="mailto:you@yourdomain.com"
+```
+
+iOS 16.4+ için kullanıcının PWA'yı Ana Ekran'a eklemesi gerekir.
+
+---
 
 ## Komutlar
 
 | Komut | İşlev |
-|-------|------|
+|-------|-------|
 | `npm run dev` | Next dev server (Turbopack) |
 | `npm run build` | Prod build |
 | `npm run lint` | ESLint |
-| `npm run db:generate` | Drizzle migration dosyası üretir (şema değişince) |
-| `npm run db:migrate` | Mevcut migration'ları uygular |
-| `npm run db:seed` | Demo lig + 16 kulüp + 320 oyuncu + fikstür seed'ler |
-| `npm run db:reset` | DB'yi komple silip sıfırdan migrate + seed yapar |
-| `npm run cron:dev` | Dev modunda tüm cron job'larını setInterval ile çalıştırır |
+| `npm run db:generate` | Drizzle migration üret (şema değişince) |
+| `npm run db:migrate` | Mevcut migration'ları uygula |
+| `npm run db:seed` | Demo lig + 16 kulüp + 320 oyuncu + fikstür |
+| `npm run db:reset` | DB'yi komple sıfırla |
+| `npm run cron:dev` | Dev cron runner (setInterval) |
+| `npx tsx scripts/test-full-season.ts` | E2E sezon testi (invariants + determinism) |
+| `npx tsx scripts/test-multiplayer.ts` | 10-kullanıcı concurrent multiplayer testi |
 
-## Veritabanı Stratejisi
-
-Tek şema (`lib/schema.ts`), iki driver:
-
-- **Lokal**: `@electric-sql/pglite` (in-process WASM Postgres, `./data/pgdata/` altında dosya-tabanlı). Network yok, credential yok, Docker yok.
-- **Production**: `@neondatabase/serverless` (Vercel + Neon). `DATABASE_URL` env'i setlenince otomatik bu driver aktif olur.
-
-Şema değişikliği:
-
-```bash
-# lib/schema.ts'i düzenle, sonra:
-npm run db:generate          # → drizzle/ altına yeni SQL dosyası
-npm run db:migrate           # uygular
-```
-
-### Neon'a geçiş
-
-1. [Neon](https://neon.tech)'da yeni proje aç
-2. Connection string'i al: `postgres://...@...neon.tech/...?sslmode=require`
-3. Vercel'e deploy ediyorsan Vercel'in Neon integration'ı ile otomatik set olur, yoksa `.env.local` veya Vercel dashboard'a ekle:
-   ```
-   DATABASE_URL="postgres://..."
-   ```
-4. `npm run db:migrate` (artık Neon'a koşar)
-5. `npm run db:seed` (opsiyonel — demo veriyi Neon'a seed'ler)
-
-## Cron Job'ları
-
-Oyun döngüsü şu tetiklerle ilerler:
-
-| Job | Dev (cron-dev) | Production (önerilen) |
-|-----|---------------|----------------------|
-| `match-day` | 5 dk | günde 1 kere, lig maç saatinde |
-| `transfer-bots` | 10 dk | saatte bir |
-| `price-decay` | 30 dk | 6 saatte bir |
-| `scout-returns` | 2 dk | 15 dk'da bir |
-| `training` | 12 saat | günde 1 kere |
-| `newspaper` | 10 dk | `match-day`'den hemen sonra |
-| `economy` | 6 saat | haftada 1 kere |
-
-Her biri `POST /api/cron/<job>` endpoint'ine map'lenir. `CRON_SECRET` setlendiğinde `Authorization: Bearer <secret>` zorunlu olur.
-
-### Upstash QStash ile kurulum (production)
-
-1. [Upstash QStash](https://upstash.com/qstash) free tier (10 schedule) yeterli
-2. `.env.local`:
-   ```
-   QSTASH_TOKEN="..."
-   CRON_SECRET="$(openssl rand -base64 32)"
-   ```
-3. QStash dashboard'da 7 schedule kaydet (her biri `POST https://<app>/api/cron/<job>`, header `Authorization: Bearer <CRON_SECRET>`)
-
-### Dev modda manuel tetikleme
-
-```bash
-curl -X POST http://localhost:3000/api/cron/match-day
-curl -X POST http://localhost:3000/api/cron/transfer-bots
-```
-
-Veya Dashboard'daki **"Sıradaki Haftayı Oyna"** butonu: hemen bir haftayı simüle eder + gazete üretir.
-
-## Web Push (opsiyonel)
-
-```bash
-npx web-push generate-vapid-keys
-# public + private anahtarı .env.local'a ekle:
-#   NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."
-#   VAPID_PRIVATE_KEY="..."
-#   VAPID_SUBJECT="mailto:ahmet@elevenforge.app"
-```
-
-Sonra client tarafında `navigator.serviceWorker.register('/sw.js')` + `POST /api/push/subscribe`. iOS 16.4+ için PWA'yı Ana Ekran'a eklemek gerekir.
+---
 
 ## Proje Yapısı
 
 ```
 app/
-├── (app)/                  giriş yapmış kullanıcılara açık (TopNav + bottom nav)
-│   ├── dashboard/          canlı DB: standings, feed, next fixture, play-button
-│   ├── squad/              kadro
-│   ├── transfer/           AL/SAT + buy/sell/scout server actions
-│   ├── tactic/             taktik board (drag-drop)
-│   ├── match/              canlı maç + AI anlatım
-│   ├── newspaper/          kapak + TOTW + basın odası
-│   ├── crew/               chat + global feed
-│   └── lobby/              lig kurulum wizard
-├── (auth)/                 login/register
+├── (app)/                  giriş yapmış kullanıcılar
+│   ├── dashboard/          board + sponsor + staff + upgrade widgets
+│   ├── squad/              kadro + compare + 4-slot training
+│   ├── transfer/           buy/sell/loan/auto-bid + scout
+│   ├── tactic/             6 formasyon + 7 preset + sub plan
+│   ├── match/              canlı maç + AI Türkçe anlatım
+│   ├── newspaper/          haftalık kapak + TOTW
+│   ├── crew/               chat (5sn polling) + global feed
+│   ├── lobby/              create / join wizard
+│   ├── cup/                tek-eleme bracket görünümü
+│   ├── free-agents/        sözleşmesi biten oyuncular
+│   └── league-settings/    commissioner edits
+├── (auth)/                 login + register (invite code support)
 ├── api/
-│   ├── auth/[...nextauth]/ next-auth handlers
+│   ├── auth/[...nextauth]/
 │   ├── cron/<job>/         7 cron webhook endpoint
 │   └── push/subscribe/     web push abonelik
 └── page.tsx                landing
 components/
-├── ui/                     primitives (Crest, OvrChip, GlassCard, ...)
-├── brand/                  logo variants
-├── layout/                 TopNav + MobileBottomNav
-└── auth/                   pitch pattern side
+├── ui/                     primitives (Crest, OvrChip, GlassCard, Toast)
+├── brand/                  logo
+├── layout/                 TopNav + MobileBottomNav + FooterCredit
+├── auth/                   pitch pattern side
+└── push-subscribe.tsx      one-tap notification opt-in
 lib/
-├── schema.ts               drizzle pg-core (13 tablo)
-├── db.ts                   pglite/neon driver auto-select
-├── session.ts              auth + league context helper
-├── queries/                server-side data loaders (dashboard, transfer, ...)
-├── engine/                 maç simülasyon motoru + commentary + TOTW
-├── jobs/                   match-day, transfer-bots, price-decay, scout, training, newspaper
-├── cron/                   webhook verify
-├── push.ts                 web push helper
-└── utils.ts                fmtEUR, tierColor, NAT_FLAGS, ...
+├── schema.ts               drizzle pg-core (16 tablo)
+├── db.ts                   lazy proxy pglite/neon driver auto-select
+├── session.ts              auth + multi-league context
+├── match-time.ts           "HH:MM" parser
+├── sponsors.ts             sponsor catalogue
+├── staff.ts                staff catalogue + tier effects
+├── push.ts / push-dispatch.ts
+├── queries/                server data loaders (dashboard, transfer, cup, ...)
+├── engine/                 maç simülasyon + commentary + TOTW
+├── jobs/                   match-day, season, cup, training, board, achievements, ...
+└── cron/                   webhook signature verify
 scripts/
-├── migrate.ts              drizzle migrator (pglite veya neon)
-├── seed.ts                 demo lig + kulüpler + oyuncular + fikstür
-├── cron-dev.ts             local cron runner
-├── simulate-matchday.ts    hemen bir hafta oyna (test)
-└── inspect.ts              DB durumunu konsola bas (debug)
-auth.ts                     next-auth v5 config
-proxy.ts                    route protection (Next 16 convention)
-drizzle.config.ts
+├── migrate.ts / seed.ts / cron-dev.ts
+├── test-full-season.ts     E2E + determinism check
+└── test-multiplayer.ts     10-user concurrency check
+auth.ts · proxy.ts · drizzle.config.ts
 ```
 
-## Oyun Döngüsü
+---
 
-1. **Kayıt ol** → Takım adı seç, kasa €45M ile başla
-2. **Davet linkiyle katıl** veya **yeni lig kur**
-3. **Dashboard** — sıradaki maçın ne zaman olduğunu gör, lig tablosunda yerini takip et
-4. **Taktik** → diziliş + mentality + pressing + tempo ayarı
-5. **Transfer pazarı** → listelenen oyuncuları satın al, kendi oyuncunu listele, kaşif gönder
-6. **Maç saati geldi** — otomatik simüle olur (QStash) veya **"Sıradaki Haftayı Oyna"** butonuyla manual tetikle
-7. **Sonuçları canlı anlatımla izle**
-8. **Gazete** yayınlanır — haftanın 11'i, gol krallığı, basın odası
-9. **Crew chat'te** arkadaşlarınla derbi konuş, global feed'te evrendeki tüm transferleri gör
+## Test stratejisi
 
-## V1 Durumu
+İki uçtan-uca test betiği koşar:
 
-**Tam çalışan (server + UI + DB)**:
-- ✅ Email/şifre kayıt + login (next-auth v5 + bcrypt + JWT session)
-- ✅ Route koruma (proxy.ts)
-- ✅ Landing, Login, Register, Lobby UI
-- ✅ **Dashboard** — gerçek DB: standings, next fixture, feed, club state, "Play Next Round"
-- ✅ 13 tablolu Postgres şeması
-- ✅ Maç simülasyon motoru — formation + OVR + home advantage + derby bonus
-- ✅ AI commentary generator (template-based Turkish)
-- ✅ TOTW + gazete generator (DB'ye yazıyor)
-- ✅ Transfer bot AI (hourly purchases + listing replenishment)
-- ✅ Price decay (6 saatte bir %8, taban %20)
-- ✅ Scout mechanic (8 saat sonra geri döner)
-- ✅ Training + fitness regen + injury recovery
-- ✅ Ekonomi loop (hafta gelir + banka faizi + maaş)
-- ✅ 7 cron endpoint + dev runner + manual trigger
-- ✅ Transfer server actions — `buyListing`, `listPlayer`, `removeListing`, `sendScoutAction` gerçek DB'ye yazıyor
-- ✅ Web push scaffold (VAPID + service worker + subscribe route)
+```bash
+npx tsx scripts/test-full-season.ts
+# → 2 sezon simüle eder, doğrular:
+#   - cached W/D/L/GF/GA == finished fixtures'tan türetilen
+#   - puan = W*3 + D her takım için
+#   - ΣW = ΣL ve ΣGF = ΣGA (zero-sum lig)
+#   - aynı seed ile fixture replay → aynı skor (determinism)
+#   - genç oyuncu antrenmanda gerçekten gelişiyor
 
-**V1.1 backlog (kozmetik UI ↔ DB bağlantıları)**:
-- Squad ekranı — görsel olarak hazır ama henüz `lib/mock-data`'dan okuyor; `lib/queries/squad.ts` ekle + Server Component'e çevir
-- Transfer ekranı — UI mock, server actions gerçek DB'ye yazıyor; visual'ı da `lib/queries/transfer.ts`'e bağla
-- Match canlı ekranı — son oynanmış maçın `commentaryJson`'u ekrana akıtılmalı
-- Newspaper — DB'deki en son `newspapers` satırı cover'a map'lenmeli
-- Crew chat — mesajlar DB'ye yazılmalı + SSE ile real-time
-- Tactic — kaydettiğin dizilişi `clubs.formation/mentality/pressing/tempo`'ya yaz
-- Tweaks paneli (theme/accent toggle)
-- Proper landing hero (şu an basit)
+npx tsx scripts/test-multiplayer.ts
+# → 10 kullanıcı, 1 lig, eşzamanlı join + race scenarios:
+#   - 9 paralel join → tüm kulüpler benzersiz claim
+#   - 10 aynı listing'e race → 1 kazanır (optimistic lock)
+#   - duplicate-join blocked
+#   - 8 farklı bot tactic personality
+```
 
-Dashboard + play-next-round akışı + tüm server actions + cron + match engine + newspapers tam çalışıyor; diğer ekranlar görseli koruyor ama bazı veri kısımları mock'ta. V1.1'de yukarıdaki bullet'lar ekrana akar.
+---
 
-## Kaynak & Referans
+## Veritabanı stratejisi
 
-- `design-brief.md` — Claude Design için orijinal görsel spec
-- `design-reference/` — prototipin HTML/React kaynak kodu (read-only)
-- `node_modules/next/dist/docs/` — version-matched Next.js 16 docs (AGENTS.md konvansiyonu)
+Tek `lib/schema.ts`, iki driver:
+
+- **Lokal**: `@electric-sql/pglite` — in-process WASM Postgres, `./data/pgdata/` altında dosya. Network/credential/Docker yok.
+- **Production**: `@neondatabase/serverless` — Vercel-ready, autoscale-to-zero. `DATABASE_URL` set olunca otomatik aktif.
+
+`lib/db.ts` lazy proxy kullanır — DB ilk query'de oluşturulur, build sırasında değil. Vercel build, `DATABASE_URL` olmadan da derlenir.
+
+Şema değiştirdiğinde:
+
+```bash
+# lib/schema.ts'i düzenle
+npm run db:generate    # → drizzle/ altına yeni SQL
+npm run db:migrate     # uygular
+```
+
+---
+
+## Mimari notlar
+
+- **Server actions everywhere** — neredeyse tüm mutation'lar Next 16 server actions; client tarafında sadece UI state.
+- **Race condition guards** — transfer purchase, free-agent sign, bot-club claim hepsinde optimistic UPDATE...WHERE pattern.
+- **Atomic balance updates** — sql template tag ile `balance = balance - X`, read-then-write yarış yok.
+- **Deterministic match seeding** — `fixtures.rngSeed` persist; FNV-1a hash from fixture UUID; replay tutarlı.
+- **Auto-refresh sustainability** — sadece `visibilitychange === "visible"` iken polling; backgrounded'de duruyor.
+- **Lazy DB init** — `lib/db.ts` Proxy ile gerçek connection ilk kullanımda oluşturulur; build crash yok.
+- **Idempotent operations** — invite code retry, achievements (clubId+code+season unique), spy (fromClubId+fixtureId unique), cup bracket generate.
+
+---
+
+## Yol haritası (V7+)
+
+- [ ] In-match sub UI (engine hazır, sadece tactic sayfasında set ekranı eksik)
+- [ ] Auto-bid UI (action var, transfer kartına buton eklenecek)
+- [ ] Loan UI (buton eklenecek)
+- [ ] AI Türkçe TTS commentary
+- [ ] Manager mood engine (basın açıklaması, takım moralini etkiler)
+- [ ] Replay share card (PNG export)
+- [ ] Dynamic club history wiki
+- [ ] Rival watch (rakibinin transferleri için bildirim)
+
+---
 
 ## Lisans
 
 Kişisel proje. Tüm haklar saklı.
+
+---
+
+<div align="center">
+
+**Made by [Ahmet Akyapı](https://github.com/ahmetakyapi)**
+
+⚡ Built with Claude Code (Sonnet/Opus 4.7)
+
+</div>
