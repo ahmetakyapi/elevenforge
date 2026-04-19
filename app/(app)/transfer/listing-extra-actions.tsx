@@ -1,10 +1,11 @@
 "use client";
 
-import { Bookmark, ArrowDownToLine } from "lucide-react";
+import { Bookmark as BidBookmark, ArrowDownToLine } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useToast } from "@/components/ui/toast";
 import { placeAutoBid } from "./auto-bid-actions";
 import { loanPlayer } from "./loan-actions";
+import { WishlistToggle } from "./wishlist-toggle";
 
 /**
  * Auto-bid + loan quick actions on an expanded listing card. Loan button
@@ -19,11 +20,13 @@ export function ListingExtraActions({
   playerId,
   priceEur,
   marketValueEur,
+  watching = false,
 }: {
   listingId: string;
   playerId: string;
   priceEur: number;
   marketValueEur: number;
+  watching?: boolean;
 }) {
   const loanFeeEur = Math.round(marketValueEur * 0.2);
   const [bidOpen, setBidOpen] = useState(false);
@@ -107,7 +110,7 @@ export function ListingExtraActions({
           title="Max fiyat ayarla — düşünce otomatik alınır"
           style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
         >
-          <Bookmark size={12} strokeWidth={1.6} />
+          <BidBookmark size={12} strokeWidth={1.6} />
           Auto-bid
         </button>
       ) : (
@@ -147,6 +150,7 @@ export function ListingExtraActions({
           </button>
         </div>
       )}
+      <WishlistToggle playerId={playerId} initial={watching} />
       <span style={{ flex: 1 }} />
       <span style={{ fontSize: 11, color: "var(--muted)" }}>
         Kira ücreti: €{(loanFeeEur / 1_000_000).toFixed(1)}M · 30 gün

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ArrowLeftRight,
+  BarChart2,
   Bell,
   Home,
   ListOrdered,
@@ -13,6 +14,7 @@ import {
   Settings,
   Target,
   Trophy,
+  User2,
   Users,
   UserPlus,
   type LucideIcon,
@@ -163,16 +165,32 @@ export function TopNav({
             </span>
           </Link>
           <Link
+            href="/stats"
+            className="btn btn-ghost btn-sm desktop-only"
+            style={{ textDecoration: "none" }}
+            title="İstatistikler"
+          >
+            <BarChart2 size={14} strokeWidth={1.6} />
+          </Link>
+          <Link
             href="/free-agents"
-            className="btn btn-ghost btn-sm"
+            className="btn btn-ghost btn-sm desktop-only"
             style={{ textDecoration: "none" }}
             title="Serbest oyuncular"
           >
             <UserPlus size={14} strokeWidth={1.6} />
           </Link>
           <Link
+            href="/profile"
+            className="btn btn-ghost btn-sm desktop-only"
+            style={{ textDecoration: "none" }}
+            title="Menajer profili"
+          >
+            <User2 size={14} strokeWidth={1.6} />
+          </Link>
+          <Link
             href="/league-settings"
-            className="btn btn-ghost btn-sm"
+            className="btn btn-ghost btn-sm desktop-only"
             style={{ textDecoration: "none" }}
             title="Lig ayarları"
           >

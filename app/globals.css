@@ -232,3 +232,54 @@ body {
 @media (min-width: 900px) {
   .mobile-only { display: none !important; }
 }
+
+/* ───────────────────────────────────────────────────────────────
+   Authenticated app pages — mobile responsiveness layer.
+   Pages were built desktop-first with inline styles (`padding: "20px 28px"`,
+   2-col grids). Browsers serialize React inline styles WITHOUT the quotes,
+   so attribute selectors target the de-quoted form (e.g. "1fr 1fr").
+   Sledgehammer rules below cover the common cases without touching each
+   page individually.
+─────────────────────────────────────────────────────────────── */
+@media (max-width: 760px) {
+  body main, body section, body article { word-break: break-word; }
+
+  /* Common grid splits used across the app pages */
+  [style*="grid-template-columns: 1fr 1fr"],
+  [style*="grid-template-columns:1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+  [style*="grid-template-columns: repeat(4"],
+  [style*="grid-template-columns:repeat(4"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  [style*="grid-template-columns: repeat(3"],
+  [style*="grid-template-columns:repeat(3"] {
+    grid-template-columns: 1fr !important;
+  }
+  /* 1.1fr 1fr / 1.2fr 1fr / 2fr 1fr 1fr 1fr footer */
+  [style*="grid-template-columns: 1.1fr 1fr"],
+  [style*="grid-template-columns: 1.2fr 1fr"],
+  [style*="grid-template-columns: 2fr 1fr 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Tighten the app container padding */
+  [style*="padding: 20px 28px"] {
+    padding: 14px 14px 80px !important;
+  }
+
+  /* Headlines too big at desktop sizes on phones */
+  .t-h1 { font-size: 26px !important; line-height: 1.15 !important; }
+  .t-h2 { font-size: 20px !important; }
+  .t-h3 { font-size: 16px !important; }
+
+  /* Footer credit row wraps */
+  footer { flex-wrap: wrap !important; padding: 20px 14px !important; }
+
+  /* Bottom nav fixed (~60px); pad body bottom so content doesn't hide */
+  body { padding-bottom: 70px; }
+
+  /* TopNav right-side cluster: stack tighter, hide labels */
+  header [class*="t-mono"] { font-size: 11px !important; }
+}

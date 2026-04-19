@@ -114,6 +114,13 @@ export default function LandingUi() {
           [data-lp-hide-mobile] { display: none !important; }
           [data-lp-nav] { padding: 12px 14px !important; }
           [data-lp-nav-links] { display: none !important; }
+          [data-lp-orbit] {
+            max-width: min(100%, 320px) !important;
+            transform: scale(0.72) !important;
+            transform-origin: center !important;
+            margin-top: -40px !important;
+            margin-bottom: -40px !important;
+          }
         }
         @keyframes scroll-hint { 0%{opacity:0;transform:translateY(0);} 40%{opacity:1;} 100%{opacity:0;transform:translateY(10px);} }
         @keyframes formSwap { 0%{opacity:0;transform:translateY(-4px);} 100%{opacity:1;transform:translateY(0);} }
@@ -869,8 +876,8 @@ function CrewSection() {
           <div style={{ display: "flex", gap: 18, marginTop: 26 }}>
             {[
               ["16", "takım"],
-              ["4×4", "slot"],
-              ["2×", "derbi"],
+              ["10", "kişi + 6 bot"],
+              ["7", "preset"],
             ].map(([v, l]) => (
               <div key={l}>
                 <div
@@ -891,6 +898,7 @@ function CrewSection() {
           </div>
         </div>
         <div
+          data-lp-orbit
           style={{
             position: "relative",
             aspectRatio: "1/1",
@@ -899,6 +907,7 @@ function CrewSection() {
             opacity: on ? 1 : 0,
             transform: on ? "scale(1)" : "scale(0.9)",
             transition: "all 900ms var(--ease)",
+            overflow: "hidden",
           }}
         >
           <OrbitRing clubs={CLUBS.slice(0, 8)} radius={220} duration={40} y={y} />

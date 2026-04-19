@@ -19,6 +19,7 @@ import { StaffWidget } from "./staff-widget";
 import { UpgradeWidget } from "./upgrade-widget";
 import { AchievementsStrip } from "./achievements-strip";
 import { PressWidget } from "./press-widget";
+import { ExpiringContractsCard } from "./expiring-contracts";
 import { DashboardAutoRefresh } from "@/components/dashboard-auto-refresh";
 import { PushSubscribeButton } from "@/components/push-subscribe";
 import type { BoardGoal } from "@/lib/jobs/board";
@@ -88,6 +89,7 @@ export default async function DashboardPage() {
         />
       </div>
       <PressWidget />
+      <ExpiringContractsCard clubId={ctx.club.id} />
       {/* Top ribbon */}
       <div
         style={{

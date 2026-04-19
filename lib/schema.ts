@@ -621,3 +621,26 @@ export const pressConferences = pgTable(
 );
 
 export type PressConference = typeof pressConferences.$inferSelect;
+
+// ─── Transfer wishlist ─────────────────────────────────────────
+// Per-club bookmark of player ids the user is watching. Used to filter
+// the transfer market down to favorites + show a watching badge on
+// listings.
+export const transferWishlist = pgTable(
+  "transfer_wishlist",
+  {
+    clubId: uuid("club_id")
+      .notNull()
+      .references(() => clubs.id, { onDelete: "cascade" }),
+    playerId: uuid("player_id")
+      .notNull()
+      .references(() => players.id, { onDelete: "cascade" }),
+    addedAt: createdAt(),
+  },
+  (t) => [
+    unique("wishlist_unique").on(t.clubId, t.playerId),
+    index("wishlist_club_idx").on(t.clubId),
+  ],
+);
+
+export type WishlistRow = typeof transferWishlist.$inferSelect;

@@ -53,6 +53,7 @@ export default function RegisterPage() {
 
   return (
     <div
+      data-auth-shell
       style={{
         maxWidth: 1100,
         margin: "0 auto",
@@ -63,6 +64,7 @@ export default function RegisterPage() {
       }}
     >
       <div
+        data-auth-grid
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
@@ -71,10 +73,13 @@ export default function RegisterPage() {
           minHeight: 600,
         }}
       >
-        <PitchPatternSide />
+        <div data-auth-art>
+          <PitchPatternSide />
+        </div>
         <GlassCard
           pad={36}
           hover={false}
+          className="auth-card"
           style={{
             display: "flex",
             flexDirection: "column",

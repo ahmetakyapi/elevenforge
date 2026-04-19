@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   ArrowLeftRight,
+  BarChart2,
   Bell,
   Home,
   ListOrdered,
@@ -15,6 +16,7 @@ import {
   Settings,
   Target,
   Trophy,
+  User2,
   Users,
   UserPlus,
   X,
@@ -32,8 +34,10 @@ const ITEMS: Item[] = [
   { href: "/match", label: "Maç", Icon: Play },
   { href: "/cup", label: "Kupa", Icon: Trophy },
   { href: "/standings", label: "Puan Durumu", Icon: ListOrdered },
+  { href: "/stats", label: "İstatistik", Icon: BarChart2 },
   { href: "/newspaper", label: "Gazete", Icon: Newspaper },
   { href: "/crew", label: "Crew", Icon: MessageSquare },
+  { href: "/profile", label: "Profil", Icon: User2 },
   { href: "/league-settings", label: "Ayarlar", Icon: Settings },
 ];
 

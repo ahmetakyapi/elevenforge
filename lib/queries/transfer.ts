@@ -6,6 +6,7 @@ import {
   scouts,
   transferHistory,
   transferListings,
+  transferWishlist,
 } from "@/lib/schema";
 import type { LeagueContext } from "@/lib/session";
 
@@ -29,6 +30,8 @@ export type TransferListingView = {
   sellerClubId: string | null;
   sellerClubName: string | null;
   trending: boolean;
+  /** True if the user's club has bookmarked this player (wishlist). */
+  watching: boolean;
 };
 
 export type GlobalTransferView = {
@@ -145,6 +148,13 @@ export async function loadTransferData(
       : [];
   const sellerClubMap = new Map(sellerClubs.flat().map((c) => [c.id, c]));
 
+  // Pull this club's wishlist set so listings render with watching state.
+  const wishlistRows = await db
+    .select({ playerId: transferWishlist.playerId })
+    .from(transferWishlist)
+    .where(eq(transferWishlist.clubId, club.id));
+  const watchingSet = new Set(wishlistRows.map((w) => w.playerId));
+
   const now = Date.now();
   const listings: TransferListingView[] = listingRows
     // don't show user's own listings in buy feed
@@ -180,6 +190,7 @@ export async function loadTransferData(
         sellerClubId: r.listing.sellerClubId,
         sellerClubName: sellerClub?.name ?? null,
         trending,
+        watching: watchingSet.has(r.player.id),
       };
     });
 
