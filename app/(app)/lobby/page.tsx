@@ -188,7 +188,12 @@ function CreateWizard({
 
   const handleCreate = () => {
     startTransition(async () => {
-      const res = await createNewLeague({ teamName: name });
+      const res = await createNewLeague({
+        teamName: name,
+        matchTime: time,
+        visibility: vis,
+        accentColor: color,
+      });
       if (!res.ok) {
         toast({
           icon: "⚠",
@@ -297,30 +302,44 @@ function CreateWizard({
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <div>
               <span className="t-label">Sezon uzunluğu</span>
-              <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-                {[4, 5, 6].map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    className={`chip ${len === v ? "active" : ""}`}
-                    onClick={() => setLen(v)}
-                    style={{
-                      padding: "10px 20px",
-                      fontSize: 14,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {v} hafta
-                  </button>
-                ))}
+              <div
+                style={{
+                  marginTop: 10,
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  background: "color-mix(in oklab, var(--panel-2) 60%, transparent)",
+                  border: "1px solid var(--border)",
+                  fontSize: 13,
+                  color: "var(--muted)",
+                }}
+              >
+                <strong style={{ color: "var(--text)" }}>15 hafta</strong> · 16
+                takım tek-eleme round-robin (her takım birbiriyle 1 kere oynar)
+                + paralel 4 round'luk kupa.
               </div>
             </div>
             <Field label="Maç saati (her gün)">
               <input
                 className="input"
+                type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
+                style={{
+                  fontFamily: "var(--font-jetbrains, monospace)",
+                  maxWidth: 160,
+                }}
               />
+              <span
+                style={{
+                  fontSize: 12,
+                  color: "var(--muted)",
+                  marginTop: 6,
+                  display: "block",
+                }}
+              >
+                Her gün bu saatte cron tetiklenip o günün fikstürlerini oynar.
+                Manuel oynatmayı sezon başladıktan sonra açabilirsin.
+              </span>
             </Field>
           </div>
         )}

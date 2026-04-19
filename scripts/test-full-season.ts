@@ -109,6 +109,50 @@ async function snapshot(leagueId: string, season: number): Promise<Snapshot> {
   };
 }
 
+function checkFixtureCoverage(
+  finished: Array<{ id: string; weekNumber: number; homeClubId: string; awayClubId: string }>,
+  expectedTotal: number,
+  label: string,
+): number {
+  let bad = 0;
+  if (finished.length !== expectedTotal) {
+    console.error(
+      `  ✗ [${label}] expected ${expectedTotal} fixtures, finished ${finished.length}`,
+    );
+    bad++;
+  }
+  // Each (home, away) pair should appear at most once per season.
+  const seen = new Set<string>();
+  for (const f of finished) {
+    const key = `${f.homeClubId}|${f.awayClubId}`;
+    if (seen.has(key)) {
+      console.error(`  ✗ [${label}] duplicate fixture ${key}`);
+      bad++;
+    }
+    seen.add(key);
+  }
+  // Every team should play exactly N-1 = 15 games (8 home + 8 away in a
+  // 16-team single round-robin... wait, 15 = 7 or 8 each side depending
+  // on draw). What's invariant is total appearances = 30 per club / 2.
+  const appearances = new Map<string, number>();
+  for (const f of finished) {
+    appearances.set(f.homeClubId, (appearances.get(f.homeClubId) ?? 0) + 1);
+    appearances.set(f.awayClubId, (appearances.get(f.awayClubId) ?? 0) + 1);
+  }
+  for (const [clubId, count] of appearances) {
+    if (count !== 15) {
+      console.error(`  ✗ [${label}] ${clubId.slice(0, 8)} played ${count} games (expected 15)`);
+      bad++;
+    }
+  }
+  if (bad === 0) {
+    console.log(
+      `  [${label}] coverage ✓ — ${finished.length} fixtures, every team played 15 games`,
+    );
+  }
+  return bad;
+}
+
 function checkSnapshotInvariants(snap: Snapshot, label: string): number {
   let bad = 0;
   for (const c of snap.clubs) {
@@ -351,15 +395,53 @@ async function main() {
 
   let totalBad = 0;
 
+  // Capture starting season number BEFORE play, for fixture-coverage
+  const [lgPre] = await db.select().from(leagues).where(eq(leagues.id, leagueId));
+  const startSeason = lgPre.seasonNumber;
+
   console.log("\n=== Season 1 ===");
   const s1 = await playUntilSeasonEnd(leagueId, "S1");
   totalBad += checkSnapshotInvariants(s1, "S1 final");
   totalBad += await checkPlayerEvolution(leagueId, "S1 end");
+  // Coverage: every fixture for season N played exactly once, every club
+  // played 15 games (single round-robin).
+  const s1Fix = await db
+    .select({
+      id: fixtures.id,
+      weekNumber: fixtures.weekNumber,
+      homeClubId: fixtures.homeClubId,
+      awayClubId: fixtures.awayClubId,
+    })
+    .from(fixtures)
+    .where(
+      and(
+        eq(fixtures.leagueId, leagueId),
+        eq(fixtures.seasonNumber, startSeason),
+        eq(fixtures.status, "finished"),
+      ),
+    );
+  totalBad += checkFixtureCoverage(s1Fix, 120, "S1 coverage");
 
   console.log("\n=== Season 2 (auto-rolled) ===");
   const s2 = await playUntilSeasonEnd(leagueId, "S2");
   totalBad += checkSnapshotInvariants(s2, "S2 final");
   totalBad += await checkPlayerEvolution(leagueId, "S2 end");
+  const s2Fix = await db
+    .select({
+      id: fixtures.id,
+      weekNumber: fixtures.weekNumber,
+      homeClubId: fixtures.homeClubId,
+      awayClubId: fixtures.awayClubId,
+    })
+    .from(fixtures)
+    .where(
+      and(
+        eq(fixtures.leagueId, leagueId),
+        eq(fixtures.seasonNumber, startSeason + 1),
+        eq(fixtures.status, "finished"),
+      ),
+    );
+  totalBad += checkFixtureCoverage(s2Fix, 120, "S2 coverage");
 
   console.log("\n=== Determinism check ===");
   totalBad += await checkDeterminism(leagueId);

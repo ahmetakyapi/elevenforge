@@ -1,0 +1,1 @@
+ALTER TABLE "leagues" ADD COLUMN "manual_advance_enabled" boolean DEFAULT false NOT NULL;

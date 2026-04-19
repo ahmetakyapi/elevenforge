@@ -178,10 +178,13 @@ export async function runMatchDay(opts: {
     // Cup ties scheduled for today, if any.
     await runCupRound({ leagueId }).catch(() => {});
 
-    // Bump league week number
+    // Bump league week number by however many *distinct* weeks we just
+    // played. If the cron missed a day and processed weeks 6+7 in one go,
+    // weekNumber should jump from 5 → 7, not 5 → 6.
+    const weeksPlayed = new Set(leagueFixtures.map((f) => f.weekNumber)).size;
     await db
       .update(leagues)
-      .set({ weekNumber: leagueRow.weekNumber + 1 })
+      .set({ weekNumber: leagueRow.weekNumber + weeksPlayed })
       .where(eq(leagues.id, leagueId));
 
     // If we just played the last scheduled round, roll into next season

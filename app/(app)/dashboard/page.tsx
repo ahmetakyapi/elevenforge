@@ -20,6 +20,7 @@ import { UpgradeWidget } from "./upgrade-widget";
 import { AchievementsStrip } from "./achievements-strip";
 import { PressWidget } from "./press-widget";
 import { ExpiringContractsCard } from "./expiring-contracts";
+import { AutoPlayBanner } from "./auto-play-banner";
 import { DashboardAutoRefresh } from "@/components/dashboard-auto-refresh";
 import { PushSubscribeButton } from "@/components/push-subscribe";
 import type { BoardGoal } from "@/lib/jobs/board";
@@ -47,6 +48,12 @@ export default async function DashboardPage() {
       }}
     >
       <DashboardAutoRefresh intervalMs={30_000} />
+      <AutoPlayBanner
+        matchTime={ctx.league.matchTime}
+        manualAdvance={ctx.league.manualAdvanceEnabled}
+        isCommissioner={ctx.isCommissioner}
+        nextFixtureMs={d.nextFixture?.scheduledAtMs ?? null}
+      />
       <AchievementsStrip badges={badges} />
       <div
         style={{
@@ -336,7 +343,9 @@ export default async function DashboardPage() {
                 Taktik Hazırla <ChevronRight size={14} strokeWidth={1.6} />
               </Link>
               <SpyButton />
-              {ctx.isCommissioner && <PlayNextRoundButton />}
+              {ctx.league.manualAdvanceEnabled && ctx.isCommissioner && (
+                <PlayNextRoundButton />
+              )}
             </div>
           </div>
           <div

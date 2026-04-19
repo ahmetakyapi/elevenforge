@@ -18,14 +18,29 @@ export async function joinByInvite(input: { inviteCode: string }) {
   return result;
 }
 
-export async function createNewLeague(input: { teamName: string }) {
+export async function createNewLeague(input: {
+  teamName: string;
+  matchTime?: string;
+  visibility?: "private" | "public";
+  accentColor?: string;
+}) {
   const userId = await getSessionUserId();
   if (!userId) return { ok: false as const, error: "Oturum yok." };
   const teamName = input.teamName.trim();
   if (teamName.length < 2) {
     return { ok: false as const, error: "Takım adı çok kısa." };
   }
-  const fresh = await createStarterLeague({ userId, teamName });
+  const matchTime = input.matchTime ?? "21:00";
+  if (!/^\d{1,2}:\d{2}$/.test(matchTime)) {
+    return { ok: false as const, error: "Geçersiz maç saati (HH:MM)." };
+  }
+  const fresh = await createStarterLeague({
+    userId,
+    teamName,
+    matchTime,
+    visibility: input.visibility,
+    accentColor: input.accentColor,
+  });
   revalidatePath("/dashboard");
   revalidatePath("/lobby");
   return { ok: true as const, ...fresh };

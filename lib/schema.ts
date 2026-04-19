@@ -121,6 +121,12 @@ export const leagues = pgTable("leagues", {
   commissionerOnlyAdvance: boolean("commissioner_only_advance")
     .notNull()
     .default(true),
+  // When true, dashboard shows a "Sıradaki Haftayı Oyna" button (still gated by
+  // commissionerOnlyAdvance). When false (default), matches ONLY play via the
+  // daily cron at the league's matchTime — no manual override at all.
+  manualAdvanceEnabled: boolean("manual_advance_enabled")
+    .notNull()
+    .default(false),
   createdAt: createdAt(),
 });
 

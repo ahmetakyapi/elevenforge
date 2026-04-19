@@ -12,11 +12,13 @@ export function LeagueSettingsForm({
     matchTime: string;
     visibility: "private" | "public";
     commissionerOnlyAdvance: boolean;
+    manualAdvanceEnabled: boolean;
   };
 }) {
   const [matchTime, setMatchTime] = useState(initial.matchTime);
   const [visibility, setVisibility] = useState(initial.visibility);
   const [commOnly, setCommOnly] = useState(initial.commissionerOnlyAdvance);
+  const [manualAdvance, setManualAdvance] = useState(initial.manualAdvanceEnabled);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const toast = useToast();
@@ -24,7 +26,8 @@ export function LeagueSettingsForm({
   const dirty =
     matchTime !== initial.matchTime ||
     visibility !== initial.visibility ||
-    commOnly !== initial.commissionerOnlyAdvance;
+    commOnly !== initial.commissionerOnlyAdvance ||
+    manualAdvance !== initial.manualAdvanceEnabled;
 
   const save = () => {
     startTransition(async () => {
@@ -32,6 +35,7 @@ export function LeagueSettingsForm({
         matchTime,
         visibility,
         commissionerOnlyAdvance: commOnly,
+        manualAdvanceEnabled: manualAdvance,
       });
       if (!res.ok) {
         toast({ icon: "⚠", title: "Kaydedilemedi", body: res.error, accent: "var(--danger)" });
@@ -88,8 +92,26 @@ export function LeagueSettingsForm({
       </Field>
 
       <Field
-        label="Hafta ileri sarma"
-        desc="Açıkken sadece kurucu sıradaki haftayı oynatabilir; kapalı bırakırsan herhangi bir kullanıcı tetikleyebilir."
+        label="Manuel oynatma butonu"
+        desc="Varsayılan kapalı. Açtığında dashboard'da Sıradaki Haftayı Oyna butonu çıkar (test/hızlı tur için). Normalde maçlar her gün belirlenen saatte cron ile otomatik oynanır."
+      >
+        <div style={{ display: "flex", gap: 8 }}>
+          <Pill
+            active={!manualAdvance}
+            onClick={() => setManualAdvance(false)}
+            label="Kapalı (sadece otomatik)"
+          />
+          <Pill
+            active={manualAdvance}
+            onClick={() => setManualAdvance(true)}
+            label="Açık (manuel + otomatik)"
+          />
+        </div>
+      </Field>
+
+      <Field
+        label="Manuel oynatma yetkisi"
+        desc="Manuel buton açıksa: kurucu mı yoksa herkes mi tetikleyebilir."
       >
         <div style={{ display: "flex", gap: 8 }}>
           <Pill

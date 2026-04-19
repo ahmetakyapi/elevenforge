@@ -65,6 +65,7 @@ export default async function LeagueSettingsPage() {
             matchTime: ctx.league.matchTime,
             visibility: ctx.league.visibility,
             commissionerOnlyAdvance: ctx.league.commissionerOnlyAdvance,
+            manualAdvanceEnabled: ctx.league.manualAdvanceEnabled,
           }}
         />
       )}

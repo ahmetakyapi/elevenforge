@@ -10,6 +10,7 @@ export async function updateLeagueSettings(input: {
   matchTime?: string;
   visibility?: "private" | "public";
   commissionerOnlyAdvance?: boolean;
+  manualAdvanceEnabled?: boolean;
 }) {
   const ctx = await requireLeagueContext();
   if (ctx.league.createdByUserId !== ctx.user.id) {
@@ -26,6 +27,9 @@ export async function updateLeagueSettings(input: {
   if (input.visibility) updates.visibility = input.visibility;
   if (typeof input.commissionerOnlyAdvance === "boolean") {
     updates.commissionerOnlyAdvance = input.commissionerOnlyAdvance;
+  }
+  if (typeof input.manualAdvanceEnabled === "boolean") {
+    updates.manualAdvanceEnabled = input.manualAdvanceEnabled;
   }
   if (Object.keys(updates).length === 0) {
     return { ok: false as const, error: "Değişiklik yok." };

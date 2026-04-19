@@ -225,6 +225,9 @@ const BOT_PERSONALITIES: Array<{
 export async function createStarterLeague(input: {
   userId: string;
   teamName: string;
+  matchTime?: string;
+  visibility?: "private" | "public";
+  accentColor?: string;
 }): Promise<{ leagueId: string; clubId: string; inviteCode: string }> {
   const leagueName = `${input.teamName} Ligi`;
   const inviteCode = await allocInviteCode();
@@ -238,11 +241,12 @@ export async function createStarterLeague(input: {
       seasonNumber: 1,
       weekNumber: 0,
       seasonLength: 15,
-      matchTime: "21:00",
-      visibility: "private",
-      accentColor: "#dc2626",
+      matchTime: input.matchTime ?? "21:00",
+      visibility: input.visibility ?? "private",
+      accentColor: input.accentColor ?? "#dc2626",
       status: "active",
       commissionerOnlyAdvance: true,
+      manualAdvanceEnabled: false,
     })
     .returning();
 

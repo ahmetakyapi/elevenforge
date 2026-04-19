@@ -25,6 +25,17 @@ import { requireLeagueContext } from "@/lib/session";
  */
 export async function playNextRound() {
   const ctx = await requireLeagueContext();
+  // Two-gate check:
+  //  1. The league must have manualAdvanceEnabled — otherwise matches play
+  //     ONLY via cron at the configured matchTime.
+  //  2. If commissionerOnlyAdvance is also on (default), only the league
+  //     creator can press the button.
+  if (!ctx.league.manualAdvanceEnabled) {
+    return {
+      ok: false as const,
+      error: "Manuel oynatma kapalı. Maçlar her gün belirlenen saatte otomatik oynanır. Kurucu lig ayarlarından açabilir.",
+    };
+  }
   if (
     ctx.league.commissionerOnlyAdvance &&
     ctx.league.createdByUserId !== ctx.user.id
