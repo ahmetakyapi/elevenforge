@@ -71,6 +71,4 @@ export async function upgradeTraining() {
   return { ok: true as const, newLevel };
 }
 
-export function getUpgradeCost(level: number): number {
-  return upgradeCostCents(level);
-}
+// (helper kept inside this file; callers don't need a server action for it)
