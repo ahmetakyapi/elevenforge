@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="tr" data-theme="dark">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>ElevenForge — 16 arkadaş · 1 lig · 1 efsane</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="tokens.css"/>
+  <style>
+    .desktop-only { display: flex; }
+    .mobile-only  { display: none; }
+    @media (max-width: 760px) {
+      .desktop-only { display: none !important; }
+      .mobile-only  { display: grid !important; }
+      body { padding-bottom: 70px; }
+    }
+    html, body { background: var(--bg); }
+    #root { min-height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React + Babel (pinned) -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <!-- Data + primitives -->
+  <script src="src/data.js"></script>
+  <script type="text/babel" src="src/ui.jsx"></script>
+  <script type="text/babel" src="src/logos.jsx"></script>
+
+  <!-- Screens -->
+  <script type="text/babel" src="src/screens/landing.jsx"></script>
+  <script type="text/babel" src="src/screens/auth.jsx"></script>
+  <script type="text/babel" src="src/screens/lobby.jsx"></script>
+  <script type="text/babel" src="src/screens/dashboard.jsx"></script>
+  <script type="text/babel" src="src/screens/squad.jsx"></script>
+  <script type="text/babel" src="src/screens/transfer.jsx"></script>
+  <script type="text/babel" src="src/screens/tactic.jsx"></script>
+  <script type="text/babel" src="src/screens/match.jsx"></script>
+  <script type="text/babel" src="src/screens/newspaper.jsx"></script>
+  <script type="text/babel" src="src/screens/crew.jsx"></script>
+
+  <!-- Shell -->
+  <script type="text/babel" src="src/app.jsx"></script>
+  <script type="text/babel">
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App/>);
+  </script>
+</body>
+</html>

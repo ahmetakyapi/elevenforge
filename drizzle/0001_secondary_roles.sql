@@ -1,0 +1,1 @@
+ALTER TABLE "players" ADD COLUMN "secondary_roles" text DEFAULT '[]' NOT NULL;
