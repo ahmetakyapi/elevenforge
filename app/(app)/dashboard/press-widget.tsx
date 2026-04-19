@@ -29,14 +29,20 @@ export function PressWidget() {
 
   useEffect(() => {
     let cancelled = false;
-    getOrCreatePressConference().then((res) => {
-      if (cancelled || !res.ok) return;
-      setRow({
-        id: res.row.id,
-        promptCode: res.row.promptCode,
-        answerCode: res.row.answerCode,
+    getOrCreatePressConference()
+      .then((res) => {
+        if (cancelled || !res.ok) return;
+        setRow({
+          id: res.row.id,
+          promptCode: res.row.promptCode,
+          answerCode: res.row.answerCode,
+        });
+      })
+      .catch((e) => {
+        // Don't break the dashboard if the press table is missing or DB
+        // is cold; just hide the widget silently.
+        console.warn("[press-widget] disabled:", e);
       });
-    });
     return () => {
       cancelled = true;
     };
