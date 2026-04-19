@@ -17,16 +17,19 @@ import { BoardBanner } from "./board-banner";
 import { SponsorWidget } from "./sponsor-widget";
 import { StaffWidget } from "./staff-widget";
 import { UpgradeWidget } from "./upgrade-widget";
+import { AchievementsStrip } from "./achievements-strip";
 import { DashboardAutoRefresh } from "@/components/dashboard-auto-refresh";
 import { PushSubscribeButton } from "@/components/push-subscribe";
 import type { BoardGoal } from "@/lib/jobs/board";
 import { SPONSORS } from "@/lib/sponsors";
+import { loadClubAchievements } from "@/lib/queries/achievements";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const ctx = await requireLeagueContext();
   const d = await loadDashboardData(ctx);
+  const badges = await loadClubAchievements(ctx.club.id);
   const secondsToNextMatch = d.nextFixture
     ? Math.max(0, Math.floor((d.nextFixture.scheduledAtMs - Date.now()) / 1000))
     : null;
@@ -42,6 +45,7 @@ export default async function DashboardPage() {
       }}
     >
       <DashboardAutoRefresh intervalMs={30_000} />
+      <AchievementsStrip badges={badges} />
       <div
         style={{
           display: "grid",

@@ -36,7 +36,19 @@ function createDb(): DB {
     return drizzleNeon(pool, { schema });
   }
 
-  // Local pglite fallback.
+  // No Postgres URL — use pglite. In Vercel build (production without
+  // DATABASE_URL) the WASM file path is read-only, so emit a clearer error
+  // than a generic mkdir EROFS.
+  const isProdRuntime =
+    process.env.VERCEL === "1" ||
+    (process.env.NODE_ENV as string) === "production";
+  if (isProdRuntime) {
+    throw new Error(
+      "DATABASE_URL is not set. In production set a Postgres URL " +
+        "(e.g. Neon connection string) on Vercel project env vars.",
+    );
+  }
+
   if (!existsSync(LOCAL_PG_DIR)) mkdirSync(LOCAL_PG_DIR, { recursive: true });
   const client =
     globalForDb.__pglite ??
@@ -47,8 +59,27 @@ function createDb(): DB {
   return drizzlePglite(client, { schema });
 }
 
-export const db: DB = globalForDb.__db ?? createDb();
-if (process.env.NODE_ENV !== "production") globalForDb.__db = db;
+// Lazy proxy: createDb() runs on FIRST use, not on module load. This stops
+// Vercel build from blowing up while it bundles routes — the build process
+// imports lib/db transitively but never executes a DB query.
+function makeLazyDb(): DB {
+  let real: DB | null = null;
+  const get = (): DB => {
+    if (real) return real;
+    real = createDb();
+    if (process.env.NODE_ENV !== "production") globalForDb.__db = real;
+    return real;
+  };
+  return new Proxy({} as DB, {
+    get(_t, prop) {
+      const target = get() as unknown as Record<string | symbol, unknown>;
+      const value = target[prop];
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+}
+
+export const db: DB = globalForDb.__db ?? makeLazyDb();
 
 export { schema };
 export const isLocalDb = !DATABASE_URL;

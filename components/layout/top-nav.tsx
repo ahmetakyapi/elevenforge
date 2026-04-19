@@ -9,9 +9,11 @@ import {
   MessageSquare,
   Newspaper,
   Play,
+  Settings,
   Target,
   Trophy,
   Users,
+  UserPlus,
   type LucideIcon,
 } from "lucide-react";
 import { Crest } from "@/components/ui/primitives";
@@ -156,6 +158,22 @@ export function TopNav({
             >
               3
             </span>
+          </Link>
+          <Link
+            href="/free-agents"
+            className="btn btn-ghost btn-sm"
+            style={{ textDecoration: "none" }}
+            title="Serbest oyuncular"
+          >
+            <UserPlus size={14} strokeWidth={1.6} />
+          </Link>
+          <Link
+            href="/league-settings"
+            className="btn btn-ghost btn-sm"
+            style={{ textDecoration: "none" }}
+            title="Lig ayarları"
+          >
+            <Settings size={14} strokeWidth={1.6} />
           </Link>
           <PushSubscribeButton />
           <div className="v-divider" style={{ height: 22 }} />

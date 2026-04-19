@@ -238,9 +238,16 @@ export async function runCupRound(opts: { leagueId: string }): Promise<{
           .where(eq(cupFixtures.id, nextFix.id));
       }
     } else {
-      // Final — award prize money + prestige
+      // Final — award prize money + prestige + cup-winner achievement
       const [winner] = await db.select().from(clubs).where(eq(clubs.id, winnerId));
       if (winner) {
+        const { awardAchievement } = await import("./achievements");
+        await awardAchievement({
+          leagueId: opts.leagueId,
+          clubId: winner.id,
+          code: "cup-winner",
+          season: fx.seasonNumber,
+        });
         await db
           .update(clubs)
           .set({

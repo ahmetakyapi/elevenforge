@@ -159,6 +159,9 @@ export const clubs = pgTable(
     tempo: integer("tempo").notNull().default(2),
     // JSON array of 7 slots [{ label:'A', formation, mentality, pressing, tempo }]
     tacticPresets: text("tactic_presets").notNull().default("[]"),
+    // 3 conditional in-match substitutions: [{ outId, inId, minute }]
+    // Engine swaps players when match clock crosses the minute. Empty = no subs.
+    subPlanJson: text("sub_plan_json").notNull().default("[]"),
     // Board season goal — auto-assigned by prestige at season start.
     // Possible values: "champion" | "top4" | "midtable" | "survive".
     boardSeasonGoal: text("board_season_goal").notNull().default("midtable"),
@@ -279,6 +282,10 @@ export const transferListings = pgTable(
     isBotMarket: boolean("is_bot_market").notNull().default(true),
     priceCents: money("price_cents").notNull(),
     originalPriceCents: money("original_price_cents").notNull(),
+    // Auto-bid: when set, any club whose maxBidCents >= priceCents will
+    // automatically buy this listing on the next transfer-bots tick.
+    // Persisted on the listing row (one per club) — see autoBids JSON.
+    autoBidsJson: text("auto_bids_json").notNull().default("[]"),
     listedAt: timestamp("listed_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -432,6 +439,30 @@ export const pushSubscriptions = pgTable(
   (t) => [index("push_user_idx").on(t.userId)],
 );
 
+// ─── Achievements ─────────────────────────────────────────────
+// Permanent badges awarded to a club. The same `code` can be awarded
+// multiple times (e.g. multi-season champion); UI groups by code.
+export const achievements = pgTable(
+  "achievements",
+  {
+    id: id(),
+    leagueId: uuid("league_id")
+      .notNull()
+      .references(() => leagues.id, { onDelete: "cascade" }),
+    clubId: uuid("club_id")
+      .notNull()
+      .references(() => clubs.id, { onDelete: "cascade" }),
+    // Code drives the icon + label; payloadJson carries season etc.
+    code: text("code").notNull(),
+    payloadJson: text("payload_json").notNull().default("{}"),
+    awardedAt: createdAt(),
+  },
+  (t) => [
+    index("achievements_club_idx").on(t.clubId),
+    index("achievements_league_idx").on(t.leagueId),
+  ],
+);
+
 // ─── Cup fixtures ─────────────────────────────────────────────
 // Single-elimination 16-team knockout that runs alongside the league
 // season. Round 1 = 8 ties, R2 = 4, R3 (semis) = 2, R4 (final) = 1.
@@ -554,3 +585,4 @@ export type NewspaperRow = typeof newspapers.$inferSelect;
 export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;
 export type TacticSpyRow = typeof tacticSpies.$inferSelect;
 export type CupFixture = typeof cupFixtures.$inferSelect;
+export type Achievement = typeof achievements.$inferSelect;

@@ -15,6 +15,7 @@ import {
 } from "@/lib/schema";
 import { assignSeasonGoals, evaluateBoardConfidence } from "./board";
 import { generateCupBracket } from "./cup";
+import { evaluateSeasonAchievements } from "./achievements";
 import { applyMatchTime } from "@/lib/match-time";
 
 function roundRobin(teamIds: string[]) {
@@ -84,10 +85,16 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
 
   // Board evaluation: update confidence, fire failing managers. Done before
   // stats reset so the rank input is still meaningful.
-  await evaluateBoardConfidence(
+  const rankedStandings = standings.map((c, i) => ({ id: c.id, rank: i + 1 }));
+  await evaluateBoardConfidence(leagueId, rankedStandings);
+
+  // Season achievements (champion, perfect season, top scorer) — also
+  // before reset so the per-club tallies are still populated.
+  await evaluateSeasonAchievements({
     leagueId,
-    standings.map((c, i) => ({ id: c.id, rank: i + 1 })),
-  );
+    season: league.seasonNumber,
+    standings: rankedStandings,
+  });
   // EUR amounts: 30M / 20M / 10M / 5M (stored in cents)
   const prizes = [3_000_000_000, 2_000_000_000, 1_000_000_000, 500_000_000];
   for (let rank = 0; rank < Math.min(4, standings.length); rank++) {

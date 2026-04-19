@@ -50,6 +50,13 @@
       "when": 1776623500031,
       "tag": "0006_sleepy_phalanx",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1776625703028,
+      "tag": "0007_wandering_speed_demon",
+      "breakpoints": true
     }
   ]
 }
