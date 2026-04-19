@@ -9,10 +9,11 @@
  * roughly one cup round every 4 league rounds), with the final on week 15.
  * Prizes: €15M champion, €5M runner-up, +5/+3 prestige.
  */
-import { and, asc, eq, lte } from "drizzle-orm";
+import { and, asc, eq, inArray, lte } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { clubs, cupFixtures, feedEvents, players } from "@/lib/schema";
+import { clubs, cupFixtures, feedEvents, leagues, players } from "@/lib/schema";
 import { simulateMatch } from "@/lib/engine/match";
+import { applyMatchTime } from "@/lib/match-time";
 
 const CUP_WEEK_BY_ROUND: Record<number, number> = {
   1: 4,
@@ -39,11 +40,12 @@ export async function generateCupBracket(
 
   const cs = await db.select().from(clubs).where(eq(clubs.leagueId, leagueId));
   if (cs.length < 16) return { matches: 0 };
+  const [lg] = await db.select().from(leagues).where(eq(leagues.id, leagueId));
+  if (!lg) return { matches: 0 };
 
-  // Random pairing for R1.
+  // Random pairing for R1, scheduled at the league's matchTime.
   const shuffled = [...cs].sort(() => Math.random() - 0.5);
-  const today = new Date();
-  today.setHours(21, 0, 0, 0);
+  const today = applyMatchTime(new Date(), lg.matchTime);
 
   const rows: Array<typeof cupFixtures.$inferInsert> = [];
   // R1: 8 ties from the 16-team pool
@@ -167,6 +169,29 @@ export async function runCupRound(opts: { leagueId: string }): Promise<{
         playedAt: now,
       })
       .where(eq(cupFixtures.id, fx.id));
+
+    // Apply per-player goals/assists/cards just like league matches do, so
+    // a striker's 3 cup goals show up in their season tally + TOTW eligibility.
+    const playerIds = result.playerUpdates.map((u) => u.playerId);
+    if (playerIds.length > 0) {
+      const rows = await db
+        .select()
+        .from(players)
+        .where(inArray(players.id, playerIds));
+      for (const row of rows) {
+        const u = result.playerUpdates.find((x) => x.playerId === row.id);
+        if (!u) continue;
+        await db
+          .update(players)
+          .set({
+            goalsSeason: row.goalsSeason + u.goals,
+            assistsSeason: row.assistsSeason + u.assists,
+            yellowCardsSeason: row.yellowCardsSeason + u.yellow,
+            redCardsSeason: row.redCardsSeason + u.red,
+          })
+          .where(eq(players.id, row.id));
+      }
+    }
 
     // Advance winner to next round's slot.
     if (fx.round < 4) {

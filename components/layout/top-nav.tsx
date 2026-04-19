@@ -10,12 +10,14 @@ import {
   Newspaper,
   Play,
   Target,
+  Trophy,
   Users,
   type LucideIcon,
 } from "lucide-react";
 import { Crest } from "@/components/ui/primitives";
 import { LogoLockup } from "@/components/brand/logo";
 import { USER_CLUB_ID } from "@/lib/mock-data";
+import { LeagueSwitcher, type OwnedLeague } from "@/app/(app)/league-switcher";
 
 type NavItem = {
   href: string;
@@ -29,12 +31,36 @@ const NAV_MAIN: NavItem[] = [
   { href: "/transfer",  label: "Transfer", Icon: ArrowLeftRight },
   { href: "/tactic",    label: "Taktik",   Icon: Target },
   { href: "/match",     label: "Maç",      Icon: Play },
+  { href: "/cup",       label: "Kupa",     Icon: Trophy },
   { href: "/newspaper", label: "Gazete",   Icon: Newspaper },
   { href: "/crew",      label: "Crew",     Icon: MessageSquare },
 ];
 
-export function TopNav() {
+export function TopNav({
+  owned,
+  currentLeagueId,
+  currentLeagueName,
+  balanceCents,
+}: {
+  owned: OwnedLeague[];
+  currentLeagueId: string | null;
+  currentLeagueName: string | null;
+  balanceCents: number | null;
+}) {
   const pathname = usePathname();
+  const current =
+    currentLeagueId && currentLeagueName
+      ? owned.find((o) => o.leagueId === currentLeagueId) ?? {
+          leagueId: currentLeagueId,
+          leagueName: currentLeagueName,
+          clubId: "",
+          clubName: "",
+        }
+      : null;
+  const balanceLabel =
+    balanceCents !== null
+      ? `€${(balanceCents / 100 / 1_000_000).toFixed(1)}M`
+      : "—";
 
   return (
     <header
@@ -132,11 +158,14 @@ export function TopNav() {
           </Link>
           <div className="v-divider" style={{ height: 22 }} />
           <Crest clubId={USER_CLUB_ID} size={28} />
+          {current && (
+            <LeagueSwitcher current={current} owned={owned} />
+          )}
           <span
             className="t-mono"
             style={{ fontSize: 13, color: "var(--emerald)" }}
           >
-            €45.8M
+            {balanceLabel}
           </span>
         </div>
       </div>

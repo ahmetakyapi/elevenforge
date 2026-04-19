@@ -14,8 +14,10 @@ import { PlayNextRoundButton } from "./play-round-button";
 import { StreakBanner } from "./streak-banner";
 import { SpyButton } from "./spy-button";
 import { BoardBanner } from "./board-banner";
+import { SponsorWidget } from "./sponsor-widget";
 import { DashboardAutoRefresh } from "@/components/dashboard-auto-refresh";
 import type { BoardGoal } from "@/lib/jobs/board";
+import { SPONSORS } from "@/lib/sponsors";
 
 export const dynamic = "force-dynamic";
 
@@ -37,10 +39,33 @@ export default async function DashboardPage() {
       }}
     >
       <DashboardAutoRefresh intervalMs={30_000} />
-      <BoardBanner
-        goal={ctx.club.boardSeasonGoal as BoardGoal}
-        confidence={ctx.club.boardConfidence}
-      />
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 12,
+        }}
+      >
+        <BoardBanner
+          goal={ctx.club.boardSeasonGoal as BoardGoal}
+          confidence={ctx.club.boardConfidence}
+        />
+        <SponsorWidget
+          active={
+            ctx.club.activeSponsorJson
+              ? (() => {
+                  try {
+                    return JSON.parse(ctx.club.activeSponsorJson);
+                  } catch {
+                    return null;
+                  }
+                })()
+              : null
+          }
+          offers={SPONSORS}
+          prestige={ctx.club.prestige}
+        />
+      </div>
       {/* Top ribbon */}
       <div
         style={{

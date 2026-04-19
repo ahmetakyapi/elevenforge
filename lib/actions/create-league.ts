@@ -18,6 +18,9 @@ import {
   users,
 } from "@/lib/schema";
 import { CLUBS as SEED_CLUBS } from "@/lib/mock-data";
+import { applyMatchTime } from "@/lib/match-time";
+import { assignSeasonGoals } from "@/lib/jobs/board";
+import { generateCupBracket } from "@/lib/jobs/cup";
 import type { Position } from "@/types";
 
 const START_BALANCE_CENTS = 4_500_000_000;
@@ -301,11 +304,11 @@ export async function createStarterLeague(input: {
   }
   await db.insert(players).values(allPlayers);
 
-  // Fixtures — 15 round single round-robin
+  // Fixtures — 15 round single round-robin, scheduled at the league's
+  // chosen matchTime ("HH:MM") rather than the previous hardcoded 21:00.
   const clubIds = clubRows.map((c) => c.id);
   const rounds = roundRobin(clubIds);
-  const today = new Date();
-  today.setHours(21, 0, 0, 0);
+  const today = applyMatchTime(new Date(), league.matchTime);
   const fixtureRows: Array<typeof fixtures.$inferInsert> = [];
   for (let r = 0; r < rounds.length; r++) {
     const scheduled = new Date(today);
@@ -364,8 +367,13 @@ export async function createStarterLeague(input: {
     leagueId: league.id,
     clubId: clubRows[0].id,
     eventType: "morale",
-    text: `${input.teamName} ligine katıldı. İlk maç yarın 21:00.`,
+    text: `${input.teamName} ligine katıldı. İlk maç yarın ${league.matchTime}.`,
   });
+
+  // V4 systems — assign board goals + generate the season's cup bracket so
+  // the first season has the full feature set (not just the league round-robin).
+  await assignSeasonGoals(league.id);
+  await generateCupBracket(league.id, league.seasonNumber);
 
   return {
     leagueId: league.id,

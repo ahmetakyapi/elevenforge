@@ -272,9 +272,27 @@ async function main() {
     .returning();
   console.log(`  ✓ league ${LEAGUE_NAME} (${league.id})`);
 
+  // Tactic personality seeds — bots vary so match-day isn't 16 identical
+  // 4-3-3 mid-blocks. Same pool createStarterLeague uses; kept in sync
+  // manually for now.
+  const SEED_BOT_PERSONALITIES = [
+    { formation: "4-3-3", mentality: 3, pressing: 3, tempo: 3 },
+    { formation: "4-4-2", mentality: 2, pressing: 2, tempo: 2 },
+    { formation: "4-2-3-1", mentality: 2, pressing: 3, tempo: 3 },
+    { formation: "3-5-2", mentality: 3, pressing: 4, tempo: 3 },
+    { formation: "5-3-2", mentality: 1, pressing: 2, tempo: 1 },
+    { formation: "4-1-4-1", mentality: 2, pressing: 4, tempo: 2 },
+    { formation: "4-3-3", mentality: 4, pressing: 4, tempo: 4 },
+    { formation: "4-4-2", mentality: 1, pressing: 1, tempo: 2 },
+  ];
+
   // Clubs — first is user's, rest bots
   const clubRows: Array<typeof clubs.$inferSelect> = [];
   for (const [i, c] of SEED_CLUBS.entries()) {
+    const personality =
+      i === 0
+        ? SEED_BOT_PERSONALITIES[0]
+        : SEED_BOT_PERSONALITIES[i % SEED_BOT_PERSONALITIES.length];
     const [row] = await db
       .insert(clubs)
       .values({
@@ -287,11 +305,23 @@ async function main() {
         color: c.color,
         color2: c.color2,
         balanceCents: START_BALANCE_CENTS,
+        formation: personality.formation,
+        mentality: personality.mentality,
+        pressing: personality.pressing,
+        tempo: personality.tempo,
+        // Vary prestige a bit so board goals get a meaningful spread.
+        prestige: 50 + ((i * 7) % 40) - 10,
       })
       .returning();
     clubRows.push(row);
   }
   console.log(`  ✓ ${clubRows.length} clubs`);
+
+  // Set the user's currentLeagueId so requireLeagueContext picks this up.
+  await db
+    .update(users)
+    .set({ currentLeagueId: league.id })
+    .where(eq(users.id, user.id));
 
   // Players — user's club gets the hand-crafted squad, others generated
   let totalPlayers = 0;
@@ -377,11 +407,11 @@ async function main() {
   }
   console.log(`  ✓ ${listCandidates.length} transfer listings`);
 
-  // Fixtures — generate 15-round single round-robin, 1 round per day at 21:00
+  // Fixtures — 15-round single round-robin, 1 round/day at the league's matchTime
   const clubIds = clubRows.map((c) => c.id);
   const rounds = roundRobin(clubIds);
-  const today = new Date();
-  today.setHours(21, 0, 0, 0);
+  const { applyMatchTime } = await import("../lib/match-time");
+  const today = applyMatchTime(new Date(), league.matchTime);
   let fixCount = 0;
   for (let r = 0; r < rounds.length; r++) {
     const scheduled = new Date(today);
@@ -425,6 +455,14 @@ async function main() {
       text: "Mehmet S. kaşif gönderdi (Brezilya · FWD)",
     },
   ]);
+
+  // V4 init: assign board goals (prestige-derived) + generate cup bracket.
+  // Without these the seeded league has empty board widgets and no cup.
+  const { assignSeasonGoals } = await import("../lib/jobs/board");
+  const { generateCupBracket } = await import("../lib/jobs/cup");
+  await assignSeasonGoals(league.id);
+  await generateCupBracket(league.id, league.seasonNumber);
+  console.log("  ✓ board goals + cup bracket initialized");
 
   console.log("\n✅ Seeding done.");
   console.log(`   Login: ${USER_EMAIL} / ${USER_PASSWORD}`);

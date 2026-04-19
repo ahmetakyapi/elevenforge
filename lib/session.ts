@@ -93,6 +93,60 @@ export async function requireLeagueContext(): Promise<LeagueContext> {
   };
 }
 
+/**
+ * Soft variant of requireLeagueContext used by global UI (top nav). Returns
+ * null instead of redirecting when the user has no club yet, so the layout
+ * can render around lobby pages without bouncing the user.
+ */
+export async function tryLeagueContext(): Promise<LeagueContext | null> {
+  const session = await auth();
+  const userId = (session?.user as { id?: string } | undefined)?.id;
+  if (!userId) return null;
+  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (!user) return null;
+  const owned = await db
+    .select({
+      clubId: clubs.id,
+      clubName: clubs.name,
+      leagueId: leagues.id,
+      leagueName: leagues.name,
+    })
+    .from(clubs)
+    .innerJoin(leagues, eq(leagues.id, clubs.leagueId))
+    .where(eq(clubs.ownerUserId, user.id))
+    .orderBy(desc(clubs.createdAt));
+  if (owned.length === 0) return null;
+  const preferred =
+    (user.currentLeagueId &&
+      owned.find((o) => o.leagueId === user.currentLeagueId)) ||
+    owned[0];
+  const [league] = await db
+    .select()
+    .from(leagues)
+    .where(eq(leagues.id, preferred.leagueId))
+    .limit(1);
+  const [userClub] = await db
+    .select()
+    .from(clubs)
+    .where(
+      and(eq(clubs.leagueId, preferred.leagueId), eq(clubs.ownerUserId, user.id)),
+    )
+    .limit(1);
+  if (!league || !userClub) return null;
+  return {
+    user,
+    league,
+    club: userClub,
+    ownedLeagues: owned.map((o) => ({
+      leagueId: o.leagueId,
+      clubId: o.clubId,
+      leagueName: o.leagueName,
+      clubName: o.clubName,
+    })),
+    isCommissioner: league.createdByUserId === user.id,
+  };
+}
+
 export async function getSessionUserId(): Promise<string | null> {
   const session = await auth();
   return (session?.user as { id?: string } | undefined)?.id ?? null;

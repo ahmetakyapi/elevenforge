@@ -98,6 +98,15 @@ export default function SquadPage({
     (squad.reduce((s, p) => s + p.age, 0) / squad.length).toFixed(1);
   const injured = squad.filter((p) => p.status === "injured").length;
   const suspended = squad.filter((p) => p.status === "suspended").length;
+  // Training slot summary — 1 per position group, 4 max total.
+  const trainingByPos = {
+    GK: squad.filter((p) => p.status === "training" && p.pos === "GK").length,
+    DEF: squad.filter((p) => p.status === "training" && p.pos === "DEF").length,
+    MID: squad.filter((p) => p.status === "training" && p.pos === "MID").length,
+    FWD: squad.filter((p) => p.status === "training" && p.pos === "FWD").length,
+  };
+  const trainingFilled =
+    trainingByPos.GK + trainingByPos.DEF + trainingByPos.MID + trainingByPos.FWD;
 
   return (
     <div
@@ -115,6 +124,50 @@ export default function SquadPage({
         userClubName={userClubName}
         userClubCrest={userClubCrest}
       />
+
+      {/* Training slot summary — 4 slots, 1 per position group */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "10px 14px",
+          marginTop: 10,
+          marginBottom: 12,
+          borderRadius: 10,
+          background: "color-mix(in oklab, var(--panel-2) 60%, transparent)",
+          border: "1px solid var(--border)",
+        }}
+      >
+        <span className="t-label" style={{ fontSize: 11 }}>
+          ANTRENMAN SLOTLARI
+        </span>
+        <span className="t-mono" style={{ fontSize: 12, color: "var(--muted)" }}>
+          {trainingFilled}/4
+        </span>
+        <div style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
+          {(["GK", "DEF", "MID", "FWD"] as const).map((pos) => {
+            const filled = trainingByPos[pos] > 0;
+            return (
+              <span
+                key={pos}
+                style={{
+                  fontSize: 11,
+                  padding: "3px 8px",
+                  borderRadius: 4,
+                  background: filled
+                    ? "color-mix(in oklab, var(--emerald) 24%, transparent)"
+                    : "color-mix(in oklab, var(--muted) 14%, transparent)",
+                  color: filled ? "var(--emerald)" : "var(--muted)",
+                  fontWeight: 600,
+                }}
+              >
+                {pos} {filled ? "●" : "○"}
+              </span>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Toolbar */}
       <div
@@ -622,10 +675,12 @@ function PlayerCardGrid({
         background: `linear-gradient(170deg, color-mix(in oklab, ${posColor(
           p.pos,
         )} 12%, var(--panel)) 0%, var(--panel) 50%, var(--panel-2) 100%)`,
-        border: `1px solid ${
-          localHover
-            ? `color-mix(in oklab, ${posColor(p.pos)} 45%, var(--border))`
-            : "var(--border)"
+        border: `${compareMark ? "2px" : "1px"} solid ${
+          compareMark
+            ? "var(--accent)"
+            : localHover
+              ? `color-mix(in oklab, ${posColor(p.pos)} 45%, var(--border))`
+              : "var(--border)"
         }`,
         cursor: "pointer",
         transform: localHover ? "translateY(-4px)" : "translateY(0)",
@@ -639,6 +694,28 @@ function PlayerCardGrid({
         transition: "all 300ms var(--ease)",
       }}
     >
+      {compareMark && (
+        <div
+          style={{
+            position: "absolute",
+            top: 8,
+            left: 8,
+            zIndex: 5,
+            width: 22,
+            height: 22,
+            borderRadius: 6,
+            background: "var(--accent)",
+            color: "#fff",
+            fontWeight: 800,
+            fontSize: 11,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {compareMark}
+        </div>
+      )}
       {/* Jersey watermark */}
       <div
         style={{

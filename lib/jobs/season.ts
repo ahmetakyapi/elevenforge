@@ -15,6 +15,7 @@ import {
 } from "@/lib/schema";
 import { assignSeasonGoals, evaluateBoardConfidence } from "./board";
 import { generateCupBracket } from "./cup";
+import { applyMatchTime } from "@/lib/match-time";
 
 function roundRobin(teamIds: string[]) {
   const teams = teamIds.slice();
@@ -160,11 +161,13 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
   }
 
   // Generate new fixtures. Schedule starts tomorrow to give users a day to breathe.
+  // Time-of-day comes from the league's matchTime ("HH:MM") instead of the
+  // previously hardcoded 21:00.
   const clubIds = clubRows.map((c) => c.id);
   const rounds = roundRobin(clubIds);
   const firstDay = new Date();
   firstDay.setDate(firstDay.getDate() + 1);
-  firstDay.setHours(21, 0, 0, 0);
+  applyMatchTime(firstDay, league.matchTime);
 
   const fixtureRows: Array<typeof fixtures.$inferInsert> = [];
   for (let r = 0; r < rounds.length; r++) {

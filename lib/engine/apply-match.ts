@@ -153,7 +153,8 @@ export async function applyMatchResult(
     // Decrement suspension for players not in this match (only squads that were involved — we don't know, skip for now)
   }
 
-  // 4. Feed event
+  // 4. Feed event — include scorer names so the league feed reads like a
+  // proper match report (not just a scoreline).
   const homeClubRow = await db
     .select({ name: clubs.name, id: clubs.id })
     .from(clubs)
@@ -167,11 +168,26 @@ export async function applyMatchResult(
   const home = homeClubRow[0];
   const away = awayClubRow[0];
   if (home && away) {
+    const scorerIds = result.events
+      .filter((e) => e.type === "goal" && e.scorerId)
+      .map((e) => e.scorerId as string);
+    let scorerSuffix = "";
+    if (scorerIds.length > 0) {
+      const scorerRows = await db
+        .select({ id: players.id, name: players.name })
+        .from(players)
+        .where(inArray(players.id, scorerIds));
+      const byId = new Map(scorerRows.map((r) => [r.id, r.name]));
+      const goals = result.events
+        .filter((e) => e.type === "goal" && e.scorerId)
+        .map((e) => `${byId.get(e.scorerId!) ?? "?"} ${e.minute}'`);
+      if (goals.length > 0) scorerSuffix = ` — ${goals.join(", ")}`;
+    }
     await db.insert(feedEvents).values({
       leagueId,
       clubId: home.id,
       eventType: "match",
-      text: `${home.name} ${result.homeScore} - ${result.awayScore} ${away.name}`,
+      text: `${home.name} ${result.homeScore} - ${result.awayScore} ${away.name}${scorerSuffix}`,
     });
   }
 }
