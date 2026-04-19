@@ -103,6 +103,41 @@ export async function saveTacticPreset(input: {
 }
 
 /**
+ * Save the in-match substitution plan (3 subs max, each a {minute, outId,
+ * inId}). Engine reads this on match-day and swaps players in chronological
+ * order. Server validates slot count + player ownership.
+ */
+export async function saveSubPlan(input: {
+  subs: Array<{ minute: number; outId: string; inId: string }>;
+}) {
+  const ctx = await requireLeagueContext();
+  if (!Array.isArray(input.subs)) {
+    return { ok: false as const, error: "Geçersiz format." };
+  }
+  if (input.subs.length > 3) {
+    return { ok: false as const, error: "En fazla 3 değişiklik planlayabilirsin." };
+  }
+  // Validate every player belongs to this club + minutes in range.
+  for (const s of input.subs) {
+    if (s.minute < 1 || s.minute > 90) {
+      return { ok: false as const, error: "Dakika 1-90 arasında olmalı." };
+    }
+    if (typeof s.outId !== "string" || typeof s.inId !== "string") {
+      return { ok: false as const, error: "Geçersiz oyuncu kimliği." };
+    }
+    if (s.outId === s.inId) {
+      return { ok: false as const, error: "Aynı oyuncu giremez ve çıkamaz." };
+    }
+  }
+  await db
+    .update(clubs)
+    .set({ subPlanJson: JSON.stringify(input.subs) })
+    .where(eq(clubs.id, ctx.club.id));
+  revalidatePath("/tactic");
+  return { ok: true as const };
+}
+
+/**
  * Load preset slot N into the active tactic.
  */
 export async function loadTacticPreset(slot: number) {

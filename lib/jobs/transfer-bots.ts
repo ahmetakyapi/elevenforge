@@ -26,6 +26,85 @@ export async function runTransferBots(opts: { leagueId?: string } = {}) {
   let created = 0;
 
   for (const { id: leagueId } of leaguesToRun) {
+    // 0. Process auto-bids first. For every active listing where the
+    //    current price is <= a watcher's max bid, the highest watcher wins
+    //    and the listing closes. This runs before bot random purchases so
+    //    user auto-bids always get first crack at falling-price listings.
+    const watching = await db
+      .select()
+      .from(transferListings)
+      .where(
+        and(
+          eq(transferListings.leagueId, leagueId),
+          eq(transferListings.status, "active"),
+        ),
+      );
+    for (const listing of watching) {
+      let bids: Array<{ clubId: string; maxCents: number }> = [];
+      try {
+        bids = JSON.parse(listing.autoBidsJson) as typeof bids;
+      } catch {}
+      const eligible = bids
+        .filter((b) => b.maxCents >= listing.priceCents)
+        .sort((a, b) => b.maxCents - a.maxCents);
+      if (eligible.length === 0) continue;
+      const winnerBid = eligible[0];
+      const [winner] = await db
+        .select()
+        .from(clubs)
+        .where(eq(clubs.id, winnerBid.clubId));
+      if (!winner || winner.balanceCents < listing.priceCents) continue;
+
+      // Optimistic claim
+      const claim = await db
+        .update(transferListings)
+        .set({ status: "sold" })
+        .where(
+          and(
+            eq(transferListings.id, listing.id),
+            eq(transferListings.status, "active"),
+          ),
+        )
+        .returning();
+      if (claim.length === 0) continue;
+
+      await db
+        .update(players)
+        .set({ clubId: winner.id, status: "active" })
+        .where(eq(players.id, listing.playerId));
+      await db.insert(transferHistory).values({
+        leagueId,
+        playerId: listing.playerId,
+        fromClubId: listing.sellerClubId,
+        toClubId: winner.id,
+        priceCents: listing.priceCents,
+      });
+      await db
+        .update(clubs)
+        .set({ balanceCents: sql`${clubs.balanceCents} - ${listing.priceCents}` })
+        .where(eq(clubs.id, winner.id));
+      if (listing.sellerClubId) {
+        await db
+          .update(clubs)
+          .set({ balanceCents: sql`${clubs.balanceCents} + ${listing.priceCents}` })
+          .where(eq(clubs.id, listing.sellerClubId));
+      }
+      const playerRow = (
+        await db
+          .select({ name: players.name })
+          .from(players)
+          .where(eq(players.id, listing.playerId))
+          .limit(1)
+      )[0];
+      await db.insert(feedEvents).values({
+        leagueId,
+        clubId: winner.id,
+        eventType: "transfer",
+        text: `${winner.name} otomatik teklifle ${playerRow?.name ?? "?"} aldı (€${(listing.priceCents / 100 / 1_000_000).toFixed(1)}M).`,
+      });
+      purchased++;
+    }
+
     // 1. Random purchases
     const active = await db
       .select()

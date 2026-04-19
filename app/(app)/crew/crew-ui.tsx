@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   ArrowLeftRight,
   Compass,
@@ -49,6 +49,38 @@ const EMOJI = ["⚽", "🔥", "💎", "🏆", "🟨", "🟥", "😂", "💀"] as
 
 export default function CrewUi({ data }: { data: CrewPageData }) {
   const router = useRouter();
+
+  // Poll the server every 5s while the tab is visible — chat is the page
+  // most users keep open; new messages from other players show up without
+  // a manual refresh. Pause when backgrounded so we're not burning a
+  // request every 5s on an idle tab.
+  useEffect(() => {
+    let timer: ReturnType<typeof setInterval> | null = null;
+    const start = () => {
+      if (timer) return;
+      timer = setInterval(() => router.refresh(), 5_000);
+    };
+    const stop = () => {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    };
+    const onVis = () => {
+      if (document.visibilityState === "visible") {
+        router.refresh();
+        start();
+      } else {
+        stop();
+      }
+    };
+    if (document.visibilityState === "visible") start();
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [router]);
   const [input, setInput] = useState("");
   const [pending, startTransition] = useTransition();
 

@@ -4,7 +4,7 @@
  *    bump the season number, reset per-club stats, age players + decay the
  *    veterans, re-generate a fresh single round-robin fixture schedule.
  */
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   clubs,
@@ -130,6 +130,21 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
         seasonGoalsAgainst: 0,
       })
       .where(eq(clubs.id, c.id));
+  }
+
+  // Return every active loan to its owner before contract / age ticks.
+  // Otherwise a loaned player might become a free agent inside the
+  // borrower's club instead of returning home.
+  const loans = await db
+    .select()
+    .from(players)
+    .where(and(eq(players.leagueId, leagueId), sql`${players.loanOwnerClubId} IS NOT NULL`));
+  for (const lp of loans) {
+    if (!lp.loanOwnerClubId) continue;
+    await db
+      .update(players)
+      .set({ clubId: lp.loanOwnerClubId, loanOwnerClubId: null, loanReturnsAt: null })
+      .where(eq(players.id, lp.id));
   }
 
   // Age + potential decay for every player. Retirement / free agency:

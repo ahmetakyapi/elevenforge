@@ -124,6 +124,11 @@ export type SimInput = {
   // halves the lay-off length on a tier-3 staff.
   homePhysioTier?: number;
   awayPhysioTier?: number;
+  // Pre-set in-match substitutions: at minute M, swap outId off → inId on.
+  // Engine validates inId exists in the squad and isn't already on the
+  // pitch. Up to 3 subs is the convention but the engine accepts more.
+  homeSubPlan?: Array<{ minute: number; outId: string; inId: string }>;
+  awaySubPlan?: Array<{ minute: number; outId: string; inId: string }>;
   seed?: number;
 };
 
@@ -343,42 +348,86 @@ export function simulateMatch(input: SimInput): MatchResult {
   type Ev = {
     minute: number;
     side: "home" | "away";
-    kind: "goal" | "card";
+    kind: "goal" | "card" | "sub";
     scorer?: DBPlayer;
     assister?: DBPlayer;
     cardPlayer?: DBPlayer;
     cardKind?: "yellow" | "red";
+    subOut?: DBPlayer;
+    subIn?: DBPlayer;
   };
+
+  // Compute who's on the pitch for `side` at `minute`, applying every
+  // valid sub up to that point. Subs are validated (target on pitch + sub
+  // not already used). Lets goal/card events post-sub use the right pool.
+  const computePoolAt = (
+    side: "home" | "away",
+    minute: number,
+  ): DBPlayer[] => {
+    const original = side === "home" ? homeStarters : awayStarters;
+    const squad = side === "home" ? input.homeSquad : input.awaySquad;
+    const plan = side === "home" ? input.homeSubPlan ?? [] : input.awaySubPlan ?? [];
+    let pool = [...original];
+    const sorted = [...plan].sort((a, b) => a.minute - b.minute);
+    for (const sub of sorted) {
+      if (sub.minute > minute) break;
+      const inP = squad.find((p) => p.id === sub.inId);
+      if (!inP) continue;
+      if (pool.some((p) => p.id === inP.id)) continue;
+      const idx = pool.findIndex((p) => p.id === sub.outId);
+      if (idx < 0) continue;
+      pool[idx] = inP;
+    }
+    return pool;
+  };
+
+  // Sort all event minutes; pick scorers/cards using post-sub pool.
+  const allEventMins: Array<{
+    minute: number;
+    kind: "goalHome" | "goalAway" | "card";
+  }> = [
+    ...homeMins.map((m) => ({ minute: m, kind: "goalHome" as const })),
+    ...awayMins.map((m) => ({ minute: m, kind: "goalAway" as const })),
+    ...cardMins.map((m) => ({ minute: m, kind: "card" as const })),
+  ].sort((a, b) => a.minute - b.minute);
+
   const raw: Ev[] = [];
-  for (const m of homeMins) {
-    const scorer = pickScorer(homeStarters, rng);
-    if (!scorer) continue;
-    const assister = pickAssister(homeStarters, scorer.id, rng);
-    raw.push({ minute: m, side: "home", kind: "goal", scorer, assister });
-  }
-  for (const m of awayMins) {
-    const scorer = pickScorer(awayStarters, rng);
-    if (!scorer) continue;
-    const assister = pickAssister(awayStarters, scorer.id, rng);
-    raw.push({ minute: m, side: "away", kind: "goal", scorer, assister });
-  }
   // Strict refs increase the chance a card is red (0.05 + 0.04*strict)
   const redChance = 0.04 + 0.03 * refStrict;
-  for (const m of cardMins) {
-    const side = rng() < 0.5 ? "home" : "away";
-    const pool = (side === "home" ? homeStarters : awayStarters).filter(
-      (p) => p.position !== "GK",
-    );
-    if (pool.length === 0) continue;
-    const victim = pool[Math.floor(rng() * pool.length)];
-    const cardKind = rng() < redChance ? "red" : "yellow";
-    raw.push({
-      minute: m,
-      side,
-      kind: "card",
-      cardPlayer: victim,
-      cardKind,
-    });
+
+  for (const ev of allEventMins) {
+    if (ev.kind === "goalHome") {
+      const pool = computePoolAt("home", ev.minute);
+      const scorer = pickScorer(pool, rng);
+      if (!scorer) continue;
+      const assister = pickAssister(pool, scorer.id, rng);
+      raw.push({ minute: ev.minute, side: "home", kind: "goal", scorer, assister });
+    } else if (ev.kind === "goalAway") {
+      const pool = computePoolAt("away", ev.minute);
+      const scorer = pickScorer(pool, rng);
+      if (!scorer) continue;
+      const assister = pickAssister(pool, scorer.id, rng);
+      raw.push({ minute: ev.minute, side: "away", kind: "goal", scorer, assister });
+    } else {
+      const side: "home" | "away" = rng() < 0.5 ? "home" : "away";
+      const pool = computePoolAt(side, ev.minute).filter((p) => p.position !== "GK");
+      if (pool.length === 0) continue;
+      const victim = pool[Math.floor(rng() * pool.length)];
+      const cardKind: "yellow" | "red" = rng() < redChance ? "red" : "yellow";
+      raw.push({ minute: ev.minute, side, kind: "card", cardPlayer: victim, cardKind });
+    }
+  }
+
+  // Inject sub events into the raw timeline so they show up in commentary.
+  for (const side of ["home", "away"] as const) {
+    const plan = side === "home" ? input.homeSubPlan ?? [] : input.awaySubPlan ?? [];
+    const squad = side === "home" ? input.homeSquad : input.awaySquad;
+    for (const sub of plan) {
+      const subOut = squad.find((p) => p.id === sub.outId);
+      const subIn = squad.find((p) => p.id === sub.inId);
+      if (!subOut || !subIn) continue;
+      raw.push({ minute: sub.minute, side, kind: "sub", subOut, subIn });
+    }
   }
   raw.sort((a, b) => a.minute - b.minute);
 
@@ -428,6 +477,14 @@ export function simulateMatch(input: SimInput): MatchResult {
           minute: e.minute,
           kind: e.cardKind ?? "yellow",
         }),
+      });
+    } else if (e.kind === "sub" && e.subOut && e.subIn) {
+      events.push({
+        minute: e.minute,
+        icon: "🔄",
+        type: "sub",
+        side: e.side,
+        text: `${e.minute}'  Değişiklik: ${e.subOut.name} yerine ${e.subIn.name} sahaya çıktı.`,
       });
     }
   }

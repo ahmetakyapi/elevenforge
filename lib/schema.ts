@@ -222,6 +222,12 @@ export const players = pgTable(
     // JSON array of extra role codes (e.g. ["LW","RW"]) the player can play.
     // The `role` column is the primary one; these are secondary.
     secondaryRoles: text("secondary_roles").notNull().default("[]"),
+    // Loan tracking: when set, player belongs to clubId temporarily and
+    // returns to ownerClubId at loanReturnsAt. season-roll snaps them back.
+    loanOwnerClubId: uuid("loan_owner_club_id").references(() => clubs.id, {
+      onDelete: "set null",
+    }),
+    loanReturnsAt: timestamp("loan_returns_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [

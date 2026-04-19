@@ -25,6 +25,30 @@ function seedFromFixtureId(fixtureId: string): number {
   return h;
 }
 
+/** Parse a club's saved sub plan from JSON; bad JSON → empty. */
+function parseSubPlan(
+  json: string,
+): Array<{ minute: number; outId: string; inId: string }> {
+  try {
+    const arr = JSON.parse(json) as Array<{
+      minute: number;
+      outId: string;
+      inId: string;
+    }>;
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .filter(
+        (s) =>
+          typeof s?.minute === "number" &&
+          typeof s.outId === "string" &&
+          typeof s.inId === "string",
+      )
+      .slice(0, 3);
+  } catch {
+    return [];
+  }
+}
+
 /** Pull the physio tier (0-3) out of the club's staff JSON. */
 function physioTierFromStaff(staffJson: string | null): number {
   if (!staffJson) return 0;
@@ -111,6 +135,8 @@ export async function runMatchDay(opts: {
       const seed = fx.rngSeed ?? seedFromFixtureId(fx.id);
       const homePhysioTier = physioTierFromStaff(home.staffJson);
       const awayPhysioTier = physioTierFromStaff(away.staffJson);
+      const homeSubPlan = parseSubPlan(home.subPlanJson);
+      const awaySubPlan = parseSubPlan(away.subPlanJson);
       const result = simulateMatch({
         homeClubId: home.id,
         awayClubId: away.id,
@@ -126,6 +152,8 @@ export async function runMatchDay(opts: {
         homePrestige: home.prestige,
         homePhysioTier,
         awayPhysioTier,
+        homeSubPlan,
+        awaySubPlan,
         seed,
       });
 
