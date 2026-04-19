@@ -84,6 +84,37 @@ export default function LandingUi() {
       <ClosingCTA />
       <LandingFooter />
       <style>{`
+        /* ─── Mobile responsiveness ─────────────────────────────────
+           Landing was designed desktop-first with hardcoded multi-col
+           grids; on phones they squashed unreadably. These rules collapse
+           every multi-col split to a single column under 760px and shrink
+           the most aggressive padding values. */
+        @media (max-width: 760px) {
+          [data-lp-grid="2"], [data-lp-grid="3"], [data-lp-grid="4"] {
+            grid-template-columns: 1fr !important;
+          }
+          [data-lp-grid="3-marquee"] {
+            grid-template-columns: 1fr !important;
+            text-align: center;
+          }
+          [data-lp-section] {
+            padding-left: 18px !important;
+            padding-right: 18px !important;
+            padding-top: 60px !important;
+            padding-bottom: 60px !important;
+          }
+          [data-lp-hero-title] { font-size: clamp(46px, 14vw, 96px) !important; }
+          [data-lp-h2] { font-size: clamp(28px, 7vw, 44px) !important; }
+          [data-lp-card] { padding: 18px !important; }
+          [data-lp-stack-mobile] {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 14px !important;
+          }
+          [data-lp-hide-mobile] { display: none !important; }
+          [data-lp-nav] { padding: 12px 14px !important; }
+          [data-lp-nav-links] { display: none !important; }
+        }
         @keyframes scroll-hint { 0%{opacity:0;transform:translateY(0);} 40%{opacity:1;} 100%{opacity:0;transform:translateY(10px);} }
         @keyframes formSwap { 0%{opacity:0;transform:translateY(-4px);} 100%{opacity:1;transform:translateY(0);} }
         @keyframes posGlow { 0%,100%{opacity:0.4;transform:scale(1);} 50%{opacity:0.8;transform:scale(1.2);} }
@@ -110,6 +141,7 @@ function LandingNav() {
   const solid = y > 40;
   return (
     <nav
+      data-lp-nav
       style={{
         position: "fixed",
         top: 0,
@@ -130,7 +162,7 @@ function LandingNav() {
       }}
     >
       <LogoLockup size={22} icon="anvil" />
-      <div className="desktop-only" style={{ display: "flex", gap: 4 }}>
+      <div data-lp-nav-links className="desktop-only" style={{ display: "flex", gap: 4 }}>
         {["Platform", "Canlı Maç", "Gazete", "Akış"].map((x) => (
           <button key={x} type="button" className="btn btn-ghost btn-sm">
             {x}
@@ -566,6 +598,7 @@ function HeroLiveCard() {
       }}
     >
       <div
+        data-lp-grid="3-marquee"
         style={{
           padding: "18px 22px",
           display: "grid",
@@ -784,9 +817,11 @@ function CrewSection() {
   return (
     <section
       ref={ref}
+      data-lp-section
       style={{ padding: "120px 32px", maxWidth: 1400, margin: "0 auto" }}
     >
       <div
+        data-lp-grid="2"
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1.1fr",
@@ -961,7 +996,7 @@ function StadiumSection() {
   return (
     <section
       ref={ref}
-      style={{ padding: "120px 32px", position: "relative", overflow: "hidden" }}
+      data-lp-section style={{ padding: "120px 32px", position: "relative", overflow: "hidden" }}
     >
       <div
         style={{
@@ -1029,6 +1064,7 @@ function StadiumSection() {
           </p>
         </div>
         <div
+          data-lp-grid="2"
           style={{
             display: "grid",
             gridTemplateColumns: "1.2fr 1fr",
@@ -1138,7 +1174,7 @@ function StadiumSection() {
 function MarketSection() {
   const [ref, on] = useReveal();
   return (
-    <section ref={ref} style={{ padding: "120px 0 120px", position: "relative" }}>
+    <section ref={ref} data-lp-section style={{ padding: "120px 0 120px", position: "relative" }}>
       <div
         style={{
           maxWidth: 1300,
@@ -1309,9 +1345,11 @@ function TacticSection() {
   return (
     <section
       ref={ref}
+      data-lp-section
       style={{ padding: "120px 32px", maxWidth: 1400, margin: "0 auto" }}
     >
       <div
+        data-lp-grid="2"
         style={{
           display: "grid",
           gridTemplateColumns: "1.1fr 1fr",
@@ -1583,6 +1621,7 @@ function NewspaperStack() {
   return (
     <section
       ref={ref}
+      data-lp-section
       style={{
         padding: "120px 32px",
         maxWidth: 1300,
@@ -1878,6 +1917,7 @@ function NewspaperCard({
           </div>
         </div>
         <div
+          data-lp-grid="2"
           style={{
             position: "relative",
             zIndex: 1,
@@ -1956,7 +1996,7 @@ function TestimonialWall() {
   return (
     <section
       ref={ref}
-      style={{ padding: "120px 32px", maxWidth: 1300, margin: "0 auto" }}
+      data-lp-section style={{ padding: "120px 32px", maxWidth: 1300, margin: "0 auto" }}
     >
       <div style={{ textAlign: "center", marginBottom: 50 }}>
         <span className="t-label" style={{ color: "var(--danger)" }}>
@@ -2039,7 +2079,7 @@ function FaqBlock() {
   return (
     <section
       ref={ref}
-      style={{ padding: "120px 32px", maxWidth: 820, margin: "0 auto" }}
+      data-lp-section style={{ padding: "120px 32px", maxWidth: 820, margin: "0 auto" }}
     >
       <div
         style={{
@@ -2129,7 +2169,7 @@ function ClosingCTA() {
   return (
     <section
       ref={ref}
-      style={{ padding: "120px 32px", position: "relative", overflow: "hidden" }}
+      data-lp-section style={{ padding: "120px 32px", position: "relative", overflow: "hidden" }}
     >
       <div
         style={{
@@ -2237,6 +2277,7 @@ function LandingFooter() {
       }}
     >
       <div
+        data-lp-grid="4"
         style={{
           display: "grid",
           gridTemplateColumns: "2fr 1fr 1fr 1fr",

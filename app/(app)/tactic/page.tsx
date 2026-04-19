@@ -33,6 +33,12 @@ export default async function TacticPage() {
     }
   } catch {}
 
+  let subPlan: Array<{ minute: number; outId: string; inId: string }> = [];
+  try {
+    const parsed = JSON.parse(ctx.club.subPlanJson);
+    if (Array.isArray(parsed)) subPlan = parsed.slice(0, 3);
+  } catch {}
+
   return (
     <TacticUi
       squad={squad}
@@ -43,6 +49,7 @@ export default async function TacticPage() {
         tempo: ctx.club.tempo,
       }}
       presets={presets}
+      subPlan={subPlan}
     />
   );
 }

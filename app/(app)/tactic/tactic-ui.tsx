@@ -12,6 +12,7 @@ import {
   saveTactics,
   type TacticPreset,
 } from "./actions";
+import { SubPlanPanel } from "./sub-plan-panel";
 
 export type TacticUiProps = {
   squad: Player[];
@@ -22,6 +23,7 @@ export type TacticUiProps = {
     tempo: number;
   };
   presets: Array<TacticPreset | null>;
+  subPlan: Array<{ minute: number; outId: string; inId: string }>;
 };
 
 // ─── Formations with role tags per slot ─────────────────────────
@@ -177,7 +179,7 @@ function assignStarters(
 }
 
 // ─── Main ───────────────────────────────────────────────────────
-export default function TacticPage({ squad, initial, presets }: TacticUiProps) {
+export default function TacticPage({ squad, initial, presets, subPlan }: TacticUiProps) {
   const [formation, setFormation] = useState<Formation>(initial.formation);
   const [mentality, setMentality] = useState(initial.mentality);
   const [pressing, setPressing] = useState(initial.pressing);
@@ -663,6 +665,7 @@ export default function TacticPage({ squad, initial, presets }: TacticUiProps) {
           </button>
         </div>
       )}
+      <SubPlanPanel squad={squad} initial={subPlan} />
     </div>
   );
 }

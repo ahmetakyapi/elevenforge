@@ -36,6 +36,7 @@ import {
   sendScoutAction,
 } from "./actions";
 import { claimScout } from "./claim-scout";
+import { ListingExtraActions } from "./listing-extra-actions";
 
 type SortKey = "trend" | "price-asc" | "price-desc" | "ovr" | "age";
 type PosFilter = Position | "ALL";
@@ -915,6 +916,11 @@ function TransferRow({
             l="Satıcı"
             v={listing.sellerType === "bot" ? "🤖 Bot" : (listing.sellerName ?? "")}
             c="var(--text)"
+          />
+          <ListingExtraActions
+            listingId={listing.id}
+            playerId={listing.playerId}
+            priceEur={listing.priceEur}
           />
         </div>
       )}
