@@ -18,6 +18,12 @@ export type PlayerDetail = {
   nationality: string;
   overall: number;
   potential: number;
+  pace: number;
+  shooting: number;
+  passing: number;
+  defending: number;
+  physical: number;
+  goalkeeping: number;
   fitness: number;
   morale: number;
   status: string;
@@ -103,6 +109,12 @@ export async function loadPlayerDetail(
     nationality: p.nationality,
     overall: p.overall,
     potential: p.potential,
+    pace: p.pace,
+    shooting: p.shooting,
+    passing: p.passing,
+    defending: p.defending,
+    physical: p.physical,
+    goalkeeping: p.goalkeeping,
     fitness: p.fitness,
     morale: p.morale,
     status: p.status,

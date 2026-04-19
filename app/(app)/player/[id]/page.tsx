@@ -204,6 +204,37 @@ export default async function PlayerDetailPage({
         <Bar label="Moral" value={p.morale} max={5} tint="var(--accent)" />
       </div>
 
+      {/* Position attributes */}
+      <div
+        style={{
+          padding: "16px 18px",
+          background: "var(--panel)",
+          border: "1px solid var(--border)",
+          borderRadius: 12,
+          marginBottom: 18,
+        }}
+      >
+        <span className="t-label">ATRİBÜLER</span>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 12,
+            marginTop: 12,
+          }}
+        >
+          <AttrBar label="Hız" value={p.pace} />
+          <AttrBar label="Şut" value={p.shooting} />
+          <AttrBar label="Pas" value={p.passing} />
+          <AttrBar label="Savunma" value={p.defending} />
+          <AttrBar label="Fizik" value={p.physical} />
+          <AttrBar
+            label={p.position === "GK" ? "Kaleci" : "Refleks"}
+            value={p.goalkeeping}
+          />
+        </div>
+      </div>
+
       <div
         style={{
           display: "grid",
@@ -381,6 +412,46 @@ function Bar({
             width: `${pct}%`,
             background: tint,
             transition: "width .3s",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function AttrBar({ label, value }: { label: string; value: number }) {
+  const tint =
+    value >= 85
+      ? "var(--emerald)"
+      : value >= 75
+        ? "var(--cyan)"
+        : value >= 60
+          ? "var(--accent)"
+          : "var(--muted)";
+  const pct = Math.min(100, Math.max(0, value));
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <span className="t-caption" style={{ fontSize: 10 }}>
+          {label}
+        </span>
+        <span className="t-mono" style={{ fontSize: 11, color: tint, fontWeight: 700 }}>
+          {value}
+        </span>
+      </div>
+      <div
+        style={{
+          height: 4,
+          borderRadius: 2,
+          background: "var(--panel-2)",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            height: "100%",
+            width: `${pct}%`,
+            background: tint,
           }}
         />
       </div>

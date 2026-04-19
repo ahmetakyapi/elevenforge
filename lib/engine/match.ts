@@ -142,10 +142,36 @@ function createRng(seed: number | undefined) {
   };
 }
 
+// ─── Formation parsing ────────────────────────────────────────
+// Accepts classic formation strings ("4-3-3", "4-2-3-1", "5-3-2", etc.).
+// First number → DEF count. Last number → FWD count. All middle numbers
+// collapse into MID. Totals always add to 10 field players (+1 GK = 11).
+export function parseFormation(formation: string): {
+  def: number;
+  mid: number;
+  fwd: number;
+} {
+  const parts = formation
+    .split("-")
+    .map((n) => parseInt(n, 10))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  if (parts.length < 2) return { def: 4, mid: 4, fwd: 2 };
+  const def = parts[0];
+  const fwd = parts[parts.length - 1];
+  const mid = parts.slice(1, -1).reduce((a, b) => a + b, 0);
+  const total = def + mid + fwd;
+  if (total !== 10) return { def: 4, mid: 4, fwd: 2 };
+  return { def, mid, fwd };
+}
+
 // ─── Line-up selection ────────────────────────────────────────
-// Picks 11 starters aiming for 1 GK / 4 DEF / 4 MID / 2 FWD. Players with
-// secondary roles spanning another line are eligible as fillers.
-function pickStarters(squad: DBPlayer[]): DBPlayer[] {
+// Picks 11 starters respecting the chosen formation. Falls back to best
+// available from other lines if a line is short (injuries/suspensions).
+function pickStarters(
+  squad: DBPlayer[],
+  formation: string,
+): DBPlayer[] {
+  const { def, mid, fwd } = parseFormation(formation);
   const active = squad.filter(
     (p) => p.status !== "injured" && p.status !== "suspended",
   );
@@ -155,10 +181,10 @@ function pickStarters(squad: DBPlayer[]): DBPlayer[] {
       .sort((a, b) => b.overall - a.overall)
       .slice(0, n);
   const gk = pickN("GK", 1);
-  const def = pickN("DEF", 4);
-  const mid = pickN("MID", 4);
-  const fwd = pickN("FWD", 2);
-  const starters = [...gk, ...def, ...mid, ...fwd];
+  const defs = pickN("DEF", def);
+  const mids = pickN("MID", mid);
+  const fwds = pickN("FWD", fwd);
+  const starters = [...gk, ...defs, ...mids, ...fwds];
   if (starters.length < 11) {
     const remaining = active
       .filter((p) => !starters.some((s) => s.id === p.id))
@@ -168,6 +194,11 @@ function pickStarters(squad: DBPlayer[]): DBPlayer[] {
   return starters.slice(0, 11);
 }
 
+// Attribute-aware unit power. Instead of averaging `overall`, each unit
+// uses the attributes most relevant to its job: attackers score with
+// shooting, defenders block with defending, midfielders distribute with
+// passing. Falls back to `overall` if an attribute is missing (legacy rows
+// from pre-0012).
 function teamPower(
   starters: DBPlayer[],
   tactics: TacticInput,
@@ -175,12 +206,40 @@ function teamPower(
 ): { attack: number; midfield: number; defense: number; overall: number } {
   const byPos = (pos: DBPlayer["position"]) =>
     starters.filter((p) => p.position === pos);
-  const avg = (arr: DBPlayer[]) =>
-    arr.length === 0 ? 70 : arr.reduce((s, p) => s + p.overall, 0) / arr.length;
-  const gkOvr = byPos("GK")[0]?.overall ?? 70;
-  const defOvr = avg(byPos("DEF"));
-  const midOvr = avg(byPos("MID"));
-  const fwdOvr = avg(byPos("FWD"));
+  const avgAttr = (arr: DBPlayer[], pick: (p: DBPlayer) => number) =>
+    arr.length === 0 ? 70 : arr.reduce((s, p) => s + pick(p), 0) / arr.length;
+
+  const defs = byPos("DEF");
+  const mids = byPos("MID");
+  const fwds = byPos("FWD");
+  const gk = byPos("GK")[0];
+
+  // Attackers: shooting leads, pace + physical help, overall as a floor.
+  const fwdShoot = avgAttr(fwds, (p) => p.shooting);
+  const fwdPace = avgAttr(fwds, (p) => p.pace);
+  const fwdPhys = avgAttr(fwds, (p) => p.physical);
+  const fwdOvr = avgAttr(fwds, (p) => p.overall);
+  const attackCore =
+    fwdShoot * 0.55 + fwdPace * 0.2 + fwdPhys * 0.1 + fwdOvr * 0.15;
+
+  // Midfielders: passing leads, physical + pace support.
+  const midPass = avgAttr(mids, (p) => p.passing);
+  const midPhys = avgAttr(mids, (p) => p.physical);
+  const midPace = avgAttr(mids, (p) => p.pace);
+  const midOvr = avgAttr(mids, (p) => p.overall);
+  const midCore =
+    midPass * 0.5 + midPhys * 0.2 + midPace * 0.15 + midOvr * 0.15;
+
+  // Defenders: defending leads, physical helps, pace for full-backs.
+  const defDef = avgAttr(defs, (p) => p.defending);
+  const defPhys = avgAttr(defs, (p) => p.physical);
+  const defPace = avgAttr(defs, (p) => p.pace);
+  const defOvr = avgAttr(defs, (p) => p.overall);
+  const defCore =
+    defDef * 0.5 + defPhys * 0.2 + defPace * 0.1 + defOvr * 0.2;
+
+  // GK: goalkeeping is king.
+  const gkPwr = gk ? gk.goalkeeping * 0.75 + gk.overall * 0.25 : 70;
 
   // Morale 1-5, 3 neutral. ±3 at extremes.
   const avgMorale =
@@ -201,9 +260,26 @@ function teamPower(
   const pressingBoost = (tactics.pressing - 2) * 0.6;
   const tempoBoost = (tactics.tempo - 2) * 0.4;
 
-  const attack = fwdOvr + midOvr * 0.35 + mentalityBoost + moraleBoost;
-  const midfield = midOvr + pressingBoost + tempoBoost + moraleBoost * 0.5;
-  const defense = defOvr * 0.7 + gkOvr * 0.3 - mentalityBoost * 0.5;
+  // Formation-driven structural weights: more defenders = sturdier back
+  // line but less midfield creativity; more forwards = sharper attack but
+  // fewer bodies in midfield. Weight per line ≈ count / ideal-count, so a
+  // 4-4-2 sits at baseline and a 5-3-2 shifts the balance toward defense.
+  const { def: defCount, mid: midCount, fwd: fwdCount } = parseFormation(
+    tactics.formation,
+  );
+  const defWeight = defCount / 4; // 0.75–1.25
+  const midWeight = midCount / 4;
+  const fwdWeight = fwdCount / 2;
+
+  const attack =
+    attackCore * fwdWeight * 0.8 +
+    midCore * 0.2 +
+    mentalityBoost +
+    moraleBoost;
+  const midfield =
+    midCore * midWeight + pressingBoost + tempoBoost + moraleBoost * 0.5;
+  const defense =
+    defCore * defWeight * 0.7 + gkPwr * 0.3 - mentalityBoost * 0.5;
   const overall =
     attack * 0.4 +
     midfield * 0.3 +
@@ -218,8 +294,8 @@ function teamPower(
 // ─── Simulate ─────────────────────────────────────────────────
 export function simulateMatch(input: SimInput): MatchResult {
   const rng = createRng(input.seed);
-  const homeStarters = pickStarters(input.homeSquad);
-  const awayStarters = pickStarters(input.awaySquad);
+  const homeStarters = pickStarters(input.homeSquad, input.homeTactics.formation);
+  const awayStarters = pickStarters(input.awaySquad, input.awayTactics.formation);
 
   // Referee deterministically picked from the seed so replays match. The
   // reference passes through to commentary + influences card frequency.
@@ -291,14 +367,17 @@ export function simulateMatch(input: SimInput): MatchResult {
   const homeMins = goalMinutes(homeScore);
   const awayMins = goalMinutes(awayScore);
 
-  // Choose scorers biased to FWDs > MIDs > DEFs, plus age-young bonus
+  // Choose scorers biased to FWDs > MIDs > DEFs. Within each tier, weight
+  // by `shooting` so a 90-shooting striker scores far more often than a
+  // 65-shooting one, and a midfielder with sharp shooting can outscore a
+  // weak striker.
   const pickScorer = (
     starters: DBPlayer[],
     r: () => number,
   ): DBPlayer | undefined => {
     if (starters.length === 0) return undefined;
     const weighted = starters.flatMap((p) => {
-      const weight =
+      const posWeight =
         p.position === "FWD"
           ? 6
           : p.position === "MID"
@@ -306,13 +385,14 @@ export function simulateMatch(input: SimInput): MatchResult {
             : p.position === "DEF"
               ? 1
               : 0;
-      const copies = Math.max(1, Math.round((weight * p.overall) / 80));
+      const copies = Math.max(1, Math.round((posWeight * p.shooting) / 70));
       return Array(copies).fill(p);
     });
     if (weighted.length === 0) return starters[0];
     return weighted[Math.floor(r() * weighted.length)] ?? starters[0];
   };
 
+  // Assisters favor high-passing midfielders; forwards assist less often.
   const pickAssister = (
     starters: DBPlayer[],
     excludeId: string,
@@ -323,9 +403,11 @@ export function simulateMatch(input: SimInput): MatchResult {
       (p) => p.id !== excludeId && p.position !== "GK",
     );
     if (pool.length === 0) return undefined;
-    const weighted = pool.flatMap((p) =>
-      Array(p.position === "MID" ? 4 : p.position === "FWD" ? 2 : 1).fill(p),
-    );
+    const weighted = pool.flatMap((p) => {
+      const posWeight = p.position === "MID" ? 4 : p.position === "FWD" ? 2 : 1;
+      const copies = Math.max(1, Math.round((posWeight * p.passing) / 70));
+      return Array(copies).fill(p);
+    });
     if (weighted.length === 0) return undefined;
     return weighted[Math.floor(r() * weighted.length)];
   };
@@ -598,11 +680,24 @@ export function simulateMatch(input: SimInput): MatchResult {
       });
     }
   }
-  // Keeper rating hit based on goals conceded
-  const homeGK = homeStarters.find((p) => p.position === "GK");
-  const awayGK = awayStarters.find((p) => p.position === "GK");
-  if (homeGK) upsert(homeGK.id, { rating: -0.3 * awayScore + 0.15 });
-  if (awayGK) upsert(awayGK.id, { rating: -0.3 * homeScore + 0.15 });
+  // Keeper rating — hit per goal conceded, but a world-class keeper
+  // (goalkeeping ≥ 85) eats the blame less than a rookie. Clean sheet
+  // awards a bonus scaled by the opponent's attacking pressure.
+  const gkAdjust = (gk: DBPlayer | undefined, conceded: number) => {
+    if (!gk) return;
+    const gkFactor = Math.max(0.5, 1 - (gk.goalkeeping - 70) * 0.015);
+    upsert(gk.id, {
+      rating: -0.3 * conceded * gkFactor + (conceded === 0 ? 0.5 : 0.15),
+    });
+  };
+  gkAdjust(
+    homeStarters.find((p) => p.position === "GK"),
+    awayScore,
+  );
+  gkAdjust(
+    awayStarters.find((p) => p.position === "GK"),
+    homeScore,
+  );
 
   // Small chance of injury per match per side (~7% baseline). A hired
   // physio scales both incidence and duration down by tier × 18% / 25%.

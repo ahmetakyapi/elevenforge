@@ -208,6 +208,15 @@ export const players = pgTable(
     nationality: text("nationality").notNull(),
     overall: integer("overall").notNull(),
     potential: integer("potential").notNull(),
+    // Position-aware attributes (0-99). `overall` stays the single aggregate
+    // number shown in UI; these power the match engine so a striker's
+    // finishing genuinely outranks a defender's, even at equal `overall`.
+    pace: integer("pace").notNull().default(60),
+    shooting: integer("shooting").notNull().default(60),
+    passing: integer("passing").notNull().default(60),
+    defending: integer("defending").notNull().default(60),
+    physical: integer("physical").notNull().default(60),
+    goalkeeping: integer("goalkeeping").notNull().default(30),
     fitness: integer("fitness").notNull().default(90),
     morale: integer("morale").notNull().default(4),
     wageCents: money("wage_cents").notNull().default(10_000_000),

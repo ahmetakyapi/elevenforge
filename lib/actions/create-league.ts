@@ -23,7 +23,6 @@ import { assignSeasonGoals } from "@/lib/jobs/board";
 import { generateCupBracket } from "@/lib/jobs/cup";
 import type { Position } from "@/types";
 
-const START_BALANCE_CENTS = 4_500_000_000;
 const SQUAD_COMPOSITION: Array<[Position, number]> = [
   ["GK", 2],
   ["DEF", 6],
@@ -102,6 +101,36 @@ function generateName(r: () => number): { name: string; nat: string } {
   return { name: `${first} ${last}`, nat: "TR" };
 }
 
+// Per-role attribute offsets from overall. Clamped into [30, 99] after
+// sampling. Keeps strikers' finishing above their tackling even at equal
+// `overall`, so the match engine can use the right attribute per context.
+type AttrOffsets = {
+  pace: number;
+  shooting: number;
+  passing: number;
+  defending: number;
+  physical: number;
+  goalkeeping: number;
+};
+const ROLE_ATTR_OFFSETS: Record<string, AttrOffsets> = {
+  GK:  { pace: -12, shooting: -45, passing:  -5, defending: -15, physical:   0, goalkeeping: +18 },
+  CB:  { pace:  -5, shooting: -22, passing:  -6, defending: +12, physical:  +8, goalkeeping: -40 },
+  LB:  { pace:  +6, shooting: -16, passing:  +1, defending:  +4, physical:   0, goalkeeping: -40 },
+  RB:  { pace:  +6, shooting: -16, passing:  +1, defending:  +4, physical:   0, goalkeeping: -40 },
+  CDM: { pace:  -3, shooting: -10, passing:  +5, defending:  +6, physical:  +5, goalkeeping: -40 },
+  CM:  { pace:   0, shooting:  -4, passing: +10, defending:  -3, physical:  +1, goalkeeping: -40 },
+  AM:  { pace:  +3, shooting:  +4, passing: +10, defending: -12, physical:  -3, goalkeeping: -40 },
+  LW:  { pace: +11, shooting:  +3, passing:  +2, defending: -11, physical:  -4, goalkeeping: -40 },
+  RW:  { pace: +11, shooting:  +3, passing:  +2, defending: -11, physical:  -4, goalkeeping: -40 },
+  ST:  { pace:  +6, shooting: +13, passing:  -6, defending: -18, physical:  +6, goalkeeping: -40 },
+  CF:  { pace:  +4, shooting: +10, passing:  -1, defending: -15, physical:  +5, goalkeeping: -40 },
+};
+
+function rollAttr(base: number, offset: number, r: () => number): number {
+  const noise = (r() - 0.5) * 8; // ±4
+  return Math.max(30, Math.min(99, Math.round(base + offset + noise)));
+}
+
 function generatePlayer(
   leagueId: string,
   clubId: string,
@@ -113,13 +142,28 @@ function generatePlayer(
   const { name, nat } = generateName(r);
   const role = pick(ROLES[pos], r);
   const secondaryRoles = generateSecondaryRoles(role, r);
-  const age = Math.floor(r() * 18) + 17;
+  // Age: triangular-ish distribution peaking at 25-28 (real squad shape).
+  // 60% rolls land in 22-30, 20% in youth 17-21, 20% in vets 31-34.
+  const ageRoll = r();
+  const age =
+    ageRoll < 0.2
+      ? 17 + Math.floor(r() * 5) // 17-21
+      : ageRoll < 0.8
+        ? 22 + Math.floor(r() * 9) // 22-30
+        : 31 + Math.floor(r() * 4); // 31-34
   const ovr = Math.max(
-    60,
-    Math.min(90, Math.round(clubRatingBase + (r() - 0.5) * 14)),
+    55,
+    Math.min(92, Math.round(clubRatingBase + (r() - 0.5) * 10)),
   );
   const potCap = Math.min(95, ovr + Math.floor(r() * 12));
   const pot = age <= 21 ? Math.max(ovr + 3, potCap) : Math.max(ovr, potCap);
+  const offsets = ROLE_ATTR_OFFSETS[role] ?? ROLE_ATTR_OFFSETS.CM;
+  const pace = rollAttr(ovr, offsets.pace, r);
+  const shooting = rollAttr(ovr, offsets.shooting, r);
+  const passing = rollAttr(ovr, offsets.passing, r);
+  const defending = rollAttr(ovr, offsets.defending, r);
+  const physical = rollAttr(ovr, offsets.physical, r);
+  const goalkeeping = rollAttr(ovr, offsets.goalkeeping, r);
   const valueEur = Math.max(
     300_000,
     Math.round(
@@ -139,6 +183,12 @@ function generatePlayer(
     nationality: nat,
     overall: ovr,
     potential: pot,
+    pace,
+    shooting,
+    passing,
+    defending,
+    physical,
+    goalkeeping,
     fitness: 85 + Math.floor(r() * 15),
     morale: 3 + Math.floor(r() * 3),
     wageCents: Math.max(12_000, Math.round(valueEur / 200)) * 100,
@@ -252,10 +302,45 @@ export async function createStarterLeague(input: {
 
   // 16 clubs — shuffle the mock CLUBS and let user own the first one,
   // renamed to their chosen team name.
+  //
+  // Tiered league hierarchy (realistic power distribution):
+  //   tier 0: 3 top clubs    — base 84 squad, prestige 85, budget 6B  (champion goal)
+  //   tier 1: 4 upper-mid    — base 78 squad, prestige 68, budget 5B  (top4 goal)
+  //   tier 2: 5 mid          — base 73 squad, prestige 50, budget 4.5B (midtable goal)
+  //   tier 3: 4 bottom       — base 68 squad, prestige 30, budget 3.5B (survive goal)
+  // User's club sits in the mid tier — they fight both up and down.
+  type TierMeta = { base: number; prestige: number; balance: number };
+  const TIER_TEMPLATE: TierMeta[] = [
+    { base: 84, prestige: 85, balance: 6_000_000_000 },
+    { base: 84, prestige: 82, balance: 5_800_000_000 },
+    { base: 84, prestige: 80, balance: 5_600_000_000 },
+    { base: 78, prestige: 70, balance: 5_000_000_000 },
+    { base: 78, prestige: 68, balance: 5_000_000_000 },
+    { base: 78, prestige: 66, balance: 4_800_000_000 },
+    { base: 78, prestige: 66, balance: 4_800_000_000 },
+    { base: 73, prestige: 50, balance: 4_500_000_000 },
+    { base: 73, prestige: 50, balance: 4_500_000_000 },
+    { base: 73, prestige: 48, balance: 4_400_000_000 },
+    { base: 73, prestige: 48, balance: 4_400_000_000 },
+    { base: 73, prestige: 46, balance: 4_300_000_000 },
+    { base: 68, prestige: 32, balance: 3_500_000_000 },
+    { base: 68, prestige: 30, balance: 3_500_000_000 },
+    { base: 68, prestige: 28, balance: 3_300_000_000 },
+    { base: 68, prestige: 26, balance: 3_200_000_000 },
+  ];
+  // User always lands in a mid-tier slot; shuffle bot tiers across the rest.
+  const userTier = TIER_TEMPLATE[7];
+  const otherTiers = [
+    ...TIER_TEMPLATE.slice(0, 7),
+    ...TIER_TEMPLATE.slice(8),
+  ].sort(() => Math.random() - 0.5);
+  const tiers: TierMeta[] = [userTier, ...otherTiers];
+
   const clubMeta = [...SEED_CLUBS].sort(() => Math.random() - 0.5);
   const clubRows: Array<typeof clubs.$inferSelect> = [];
   for (let i = 0; i < 16; i++) {
     const meta = clubMeta[i];
+    const tier = tiers[i];
     const personality =
       i === 0
         ? BOT_PERSONALITIES[0] // user defaults to balanced 4-3-3
@@ -273,7 +358,8 @@ export async function createStarterLeague(input: {
         city: meta.city,
         color: meta.color,
         color2: meta.color2,
-        balanceCents: START_BALANCE_CENTS,
+        balanceCents: tier.balance,
+        prestige: tier.prestige,
         formation: personality.formation,
         mentality: personality.mentality,
         pressing: personality.pressing,
@@ -290,12 +376,11 @@ export async function createStarterLeague(input: {
     .set({ currentLeagueId: league.id })
     .where(eq(users.id, input.userId));
 
-  // Players — 20 per club, all procedurally generated
-  let jerseyBase = 0;
+  // Players — 20 per club, procedurally generated with tier-aware base.
   const allPlayers: Array<typeof players.$inferInsert> = [];
   for (const [idx, club] of clubRows.entries()) {
     const r = rng(club.id.charCodeAt(0) * 997 + idx * 31 + Date.now());
-    const ratingBase = 73 + ((idx * 7) % 9);
+    const ratingBase = tiers[idx].base;
     let jersey = 1;
     for (const [pos, count] of SQUAD_COMPOSITION) {
       for (let k = 0; k < count; k++) {
@@ -304,7 +389,6 @@ export async function createStarterLeague(input: {
         );
       }
     }
-    jerseyBase += 20;
   }
   await db.insert(players).values(allPlayers);
 
