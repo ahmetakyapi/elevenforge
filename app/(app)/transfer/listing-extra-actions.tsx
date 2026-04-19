@@ -10,16 +10,22 @@ import { loanPlayer } from "./loan-actions";
  * Auto-bid + loan quick actions on an expanded listing card. Loan button
  * triggers immediately (€=20% market value, 30 days). Auto-bid opens an
  * inline max-price input and persists when submitted.
+ *
+ * Loan fee preview uses the player's *market* value (engine's actual
+ * deduction) — not the listing price, which can drift via decay.
  */
 export function ListingExtraActions({
   listingId,
   playerId,
   priceEur,
+  marketValueEur,
 }: {
   listingId: string;
   playerId: string;
   priceEur: number;
+  marketValueEur: number;
 }) {
+  const loanFeeEur = Math.round(marketValueEur * 0.2);
   const [bidOpen, setBidOpen] = useState(false);
   const [maxEur, setMaxEur] = useState(priceEur);
   const [pending, startTransition] = useTransition();
@@ -143,7 +149,7 @@ export function ListingExtraActions({
       )}
       <span style={{ flex: 1 }} />
       <span style={{ fontSize: 11, color: "var(--muted)" }}>
-        Kira ücreti: €{(priceEur * 0.2 / 1_000_000).toFixed(1)}M · 30 gün
+        Kira ücreti: €{(loanFeeEur / 1_000_000).toFixed(1)}M · 30 gün
       </span>
     </div>
   );

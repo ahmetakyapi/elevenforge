@@ -18,6 +18,7 @@ import { SponsorWidget } from "./sponsor-widget";
 import { StaffWidget } from "./staff-widget";
 import { UpgradeWidget } from "./upgrade-widget";
 import { AchievementsStrip } from "./achievements-strip";
+import { PressWidget } from "./press-widget";
 import { DashboardAutoRefresh } from "@/components/dashboard-auto-refresh";
 import { PushSubscribeButton } from "@/components/push-subscribe";
 import type { BoardGoal } from "@/lib/jobs/board";
@@ -86,6 +87,7 @@ export default async function DashboardPage() {
           trainingLevel={ctx.club.trainingLevel}
         />
       </div>
+      <PressWidget />
       {/* Top ribbon */}
       <div
         style={{

@@ -6,6 +6,7 @@ import {
   ArrowLeftRight,
   Bell,
   Home,
+  ListOrdered,
   MessageSquare,
   Newspaper,
   Play,
@@ -21,6 +22,7 @@ import { LogoLockup } from "@/components/brand/logo";
 import { USER_CLUB_ID } from "@/lib/mock-data";
 import { LeagueSwitcher, type OwnedLeague } from "@/app/(app)/league-switcher";
 import { PushSubscribeButton } from "@/components/push-subscribe";
+import { MobileDrawer } from "./mobile-drawer";
 
 type NavItem = {
   href: string;
@@ -35,6 +37,7 @@ const NAV_MAIN: NavItem[] = [
   { href: "/tactic",    label: "Taktik",   Icon: Target },
   { href: "/match",     label: "Maç",      Icon: Play },
   { href: "/cup",       label: "Kupa",     Icon: Trophy },
+  { href: "/standings", label: "Tablo",    Icon: ListOrdered },
   { href: "/newspaper", label: "Gazete",   Icon: Newspaper },
   { href: "/crew",      label: "Crew",     Icon: MessageSquare },
 ];
@@ -176,6 +179,7 @@ export function TopNav({
             <Settings size={14} strokeWidth={1.6} />
           </Link>
           <PushSubscribeButton />
+          <MobileDrawer />
           <div className="v-divider" style={{ height: 22 }} />
           <Crest clubId={USER_CLUB_ID} size={28} />
           {current && (

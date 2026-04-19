@@ -921,6 +921,7 @@ function TransferRow({
             listingId={listing.id}
             playerId={listing.playerId}
             priceEur={listing.priceEur}
+            marketValueEur={listing.marketValueEur}
           />
         </div>
       )}

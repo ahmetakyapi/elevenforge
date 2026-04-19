@@ -15,8 +15,10 @@ import {
   X,
   Zap,
 } from "lucide-react";
+import Link from "next/link";
 import { useToast } from "@/components/ui/toast";
 import { playFriendly, toggleTraining } from "./actions";
+import { renewContract } from "./contract-actions";
 import { ComparePanel } from "./compare-panel";
 import {
   AgePill,
@@ -1881,6 +1883,39 @@ function PlayerSheetActions({
       >
         <Zap size={14} strokeWidth={1.6} /> Dostluk Maçı
       </button>
+      <button
+        type="button"
+        className="btn btn-ghost"
+        disabled={pending || !p.id}
+        onClick={() => {
+          if (!p.id) return;
+          startTransition(async () => {
+            const res = await renewContract({ playerId: p.id!, years: 2 });
+            if (!res.ok) {
+              toast({ icon: "⚠", title: "Sözleşme uzatılamadı", body: res.error, accent: "var(--danger)" });
+              return;
+            }
+            toast({
+              icon: "✍",
+              title: `${p.n} sözleşme yeniledi`,
+              body: `Yeni süre: ${res.newYears} yıl`,
+              accent: "var(--emerald)",
+            });
+            router.refresh();
+          });
+        }}
+      >
+        Sözleşme +2y
+      </button>
+      {p.id && (
+        <Link
+          href={`/player/${p.id}`}
+          className="btn btn-ghost"
+          style={{ textDecoration: "none" }}
+        >
+          Profil →
+        </Link>
+      )}
     </>
   );
 }

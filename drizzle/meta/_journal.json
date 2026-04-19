@@ -64,6 +64,13 @@
       "when": 1776626327081,
       "tag": "0008_smart_butterfly",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1776632978560,
+      "tag": "0009_outgoing_wolfpack",
+      "breakpoints": true
     }
   ]
 }

@@ -592,3 +592,32 @@ export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;
 export type TacticSpyRow = typeof tacticSpies.$inferSelect;
 export type CupFixture = typeof cupFixtures.$inferSelect;
 export type Achievement = typeof achievements.$inferSelect;
+
+// ─── Press conferences ────────────────────────────────────────
+// Weekly question fired at the user before match-day. They pick one of N
+// answer chips; each maps to a (squadMoraleDelta, opponentMoraleDelta,
+// fanPrestigeDelta) triple. Resolves a turn later.
+export const pressConferences = pgTable(
+  "press_conferences",
+  {
+    id: id(),
+    leagueId: uuid("league_id")
+      .notNull()
+      .references(() => leagues.id, { onDelete: "cascade" }),
+    clubId: uuid("club_id")
+      .notNull()
+      .references(() => clubs.id, { onDelete: "cascade" }),
+    week: integer("week").notNull(),
+    season: integer("season").notNull(),
+    promptCode: text("prompt_code").notNull(),
+    answerCode: text("answer_code"),
+    askedAt: createdAt(),
+    answeredAt: timestamp("answered_at", { withTimezone: true }),
+  },
+  (t) => [
+    unique("press_unique_per_week").on(t.clubId, t.season, t.week),
+    index("press_club_idx").on(t.clubId),
+  ],
+);
+
+export type PressConference = typeof pressConferences.$inferSelect;

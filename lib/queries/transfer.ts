@@ -20,6 +20,8 @@ export type TransferListingView = {
   overall: number;
   potential: number;
   priceEur: number;
+  /** Player's intrinsic market value (not listing price) — used for loan fee. */
+  marketValueEur: number;
   hoursOn: number;
   decay: string;
   sellerType: "bot" | "user";
@@ -170,6 +172,7 @@ export async function loadTransferData(
         overall: r.player.overall,
         potential: r.player.potential,
         priceEur,
+        marketValueEur: Math.round(Number(r.player.marketValueCents) / 100),
         hoursOn,
         decay: trending ? `↑${hoursOn}sa` : `↓${hoursOn}sa`,
         sellerType: r.listing.isBotMarket ? "bot" : "user",
