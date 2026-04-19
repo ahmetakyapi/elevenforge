@@ -13,6 +13,15 @@ import { LogoLockup } from "@/components/brand/logo";
 import { CLUBS, COMMENTARY, GLOBAL_TRANSFERS, clubById } from "@/lib/mock-data";
 import { fmtEUR } from "@/lib/utils";
 
+// Top-nav + footer product targets. Each label scrolls to the matching
+// section on the landing page (sections expose these IDs below).
+const NAV_TARGETS = [
+  { label: "Platform", href: "#platform" },
+  { label: "Canlı Maç", href: "#canli-mac" },
+  { label: "Gazete", href: "#gazete" },
+  { label: "Akış", href: "#akis" },
+] as const;
+
 // ─── Hooks ────────────────────────────────────────────────
 function useReveal(threshold = 0.15) {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -172,10 +181,15 @@ function LandingNav() {
         <LogoLockup size={22} icon="anvil" />
       </Link>
       <div data-lp-nav-links className="desktop-only" style={{ display: "flex", gap: 4 }}>
-        {["Platform", "Canlı Maç", "Gazete", "Akış"].map((x) => (
-          <button key={x} type="button" className="btn btn-ghost btn-sm">
-            {x}
-          </button>
+        {NAV_TARGETS.map(({ label, href }) => (
+          <a
+            key={label}
+            href={href}
+            className="btn btn-ghost btn-sm"
+            style={{ textDecoration: "none" }}
+          >
+            {label}
+          </a>
         ))}
       </div>
       <div style={{ display: "flex", gap: 8 }}>
@@ -218,8 +232,14 @@ function Hero({ y }: { y: number }) {
       }}
     >
       <div
+        aria-hidden
         className="hero-stadium"
-        style={{ position: "absolute", inset: 0, opacity: Math.max(0, 1 - y / 800) }}
+        style={{
+          position: "absolute",
+          inset: 0,
+          opacity: Math.max(0, 1 - y / 800),
+          pointerEvents: "none",
+        }}
       >
         <StadiumBackdrop mouse={m} scrollY={y} />
       </div>
@@ -826,8 +846,9 @@ function CrewSection() {
   return (
     <section
       ref={ref}
+      id="platform"
       data-lp-section
-      style={{ padding: "120px 32px", maxWidth: 1400, margin: "0 auto" }}
+      style={{ padding: "120px 32px", maxWidth: 1400, margin: "0 auto", scrollMarginTop: 80 }}
     >
       <div
         data-lp-grid="2"
@@ -1007,7 +1028,8 @@ function StadiumSection() {
   return (
     <section
       ref={ref}
-      data-lp-section style={{ padding: "120px 32px", position: "relative", overflow: "hidden" }}
+      id="canli-mac"
+      data-lp-section style={{ padding: "120px 32px", position: "relative", overflow: "hidden", scrollMarginTop: 80 }}
     >
       <div
         style={{
@@ -1185,7 +1207,7 @@ function StadiumSection() {
 function MarketSection() {
   const [ref, on] = useReveal();
   return (
-    <section ref={ref} data-lp-section style={{ padding: "120px 0 120px", position: "relative" }}>
+    <section ref={ref} id="akis" data-lp-section style={{ padding: "120px 0 120px", position: "relative", scrollMarginTop: 80 }}>
       <div
         style={{
           maxWidth: 1300,
@@ -1632,12 +1654,14 @@ function NewspaperStack() {
   return (
     <section
       ref={ref}
+      id="gazete"
       data-lp-section
       style={{
         padding: "120px 32px",
         maxWidth: 1300,
         margin: "0 auto",
         position: "relative",
+        scrollMarginTop: 80,
       }}
     >
       <div
@@ -2312,23 +2336,53 @@ function LandingFooter() {
             yapıldı.
           </span>
         </div>
-        {[
-          { h: "Ürün", items: ["Platform", "Canlı Maç", "Gazete", "Akış"] },
-          { h: "Kaynak", items: ["Blog", "Rehber", "Durum", "API"] },
-          { h: "Yasal", items: ["KVKK", "Şartlar", "Çerez", "İletişim"] },
-        ].map((col) => (
+        {(
+          [
+            {
+              h: "Ürün",
+              items: NAV_TARGETS.map((t) => ({ label: t.label, href: t.href })),
+            },
+            {
+              h: "Giriş",
+              items: [
+                { label: "Hesap Aç", href: "/register" },
+                { label: "Giriş Yap", href: "/login" },
+                { label: "Demo'yu Gez", href: "/login" },
+              ],
+            },
+            {
+              h: "İletişim",
+              items: [
+                { label: "ahmetakyapii@gmail.com", href: "mailto:ahmetakyapii@gmail.com" },
+                { label: "GitHub", href: "https://github.com/ahmetakyapi/elevenforge" },
+              ],
+            },
+          ] as const
+        ).map((col) => (
           <div
             key={col.h}
             style={{ display: "flex", flexDirection: "column", gap: 10 }}
           >
             <span className="t-label">{col.h}</span>
-            {col.items.map((x) => (
-              <span
-                key={x}
-                style={{ fontSize: 13, color: "var(--text-2)", cursor: "pointer" }}
+            {col.items.map((it) => (
+              <a
+                key={it.label}
+                href={it.href}
+                style={{
+                  fontSize: 13,
+                  color: "var(--text-2)",
+                  textDecoration: "none",
+                  transition: "color var(--t) var(--ease)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "var(--text)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--text-2)";
+                }}
               >
-                {x}
-              </span>
+                {it.label}
+              </a>
             ))}
           </div>
         ))}
