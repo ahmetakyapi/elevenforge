@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { LogoLockup } from "@/components/brand/logo";
 
 export function PitchPatternSide() {
@@ -40,7 +41,9 @@ export function PitchPatternSide() {
       </svg>
       <style>{`@keyframes floatBall { 0%,100% { transform: translate(0,0); } 50% { transform: translate(80px, -40px); } }`}</style>
       <div style={{ position: "absolute", top: 28, left: 28 }}>
-        <LogoLockup size={22} />
+        <Link href="/" style={{ textDecoration: "none", display: "flex" }}>
+          <LogoLockup size={22} />
+        </Link>
       </div>
       <div
         style={{

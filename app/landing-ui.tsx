@@ -161,7 +161,9 @@ function LandingNav() {
         justifyContent: "space-between",
       }}
     >
-      <LogoLockup size={22} icon="anvil" />
+      <Link href="/" style={{ textDecoration: "none", display: "flex" }}>
+        <LogoLockup size={22} icon="anvil" />
+      </Link>
       <div data-lp-nav-links className="desktop-only" style={{ display: "flex", gap: 4 }}>
         {["Platform", "Canlı Maç", "Gazete", "Akış"].map((x) => (
           <button key={x} type="button" className="btn btn-ghost btn-sm">
@@ -2286,7 +2288,9 @@ function LandingFooter() {
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <LogoLockup size={20} icon="anvil" />
+          <Link href="/" style={{ textDecoration: "none", display: "flex" }}>
+            <LogoLockup size={20} icon="anvil" />
+          </Link>
           <span
             style={{
               fontSize: 13,
