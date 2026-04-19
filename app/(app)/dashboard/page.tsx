@@ -15,7 +15,10 @@ import { StreakBanner } from "./streak-banner";
 import { SpyButton } from "./spy-button";
 import { BoardBanner } from "./board-banner";
 import { SponsorWidget } from "./sponsor-widget";
+import { StaffWidget } from "./staff-widget";
+import { UpgradeWidget } from "./upgrade-widget";
 import { DashboardAutoRefresh } from "@/components/dashboard-auto-refresh";
+import { PushSubscribeButton } from "@/components/push-subscribe";
 import type { BoardGoal } from "@/lib/jobs/board";
 import { SPONSORS } from "@/lib/sponsors";
 
@@ -64,6 +67,19 @@ export default async function DashboardPage() {
           }
           offers={SPONSORS}
           prestige={ctx.club.prestige}
+        />
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 12,
+        }}
+      >
+        <StaffWidget staffJson={ctx.club.staffJson} />
+        <UpgradeWidget
+          stadiumLevel={ctx.club.stadiumLevel}
+          trainingLevel={ctx.club.trainingLevel}
         />
       </div>
       {/* Top ribbon */}

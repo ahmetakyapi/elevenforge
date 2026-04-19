@@ -166,6 +166,12 @@ export const clubs = pgTable(
     boardConfidence: integer("board_confidence").notNull().default(60),
     // Active sponsor contract: { name, payPerMatch, bonusPerWin, seasonBonus, weeksLeft } | null
     activeSponsorJson: text("active_sponsor_json"),
+    // Staff slots: { headCoach: {id,name,tier}|null, physio: {...}|null, scout: {...}|null }
+    // Each role boosts a specific subsystem (see lib/staff.ts):
+    //   headCoach → match-day morale & tactic edge
+    //   physio    → injury rate × (1 - tier*0.15), faster recovery
+    //   scout     → bonus candidates per scout return
+    staffJson: text("staff_json"),
     createdAt: createdAt(),
   },
   (t) => [

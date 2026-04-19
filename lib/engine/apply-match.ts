@@ -120,12 +120,18 @@ export async function applyMatchResult(
       }
       ratings = [...ratings, u.rating].slice(-5);
 
+      const newYellowTotal = row.yellowCardsSeason + u.yellow;
       const isInjured = (u.injuredMinutes ?? 0) > 0;
       const isRed = u.red > 0;
+      // Real soccer rule: every 5 yellows = 1-match ban. Trigger when the
+      // count crosses a multiple of 5 within this match.
+      const crossesFiveBoundary =
+        Math.floor(newYellowTotal / 5) > Math.floor(row.yellowCardsSeason / 5);
+
       const updates: Partial<typeof players.$inferInsert> = {
         goalsSeason: row.goalsSeason + u.goals,
         assistsSeason: row.assistsSeason + u.assists,
-        yellowCardsSeason: row.yellowCardsSeason + u.yellow,
+        yellowCardsSeason: newYellowTotal,
         redCardsSeason: row.redCardsSeason + u.red,
         lastRatings: JSON.stringify(ratings),
         morale: Math.max(
@@ -146,6 +152,10 @@ export async function applyMatchResult(
       } else if (isRed) {
         updates.status = "suspended";
         updates.suspensionMatchesLeft = row.suspensionMatchesLeft + 2;
+      } else if (crossesFiveBoundary) {
+        // Yellow accumulation ban — 1 match.
+        updates.status = "suspended";
+        updates.suspensionMatchesLeft = row.suspensionMatchesLeft + 1;
       }
       await db.update(players).set(updates).where(eq(players.id, row.id));
     }

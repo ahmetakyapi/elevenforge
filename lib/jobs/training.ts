@@ -69,7 +69,24 @@ export async function runWeeklyEconomy(opts: { leagueId?: string } = {}) {
       .where(eq(players.clubId, c.id));
     const weeklyWage = squad.reduce((s, r) => s + Number(r.wage), 0);
     const interest = Math.max(0, Math.round(c.balanceCents * 0.005)); // 0.5% weekly on positive
-    let delta = -weeklyWage + interest;
+    // Staff weekly wages — head coach + physio + scout combined.
+    let staffWage = 0;
+    if (c.staffJson) {
+      try {
+        const raw = JSON.parse(c.staffJson) as Partial<{
+          headCoach: { id: string };
+          physio: { id: string };
+          scout: { id: string };
+        }>;
+        const { staffById } = await import("@/lib/staff");
+        for (const ref of [raw.headCoach, raw.physio, raw.scout]) {
+          if (!ref) continue;
+          const m = staffById(ref.id);
+          if (m) staffWage += m.weeklyWageCents;
+        }
+      } catch {}
+    }
+    let delta = -weeklyWage - staffWage + interest;
 
     // Sponsor tick
     let nextSponsorJson: string | null = c.activeSponsorJson;

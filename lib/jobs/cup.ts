@@ -193,6 +193,24 @@ export async function runCupRound(opts: { leagueId: string }): Promise<{
       }
     }
 
+    // Per-round feed event so users see cup progression in their feed,
+    // not just a single line at the final.
+    const winnerName =
+      winnerId === home.id ? home.name : away.name;
+    const loserName = winnerId === home.id ? away.name : home.name;
+    const roundLabel: Record<number, string> = {
+      1: "Kupa Son 16",
+      2: "Kupa Çeyrek Final",
+      3: "Kupa Yarı Final",
+      4: "KUPA FİNALİ",
+    };
+    await db.insert(feedEvents).values({
+      leagueId: opts.leagueId,
+      clubId: winnerId,
+      eventType: "match",
+      text: `${roundLabel[fx.round]}: ${winnerName} ${homeScore}-${awayScore} ${loserName}`,
+    });
+
     // Advance winner to next round's slot.
     if (fx.round < 4) {
       const nextSlot = Math.floor(fx.slot / 2);

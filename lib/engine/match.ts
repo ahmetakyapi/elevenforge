@@ -120,6 +120,10 @@ export type SimInput = {
   // Home prestige 0-100 (clubs.prestige); fans react more loudly to derby
   // wins of high-prestige sides. Scaled into the crowd energy stat.
   homePrestige?: number;
+  // Physio tier 0-3 per side. Scales injury chance × (1 - tier*0.18) and
+  // halves the lay-off length on a tier-3 staff.
+  homePhysioTier?: number;
+  awayPhysioTier?: number;
   seed?: number;
 };
 
@@ -543,16 +547,19 @@ export function simulateMatch(input: SimInput): MatchResult {
   if (homeGK) upsert(homeGK.id, { rating: -0.3 * awayScore + 0.15 });
   if (awayGK) upsert(awayGK.id, { rating: -0.3 * homeScore + 0.15 });
 
-  // Small chance of injury per match per side (~5%)
-  const maybeInjure = (starters: DBPlayer[]) => {
-    if (rng() < 0.07) {
+  // Small chance of injury per match per side (~7% baseline). A hired
+  // physio scales both incidence and duration down by tier × 18% / 25%.
+  const maybeInjure = (starters: DBPlayer[], physioTier: number) => {
+    const incidenceScale = Math.max(0.1, 1 - physioTier * 0.18);
+    const durationScale = Math.max(0.4, 1 - physioTier * 0.25);
+    if (rng() < 0.07 * incidenceScale) {
       const p = starters[Math.floor(rng() * starters.length)];
-      const days = Math.ceil(rng() * 10);
+      const days = Math.max(1, Math.ceil(rng() * 10 * durationScale));
       upsert(p.id, { injuredMinutes: days * 24 * 60 });
     }
   };
-  maybeInjure(homeStarters);
-  maybeInjure(awayStarters);
+  maybeInjure(homeStarters, input.homePhysioTier ?? 0);
+  maybeInjure(awayStarters, input.awayPhysioTier ?? 0);
 
   // Clamp ratings to [4.0, 9.9]
   for (const u of playerUpdates) {

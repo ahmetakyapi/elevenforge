@@ -43,6 +43,13 @@
       "when": 1776619267218,
       "tag": "0005_flowery_speed_demon",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1776623500031,
+      "tag": "0006_sleepy_phalanx",
+      "breakpoints": true
     }
   ]
 }

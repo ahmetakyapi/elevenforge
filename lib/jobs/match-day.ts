@@ -25,6 +25,20 @@ function seedFromFixtureId(fixtureId: string): number {
   return h;
 }
 
+/** Pull the physio tier (0-3) out of the club's staff JSON. */
+function physioTierFromStaff(staffJson: string | null): number {
+  if (!staffJson) return 0;
+  try {
+    const raw = JSON.parse(staffJson) as { physio?: { id: string } };
+    if (!raw.physio) return 0;
+    const id = raw.physio.id;
+    if (id.startsWith("ph-bronze")) return 1;
+    if (id.startsWith("ph-silver")) return 2;
+    if (id.startsWith("ph-gold")) return 3;
+  } catch {}
+  return 0;
+}
+
 export async function runMatchDay(opts: {
   leagueId?: string;
   /**
@@ -95,6 +109,8 @@ export async function runMatchDay(opts: {
       // Deterministic seed: stored on the fixture row at first sim and
       // reused thereafter. Replays produce identical scorelines.
       const seed = fx.rngSeed ?? seedFromFixtureId(fx.id);
+      const homePhysioTier = physioTierFromStaff(home.staffJson);
+      const awayPhysioTier = physioTierFromStaff(away.staffJson);
       const result = simulateMatch({
         homeClubId: home.id,
         awayClubId: away.id,
@@ -108,6 +124,8 @@ export async function runMatchDay(opts: {
         awayCity: away.city,
         homeStadiumLevel: home.stadiumLevel,
         homePrestige: home.prestige,
+        homePhysioTier,
+        awayPhysioTier,
         seed,
       });
 

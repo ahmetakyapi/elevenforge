@@ -7,6 +7,7 @@ import {
   Home,
   Play,
   Target,
+  Trophy,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -22,6 +23,7 @@ const ITEMS: NavItem[] = [
   { href: "/squad",     label: "Kadro",    Icon: Users },
   { href: "/transfer",  label: "Transfer", Icon: ArrowLeftRight },
   { href: "/tactic",    label: "Taktik",   Icon: Target },
+  { href: "/cup",       label: "Kupa",     Icon: Trophy },
   { href: "/match",     label: "Maç",      Icon: Play },
 ];
 
@@ -37,7 +39,7 @@ export function MobileBottomNav() {
         right: 0,
         zIndex: 50,
         display: "grid",
-        gridTemplateColumns: "repeat(5, 1fr)",
+        gridTemplateColumns: "repeat(6, 1fr)",
         background: "color-mix(in oklab, var(--bg) 90%, transparent)",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",

@@ -149,7 +149,23 @@ export async function processScoutReturns(opts: { leagueId?: string } = {}) {
     );
 
   for (const s of active) {
-    const count = 3 + Math.floor(Math.random() * 3); // 3-5 candidates
+    // Bonus candidates from a hired Baş Kaşif (+tier results).
+    let bonus = 0;
+    const [club] = await db
+      .select({ staffJson: clubs.staffJson })
+      .from(clubs)
+      .where(eq(clubs.id, s.clubId));
+    if (club?.staffJson) {
+      try {
+        const raw = JSON.parse(club.staffJson) as { scout?: { id: string } };
+        if (raw.scout) {
+          const { staffById } = await import("@/lib/staff");
+          const m = staffById(raw.scout.id);
+          if (m && m.role === "scout") bonus = m.tier;
+        }
+      } catch {}
+    }
+    const count = 3 + Math.floor(Math.random() * 3) + bonus; // 3-5 (+staff tier)
     const positions: Position[] =
       s.targetPosition === "ANY"
         ? ["GK", "DEF", "MID", "FWD"]

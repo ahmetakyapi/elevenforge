@@ -18,6 +18,7 @@ import { Crest } from "@/components/ui/primitives";
 import { LogoLockup } from "@/components/brand/logo";
 import { USER_CLUB_ID } from "@/lib/mock-data";
 import { LeagueSwitcher, type OwnedLeague } from "@/app/(app)/league-switcher";
+import { PushSubscribeButton } from "@/components/push-subscribe";
 
 type NavItem = {
   href: string;
@@ -156,6 +157,7 @@ export function TopNav({
               3
             </span>
           </Link>
+          <PushSubscribeButton />
           <div className="v-divider" style={{ height: 22 }} />
           <Crest clubId={USER_CLUB_ID} size={28} />
           {current && (

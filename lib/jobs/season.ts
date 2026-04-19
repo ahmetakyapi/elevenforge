@@ -125,13 +125,25 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
       .where(eq(clubs.id, c.id));
   }
 
-  // Age + potential decay for every player
+  // Age + potential decay for every player. Retirement / free agency:
+  //  - Age ≥ 38 with overall < 78 → forced retirement (delete from DB).
+  //  - Age ≥ 40 → forced retirement regardless.
+  //  - Contract years 0 (after tick) → released as free agent (clubId=null).
   const allPlayers = await db
     .select()
     .from(players)
     .where(eq(players.leagueId, leagueId));
+  let retired = 0;
+  let freeAgents = 0;
   for (const p of allPlayers) {
     const newAge = p.age + 1;
+
+    if (newAge >= 40 || (newAge >= 38 && p.overall < 78)) {
+      await db.delete(players).where(eq(players.id, p.id));
+      retired++;
+      continue;
+    }
+
     // Veterans lose 1 overall with some probability; 34+ almost certainly.
     let ovrDelta = 0;
     if (newAge >= 34) ovrDelta = Math.random() < 0.7 ? -1 : 0;
@@ -142,22 +154,36 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
     if (newAge >= 30) potDelta = Math.random() < 0.4 ? -1 : 0;
     const newOvr = Math.max(50, p.overall + ovrDelta);
     const newPot = Math.max(newOvr, p.potential + potDelta);
-    // Contract ticks down — floor at 1 so players don't become free agents
-    // unexpectedly. (Real renewal flow is V2.)
-    const newCtr = Math.max(1, p.contractYears - 1);
+
+    // Contract ticks down. If it hits 0 the player becomes a free agent
+    // (clubId=null). Re-signing them is a future feature; for now they
+    // remain in the league pool so scouts can find them.
+    const newCtr = p.contractYears - 1;
+    const expiring = newCtr <= 0;
     await db
       .update(players)
       .set({
         age: newAge,
         overall: newOvr,
         potential: newPot,
-        contractYears: newCtr,
+        contractYears: expiring ? 0 : newCtr,
+        clubId: expiring ? null : p.clubId,
+        status: expiring ? "active" : p.status,
         goalsSeason: 0,
         assistsSeason: 0,
         yellowCardsSeason: 0,
         redCardsSeason: 0,
       })
       .where(eq(players.id, p.id));
+    if (expiring) freeAgents++;
+  }
+  if (retired > 0 || freeAgents > 0) {
+    await db.insert(feedEvents).values({
+      leagueId,
+      clubId: null,
+      eventType: "paper",
+      text: `Sezon sonu: ${retired} oyuncu emekli oldu, ${freeAgents} oyuncu serbest kaldı.`,
+    });
   }
 
   // Generate new fixtures. Schedule starts tomorrow to give users a day to breathe.
