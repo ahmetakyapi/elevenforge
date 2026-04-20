@@ -17,7 +17,7 @@ import {
   transferListings,
   users,
 } from "@/lib/schema";
-import { CLUBS as SEED_CLUBS, SQUAD as HAND_SQUAD } from "@/lib/mock-data";
+import { SQUAD_PACKS } from "@/lib/squad-packs";
 import { applyMatchTime } from "@/lib/match-time";
 import { assignSeasonGoals } from "@/lib/jobs/board";
 import { generateCupBracket } from "@/lib/jobs/cup";
@@ -347,44 +347,36 @@ export async function createStarterLeague(input: {
   // 16 clubs — shuffle the mock CLUBS and let user own the first one,
   // renamed to their chosen team name.
   //
-  // Tiered league hierarchy (realistic power distribution):
-  //   tier 0: 3 top clubs    — base 84 squad, prestige 85, budget 6B  (champion goal)
-  //   tier 1: 4 upper-mid    — base 78 squad, prestige 68, budget 5B  (top4 goal)
-  //   tier 2: 5 mid          — base 73 squad, prestige 50, budget 4.5B (midtable goal)
-  //   tier 3: 4 bottom       — base 68 squad, prestige 30, budget 3.5B (survive goal)
-  // User's club sits in the mid tier — they fight both up and down.
-  type TierMeta = { base: number; prestige: number; balance: number };
+  // 16 clubs = the 16 Süper Lig packs. User owns pack 0 (Fenerbahçe),
+  // renamed to their input teamName so the UI still reads "their" club.
+  // Budget + prestige follow pack order so Big-4 start richer / more
+  // prestigious than the Anatolian clubs — board goals and transfer
+  // fees feel right out of the box.
+  type TierMeta = { prestige: number; balance: number };
   const TIER_TEMPLATE: TierMeta[] = [
-    { base: 84, prestige: 85, balance: 6_000_000_000 },
-    { base: 84, prestige: 82, balance: 5_800_000_000 },
-    { base: 84, prestige: 80, balance: 5_600_000_000 },
-    { base: 78, prestige: 70, balance: 5_000_000_000 },
-    { base: 78, prestige: 68, balance: 5_000_000_000 },
-    { base: 78, prestige: 66, balance: 4_800_000_000 },
-    { base: 78, prestige: 66, balance: 4_800_000_000 },
-    { base: 73, prestige: 50, balance: 4_500_000_000 },
-    { base: 73, prestige: 50, balance: 4_500_000_000 },
-    { base: 73, prestige: 48, balance: 4_400_000_000 },
-    { base: 73, prestige: 48, balance: 4_400_000_000 },
-    { base: 73, prestige: 46, balance: 4_300_000_000 },
-    { base: 68, prestige: 32, balance: 3_500_000_000 },
-    { base: 68, prestige: 30, balance: 3_500_000_000 },
-    { base: 68, prestige: 28, balance: 3_300_000_000 },
-    { base: 68, prestige: 26, balance: 3_200_000_000 },
+    { prestige: 82, balance: 6_000_000_000 }, // 0 FB (user)
+    { prestige: 85, balance: 6_200_000_000 }, // 1 GS
+    { prestige: 78, balance: 5_400_000_000 }, // 2 BJK
+    { prestige: 76, balance: 5_000_000_000 }, // 3 TS
+    { prestige: 66, balance: 4_800_000_000 }, // 4 Başakşehir
+    { prestige: 60, balance: 4_600_000_000 }, // 5 Samsun
+    { prestige: 56, balance: 4_400_000_000 }, // 6 Göztepe
+    { prestige: 52, balance: 4_300_000_000 }, // 7 Antalya
+    { prestige: 48, balance: 4_200_000_000 }, // 8 Konya
+    { prestige: 46, balance: 4_100_000_000 }, // 9 Alanya
+    { prestige: 44, balance: 4_000_000_000 }, // 10 Kasımpaşa
+    { prestige: 42, balance: 3_900_000_000 }, // 11 Eyüp
+    { prestige: 36, balance: 3_700_000_000 }, // 12 Kayseri
+    { prestige: 32, balance: 3_500_000_000 }, // 13 Rizespor
+    { prestige: 30, balance: 3_400_000_000 }, // 14 Gaziantep
+    { prestige: 28, balance: 3_300_000_000 }, // 15 Kocaeli
   ];
-  // User always lands in a mid-tier slot; shuffle bot tiers across the rest.
-  const userTier = TIER_TEMPLATE[7];
-  const otherTiers = [
-    ...TIER_TEMPLATE.slice(0, 7),
-    ...TIER_TEMPLATE.slice(8),
-  ].sort(() => Math.random() - 0.5);
-  const tiers: TierMeta[] = [userTier, ...otherTiers];
 
-  const clubMeta = [...SEED_CLUBS].sort(() => Math.random() - 0.5);
   const clubRows: Array<typeof clubs.$inferSelect> = [];
-  for (let i = 0; i < 16; i++) {
-    const meta = clubMeta[i];
-    const tier = tiers[i];
+  for (let i = 0; i < SQUAD_PACKS.length; i++) {
+    const pack = SQUAD_PACKS[i];
+    const meta = pack.club;
+    const tier = TIER_TEMPLATE[i];
     const personality =
       i === 0
         ? BOT_PERSONALITIES[0] // user defaults to balanced 4-3-3
@@ -395,6 +387,8 @@ export async function createStarterLeague(input: {
         leagueId: league.id,
         ownerUserId: i === 0 ? input.userId : null,
         isBot: i !== 0,
+        // User renames club 0 to their chosen team name; bots keep the
+        // real club name so derbies feel authentic.
         name: i === 0 ? input.teamName : meta.name,
         shortName: i === 0
           ? input.teamName.split(/\s+/).map((w) => w[0]).slice(0, 3).join("").toUpperCase()
@@ -420,55 +414,46 @@ export async function createStarterLeague(input: {
     .set({ currentLeagueId: league.id })
     .where(eq(users.id, input.userId));
 
-  // Players — user's club gets the hand-crafted HAND_SQUAD (matches the
-  // demo seed, so new users open /squad and see a recognisable line-up),
-  // while bot clubs are procedural with tier-aware base.
+  // Players — every club pulls its real 2025-26 roster straight from
+  // the pack. No procedural generation for initial squads; all 16 clubs
+  // ship with recognisable names in every new league.
   const allPlayers: Array<typeof players.$inferInsert> = [];
   for (const [idx, club] of clubRows.entries()) {
     const r = rng(club.id.charCodeAt(0) * 997 + idx * 31 + Date.now());
-    if (idx === 0) {
-      for (const p of HAND_SQUAD) {
-        const offsets = ROLE_ATTR_OFFSETS[p.role] ?? ROLE_ATTR_OFFSETS.CM;
-        allPlayers.push({
-          leagueId: league.id,
-          clubId: club.id,
-          name: p.n,
-          position: p.pos,
-          role: p.role,
-          secondaryRoles: JSON.stringify(HAND_SECONDARY[p.n] ?? []),
-          jerseyNumber: p.num ?? null,
-          age: p.age,
-          nationality: p.nat,
-          overall: p.ovr,
-          potential: p.pot,
-          pace: rollAttr(p.ovr, offsets.pace, r),
-          shooting: rollAttr(p.ovr, offsets.shooting, r),
-          passing: rollAttr(p.ovr, offsets.passing, r),
-          defending: rollAttr(p.ovr, offsets.defending, r),
-          physical: rollAttr(p.ovr, offsets.physical, r),
-          goalkeeping: rollAttr(p.ovr, offsets.goalkeeping, r),
-          fitness: p.fit ?? 90,
-          morale: p.mor ?? 4,
-          wageCents: (p.wage ?? 100_000) * 100,
-          marketValueCents: (p.val ?? 1_000_000) * 100,
-          contractYears: p.ctr ?? 3,
-          status:
-            p.status && p.status !== "listed"
-              ? (p.status as "active" | "injured" | "suspended" | "training")
-              : "active",
-          lastRatings: JSON.stringify(p.form ?? []),
-        });
-      }
-      continue;
-    }
-    const ratingBase = tiers[idx].base;
-    let jersey = 1;
-    for (const [pos, count] of SQUAD_COMPOSITION) {
-      for (let k = 0; k < count; k++) {
-        allPlayers.push(
-          generatePlayer(league.id, club.id, ratingBase, jersey++, pos, r),
-        );
-      }
+    const pack = SQUAD_PACKS[idx];
+    for (const p of pack.players) {
+      const offsets = ROLE_ATTR_OFFSETS[p.role] ?? ROLE_ATTR_OFFSETS.CM;
+      allPlayers.push({
+        leagueId: league.id,
+        clubId: club.id,
+        name: p.n,
+        position: p.pos,
+        role: p.role,
+        secondaryRoles: JSON.stringify(
+          pack.secondary?.[p.n] ?? HAND_SECONDARY[p.n] ?? [],
+        ),
+        jerseyNumber: p.num ?? null,
+        age: p.age,
+        nationality: p.nat,
+        overall: p.ovr,
+        potential: p.pot,
+        pace: rollAttr(p.ovr, offsets.pace, r),
+        shooting: rollAttr(p.ovr, offsets.shooting, r),
+        passing: rollAttr(p.ovr, offsets.passing, r),
+        defending: rollAttr(p.ovr, offsets.defending, r),
+        physical: rollAttr(p.ovr, offsets.physical, r),
+        goalkeeping: rollAttr(p.ovr, offsets.goalkeeping, r),
+        fitness: p.fit ?? 90,
+        morale: p.mor ?? 4,
+        wageCents: (p.wage ?? 100_000) * 100,
+        marketValueCents: (p.val ?? 1_000_000) * 100,
+        contractYears: p.ctr ?? 3,
+        status:
+          p.status && p.status !== "listed"
+            ? (p.status as "active" | "injured" | "suspended" | "training")
+            : "active",
+        lastRatings: JSON.stringify(p.form ?? []),
+      });
     }
   }
   await db.insert(players).values(allPlayers);

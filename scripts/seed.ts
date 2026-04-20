@@ -21,7 +21,7 @@ import {
   transferListings,
   users,
 } from "../lib/schema";
-import { SQUAD, CLUBS as SEED_CLUBS } from "../lib/mock-data";
+import { SQUAD_PACKS } from "../lib/squad-packs";
 import type { Position } from "../types";
 
 const USER_EMAIL = "ahmet@elevenforge.app";
@@ -351,9 +351,12 @@ async function main() {
     { formation: "4-4-2", mentality: 1, pressing: 1, tempo: 2 },
   ];
 
-  // Clubs — first is user's, rest bots
+  // Clubs — each pack becomes one real Süper Lig club. User owns the
+  // Fenerbahçe slot (pack index 0); the other 15 are AI-controlled
+  // until another user joins.
   const clubRows: Array<typeof clubs.$inferSelect> = [];
-  for (const [i, c] of SEED_CLUBS.entries()) {
+  for (const [i, sp] of SQUAD_PACKS.entries()) {
+    const c = sp.club;
     const personality =
       i === 0
         ? SEED_BOT_PERSONALITIES[0]
@@ -369,6 +372,8 @@ async function main() {
         city: c.city,
         color: c.color,
         color2: c.color2,
+        // Budget scales with pack tier — Big-4 start richer so bot AI can
+        // actually outbid each other during the first transfer window.
         balanceCents:
           i === 0
             ? START_BALANCE_CENTS
@@ -386,13 +391,13 @@ async function main() {
         // Prestige follows tier so board goals align with squad power.
         prestige:
           i === 0
-            ? 50
+            ? 82 // user's Fenerbahçe — title race expectation
             : i <= 3
-              ? 82
+              ? 78
               : i <= 7
-                ? 68
+                ? 62
                 : i <= 11
-                  ? 48
+                  ? 46
                   : 30,
       })
       .returning();
@@ -406,72 +411,39 @@ async function main() {
     .set({ currentLeagueId: league.id })
     .where(eq(users.id, user.id));
 
-  // Players — user's club gets the hand-crafted squad, others generated
+  // Players — every club (user + bots) ships with the real 2025-26
+  // roster from its pack. No procedural fallback: if a pack has fewer
+  // than 20 players that's a data issue to fix in squad-packs.ts.
   let totalPlayers = 0;
   for (const [idx, club] of clubRows.entries()) {
-    if (idx === 0) {
-      // User's club: use SQUAD from mock-data
-      const userR = rng(club.id.split("-")[0].length * 911 + 17);
-      const rows = SQUAD.map((p) => ({
-        leagueId: league.id,
-        clubId: club.id,
-        name: p.n,
-        position: p.pos,
-        role: p.role,
-        secondaryRoles: JSON.stringify(HAND_SECONDARY[p.n] ?? []),
-        jerseyNumber: p.num,
-        age: p.age,
-        nationality: p.nat,
-        overall: p.ovr,
-        potential: p.pot,
-        ...computeAttrsFromOvr(p.ovr, p.role, userR),
-        fitness: p.fit ?? 90,
-        morale: p.mor ?? 4,
-        wageCents: (p.wage ?? 100_000) * 100,
-        marketValueCents: (p.val ?? 1_000_000) * 100,
-        contractYears: p.ctr ?? 3,
-        status:
-          p.status && p.status !== "listed"
-            ? (p.status as "active" | "injured" | "suspended" | "training")
-            : "active",
-        lastRatings: JSON.stringify(p.form ?? []),
-      }));
-      await db.insert(players).values(rows);
-      totalPlayers += rows.length;
-    } else {
-      // Bot club: generate composition.
-      // Tiered league hierarchy over 15 bots (idx 1..15):
-      //   idx 1-3:  top tier, base 84 (title race)
-      //   idx 4-7:  upper-mid, base 78 (europe places)
-      //   idx 8-11: mid, base 73
-      //   idx 12-15: bottom, base 68 (relegation battle)
-      const BOT_TIER_BASES = [
-        0, 84, 84, 84, // 1-3: top
-        78, 78, 78, 78, // 4-7: upper-mid
-        73, 73, 73, 73, // 8-11: mid
-        68, 68, 68, 68, // 12-15: bottom
-      ];
-      const r = rng(club.id.split("-")[0].length * 997 + idx * 31);
-      const ratingBase = BOT_TIER_BASES[idx] ?? 73;
-      const rows: Array<typeof players.$inferInsert> = [];
-      let jersey = 1;
-      for (const [pos, count] of SQUAD_COMPOSITION) {
-        for (let k = 0; k < count; k++) {
-          rows.push(
-            generatePlayerForClub(
-              league.id,
-              club.id,
-              ratingBase,
-              jersey++,
-              pos,
-              r,
-            ),
-          );
-        }
-      }
-      await db.insert(players).values(rows);
-      totalPlayers += rows.length;
-    }
+    const sp = SQUAD_PACKS[idx];
+    const userR = rng(club.id.split("-")[0].length * 911 + idx * 29);
+    const rows = sp.players.map((p) => ({
+      leagueId: league.id,
+      clubId: club.id,
+      name: p.n,
+      position: p.pos,
+      role: p.role,
+      secondaryRoles: JSON.stringify(sp.secondary?.[p.n] ?? HAND_SECONDARY[p.n] ?? []),
+      jerseyNumber: p.num,
+      age: p.age,
+      nationality: p.nat,
+      overall: p.ovr,
+      potential: p.pot,
+      ...computeAttrsFromOvr(p.ovr, p.role, userR),
+      fitness: p.fit ?? 90,
+      morale: p.mor ?? 4,
+      wageCents: (p.wage ?? 100_000) * 100,
+      marketValueCents: (p.val ?? 1_000_000) * 100,
+      contractYears: p.ctr ?? 3,
+      status:
+        p.status && p.status !== "listed"
+          ? (p.status as "active" | "injured" | "suspended" | "training")
+          : "active",
+      lastRatings: JSON.stringify(p.form ?? []),
+    }));
+    await db.insert(players).values(rows);
+    totalPlayers += rows.length;
   }
   console.log(`  ✓ ${totalPlayers} players`);
 

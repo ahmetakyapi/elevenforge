@@ -211,10 +211,11 @@ async function main() {
     console.log(`  ✓ each user owns exactly 1 club`);
   }
 
-  // 7. League has the expected player count: host's club runs the hand-crafted
-  //    2026 squad from lib/mock-data (21 players) + 15 bot clubs ×
-  //    20 procedural = 321. All must be assigned to a club.
-  const EXPECTED_PLAYERS = 21 + 15 * 20;
+  // 7. League has the expected player count. Every club runs the real
+  //    2025-26 squad from lib/squad-packs — Fenerbahçe pack ships 23
+  //    players (deeper keeper rotation + 4 wingers) and the other 15
+  //    packs each carry 20 → 23 + 15 × 20 = 323.
+  const EXPECTED_PLAYERS = 23 + 15 * 20;
   const allPlayers = await db
     .select()
     .from(players)

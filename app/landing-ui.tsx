@@ -635,10 +635,10 @@ function HeroLiveCard() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Crest clubId="ist" size={40} />
+          <Crest clubId="fb" size={40} />
           <div>
             <div style={{ fontFamily: "var(--font-manrope)", fontWeight: 700, fontSize: 15 }}>
-              İstanbul Şehir FK
+              Fenerbahçe
             </div>
             <span className="t-caption" style={{ fontSize: 11 }}>
               Ev · %58 topla oynama
@@ -700,13 +700,13 @@ function HeroLiveCard() {
         >
           <div style={{ textAlign: "right" }}>
             <div style={{ fontFamily: "var(--font-manrope)", fontWeight: 700, fontSize: 15 }}>
-              Ankara Kale
+              Galatasaray
             </div>
             <span className="t-caption" style={{ fontSize: 11 }}>
               Dep · %42 topla oynama
             </span>
           </div>
-          <Crest clubId="ank" size={40} />
+          <Crest clubId="gs" size={40} />
         </div>
       </div>
       <div
