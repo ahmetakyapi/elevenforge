@@ -21,7 +21,7 @@ export type TransferListingView = {
   overall: number;
   potential: number;
   priceEur: number;
-  /** Player's intrinsic market value (not listing price) — used for loan fee. */
+  /** Player's intrinsic market value (not the current listing price). */
   marketValueEur: number;
   hoursOn: number;
   decay: string;

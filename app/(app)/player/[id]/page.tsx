@@ -157,26 +157,6 @@ export default async function PlayerDetailPage({
         </div>
       </div>
 
-      {p.loanOwnerName && p.loanReturnsAt && (
-        <div
-          style={{
-            padding: "10px 14px",
-            borderRadius: 10,
-            background: "color-mix(in oklab, var(--cyan) 12%, transparent)",
-            border: "1px solid color-mix(in oklab, var(--cyan) 30%, var(--border))",
-            color: "var(--cyan)",
-            fontSize: 13,
-            marginBottom: 18,
-          }}
-        >
-          Bu oyuncu kiralık —{" "}
-          <strong>{p.loanOwnerName}</strong>{" "}
-          kulübünden;{" "}
-          {Math.max(0, Math.ceil((p.loanReturnsAt - Date.now()) / (24 * 3600 * 1000)))}{" "}
-          gün sonra döner.
-        </div>
-      )}
-
       {/* Stat grid */}
       <div
         style={{

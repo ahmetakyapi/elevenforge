@@ -132,14 +132,14 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
       .where(eq(clubs.id, c.id));
   }
 
-  // Return every active loan to its owner before contract / age ticks.
-  // Otherwise a loaned player might become a free agent inside the
-  // borrower's club instead of returning home.
-  const loans = await db
+  // Any leftover loan rows (from before the loan feature was removed)
+  // get snapped home here so a half-migrated row can't become a free
+  // agent inside the borrower's club. Safe no-op when nothing matches.
+  const leftoverLoans = await db
     .select()
     .from(players)
     .where(and(eq(players.leagueId, leagueId), sql`${players.loanOwnerClubId} IS NOT NULL`));
-  for (const lp of loans) {
+  for (const lp of leftoverLoans) {
     if (!lp.loanOwnerClubId) continue;
     await db
       .update(players)

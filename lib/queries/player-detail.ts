@@ -38,8 +38,6 @@ export type PlayerDetail = {
   clubId: string | null;
   clubName: string | null;
   clubColor: string | null;
-  loanOwnerName: string | null;
-  loanReturnsAt: number | null;
   history: Array<{
     fromClubName: string | null;
     toClubName: string;
@@ -61,9 +59,6 @@ export async function loadPlayerDetail(
 
   const [club] = p.clubId
     ? await db.select().from(clubs).where(eq(clubs.id, p.clubId)).limit(1)
-    : [null as null];
-  const [loanOwner] = p.loanOwnerClubId
-    ? await db.select().from(clubs).where(eq(clubs.id, p.loanOwnerClubId)).limit(1)
     : [null as null];
 
   const transferRows = await db
@@ -129,8 +124,6 @@ export async function loadPlayerDetail(
     clubId: club?.id ?? null,
     clubName: club?.name ?? null,
     clubColor: club?.color ?? null,
-    loanOwnerName: loanOwner?.name ?? null,
-    loanReturnsAt: p.loanReturnsAt ? new Date(p.loanReturnsAt).getTime() : null,
     history: transferRows.map((t) => ({
       fromClubName: t.fromClubId ? clubNameMap.get(t.fromClubId) ?? null : null,
       toClubName: clubNameMap.get(t.toClubId) ?? "?",

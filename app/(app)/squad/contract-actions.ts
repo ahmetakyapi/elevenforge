@@ -83,9 +83,6 @@ export async function releasePlayer(input: { playerId: string }) {
     )
     .limit(1);
   if (!p) return { ok: false as const, error: "Oyuncu sende değil." };
-  if (p.loanOwnerClubId) {
-    return { ok: false as const, error: "Kiralık oyuncu serbest bırakılamaz." };
-  }
   await db
     .update(players)
     .set({ clubId: null, status: "active", contractYears: 0 })

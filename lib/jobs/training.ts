@@ -52,11 +52,7 @@ export async function runDailyTraining(opts: { leagueId?: string } = {}) {
     }
   }
 
-  // Snap any expired loans back to their owner.
-  const { returnExpiredLoans } = await import("@/app/(app)/transfer/loan-actions");
-  const loans = await returnExpiredLoans();
-
-  return { promoted, healed, fitnessBumped, loansReturned: loans.returned };
+  return { promoted, healed, fitnessBumped };
 }
 
 export async function runWeeklyEconomy(opts: { leagueId?: string } = {}) {

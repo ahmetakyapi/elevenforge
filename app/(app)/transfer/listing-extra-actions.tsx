@@ -1,64 +1,52 @@
 "use client";
 
-import { Bookmark as BidBookmark, ArrowDownToLine } from "lucide-react";
+import { Bookmark as BidBookmark } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useToast } from "@/components/ui/toast";
 import { placeAutoBid } from "./auto-bid-actions";
-import { loanPlayer } from "./loan-actions";
 import { WishlistToggle } from "./wishlist-toggle";
 
 /**
- * Auto-bid + loan quick actions on an expanded listing card. Loan button
- * triggers immediately (€=20% market value, 30 days). Auto-bid opens an
- * inline max-price input and persists when submitted.
- *
- * Loan fee preview uses the player's *market* value (engine's actual
- * deduction) — not the listing price, which can drift via decay.
+ * Expanded-listing quick actions: auto-bid + wishlist. The auto-bid
+ * button opens an inline max-price input; once submitted, the next
+ * transfer-bots tick (or a direct buy) completes the purchase the
+ * moment the listing price drops at or below the ceiling.
  */
 export function ListingExtraActions({
   listingId,
   playerId,
   priceEur,
-  marketValueEur,
   watching = false,
 }: {
   listingId: string;
   playerId: string;
   priceEur: number;
-  marketValueEur: number;
   watching?: boolean;
 }) {
-  const loanFeeEur = Math.round(marketValueEur * 0.2);
   const [bidOpen, setBidOpen] = useState(false);
   const [maxEur, setMaxEur] = useState(priceEur);
   const [pending, startTransition] = useTransition();
   const toast = useToast();
 
-  const onLoan = () => {
-    startTransition(async () => {
-      const res = await loanPlayer({ playerId });
-      if (!res.ok) {
-        toast({ icon: "⚠", title: "Kiralanamadı", body: res.error, accent: "var(--danger)" });
-        return;
-      }
-      toast({
-        icon: "📥",
-        title: "Oyuncu kiralandı",
-        body: "30 gün sonra eski kulübüne döner.",
-        accent: "var(--emerald)",
-      });
-    });
-  };
-
   const onBid = () => {
     if (maxEur <= 0) {
-      toast({ icon: "⚠", title: "Geçersiz", body: "Max fiyat 0'dan büyük olmalı.", accent: "var(--danger)" });
+      toast({
+        icon: "⚠",
+        title: "Geçersiz",
+        body: "Max fiyat 0'dan büyük olmalı.",
+        accent: "var(--danger)",
+      });
       return;
     }
     startTransition(async () => {
       const res = await placeAutoBid({ listingId, maxEur });
       if (!res.ok) {
-        toast({ icon: "⚠", title: "Teklif konamadı", body: res.error, accent: "var(--danger)" });
+        toast({
+          icon: "⚠",
+          title: "Teklif konamadı",
+          body: res.error,
+          accent: "var(--danger)",
+        });
         return;
       }
       setBidOpen(false);
@@ -84,20 +72,6 @@ export function ListingExtraActions({
         alignItems: "center",
       }}
     >
-      <button
-        type="button"
-        className="btn btn-ghost btn-sm"
-        onClick={(e) => {
-          e.stopPropagation();
-          onLoan();
-        }}
-        disabled={pending}
-        title="30 gün kiralama (piyasa değerinin %20'si)"
-        style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-      >
-        <ArrowDownToLine size={12} strokeWidth={1.6} />
-        Kirala
-      </button>
       {!bidOpen ? (
         <button
           type="button"
@@ -151,10 +125,6 @@ export function ListingExtraActions({
         </div>
       )}
       <WishlistToggle playerId={playerId} initial={watching} />
-      <span style={{ flex: 1 }} />
-      <span style={{ fontSize: 11, color: "var(--muted)" }}>
-        Kira ücreti: €{(loanFeeEur / 1_000_000).toFixed(1)}M · 30 gün
-      </span>
     </div>
   );
 }
