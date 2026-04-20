@@ -35,6 +35,7 @@ export default function MatchUi({ match }: { match: MatchReplayData }) {
       <GlassCard
         pad={0}
         hover={false}
+        data-match-scoreboard
         style={{
           overflow: "hidden",
           position: "relative",
@@ -73,6 +74,7 @@ export default function MatchUi({ match }: { match: MatchReplayData }) {
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
               <span
                 className="t-mono"
+                data-match-score
                 style={{
                   fontSize: 54,
                   fontWeight: 700,
@@ -84,6 +86,7 @@ export default function MatchUi({ match }: { match: MatchReplayData }) {
               <span style={{ fontSize: 24, color: "var(--muted)" }}>−</span>
               <span
                 className="t-mono"
+                data-match-score
                 style={{
                   fontSize: 54,
                   fontWeight: 700,

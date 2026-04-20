@@ -470,6 +470,7 @@ export default function TacticPage({ squad, initial, presets, subPlan }: TacticU
         <GlassCard
           pad={0}
           hover={false}
+          data-tactic-pitch
           style={{ overflow: "hidden", position: "relative", minHeight: 600 }}
         >
           <div

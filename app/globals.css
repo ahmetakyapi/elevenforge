@@ -292,9 +292,22 @@ body {
 @media (max-width: 760px) {
   body main, body section, body article { word-break: break-word; }
 
-  /* Common grid splits used across the app pages */
+  /* Common grid splits used across the app pages — any multi-column
+     layout collapses to a single column on phones unless it's a data
+     table that needs to stay tabular. */
   [style*="grid-template-columns: 1fr 1fr"],
-  [style*="grid-template-columns:1fr 1fr"] {
+  [style*="grid-template-columns:1fr 1fr"],
+  [style*="grid-template-columns: 1.1fr 1fr"],
+  [style*="grid-template-columns: 1.2fr 1fr"],
+  [style*="grid-template-columns: 2fr 1fr"],
+  [style*="grid-template-columns: 2fr 1fr 1fr 1fr"],
+  [style*="grid-template-columns: 1fr 360px"],
+  [style*="grid-template-columns: 1fr 340px"],
+  [style*="grid-template-columns: 1fr 320px"],
+  [style*="grid-template-columns: minmax(0, 1fr) 360px"],
+  [style*="grid-template-columns: minmax(0, 1fr) 320px"],
+  [style*="grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr)"],
+  [style*="grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr)"] {
     grid-template-columns: 1fr !important;
   }
   [style*="grid-template-columns: repeat(4"],
@@ -302,25 +315,73 @@ body {
     grid-template-columns: repeat(2, 1fr) !important;
   }
   [style*="grid-template-columns: repeat(3"],
-  [style*="grid-template-columns:repeat(3"] {
+  [style*="grid-template-columns:repeat(3"],
+  [style*="grid-template-columns: 1fr 1fr 1fr"] {
     grid-template-columns: 1fr !important;
   }
-  /* 1.1fr 1fr / 1.2fr 1fr / 2fr 1fr 1fr 1fr footer */
-  [style*="grid-template-columns: 1.1fr 1fr"],
-  [style*="grid-template-columns: 1.2fr 1fr"],
-  [style*="grid-template-columns: 2fr 1fr 1fr 1fr"] {
+  /* Match scoreboard (home | score | away) shrinks score column on phones
+     so the team crests stay large enough to read. */
+  [style*="grid-template-columns: 1fr 280px 1fr"],
+  [style*="grid-template-columns: 1fr 140px 1fr"],
+  [style*="grid-template-columns: 1fr 80px 1fr"] {
+    grid-template-columns: 1fr 80px 1fr !important;
+    gap: 12px !important;
+  }
+  /* Dense tactic / newspaper / crew layouts */
+  [style*="grid-template-columns: 260px minmax(0, 1fr) 320px"] {
     grid-template-columns: 1fr !important;
   }
 
   /* Tighten the app container padding */
-  [style*="padding: 20px 28px"] {
+  [style*="padding: 20px 28px"],
+  [style*="padding: 16px 24px"] {
     padding: 14px 14px 80px !important;
+  }
+
+  /* Match scoreboard: cut score font-size so a 2-digit score fits */
+  [data-match-scoreboard] [data-match-score] {
+    font-size: 40px !important;
+  }
+  [data-match-scoreboard] .t-h2 {
+    font-size: 15px !important;
+  }
+
+  /* Pitch scales down on phones to match the narrower viewport — keeps
+     a ~0.75 portrait ratio so the SVG field reads correctly. */
+  [data-tactic-pitch] {
+    min-height: 460px !important;
+  }
+
+  /* Transfer buy/sell rows — the 7-column grid is desktop-only; on phones
+     let the row flex-wrap so avatar + name take the top line and
+     stats/price/buttons wrap naturally below without clipping or
+     overflowing the viewport. */
+  [data-transfer-row],
+  [data-sell-row] {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    padding: 12px !important;
+  }
+  [data-transfer-row] > *,
+  [data-sell-row] > * {
+    min-width: 0;
+  }
+  [data-transfer-row] > *:nth-child(2),
+  [data-sell-row] > *:nth-child(2) {
+    flex: 1 1 60%;
   }
 
   /* Headlines too big at desktop sizes on phones */
   .t-h1 { font-size: 26px !important; line-height: 1.15 !important; }
   .t-h2 { font-size: 20px !important; }
   .t-h3 { font-size: 16px !important; }
+
+  /* Hero container font-sizes */
+  [data-lp-hero-title] { font-size: 44px !important; }
+
+  /* Inputs tap-target friendly */
+  .input, button, select { min-height: 40px; }
 
   /* Footer credit row wraps */
   footer { flex-wrap: wrap !important; padding: 20px 14px !important; }
@@ -330,4 +391,13 @@ body {
 
   /* TopNav right-side cluster: stack tighter, hide labels */
   header [class*="t-mono"] { font-size: 11px !important; }
+}
+
+/* Medium screens: three-col auto-fill grids get an explicit 2-col cap so
+   cards don't squeeze into an awkward 3-across at 800-1000px. */
+@media (min-width: 760px) and (max-width: 1040px) {
+  [style*="grid-template-columns: repeat(auto-fill, minmax(240px, 1fr))"],
+  [style*="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr))"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
 }

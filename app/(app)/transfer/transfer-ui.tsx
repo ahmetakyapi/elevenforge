@@ -694,6 +694,7 @@ function TransferRow({
     >
       <div
         onClick={() => setOpen(!open)}
+        data-transfer-row
         style={{
           display: "grid",
           gridTemplateColumns: "44px 1.8fr 1.2fr 70px 70px 90px 150px",
@@ -1011,6 +1012,7 @@ function SellRow({ p, idx }: { p: SellRowView; idx: number }) {
   return (
     <GlassCard
       pad={14}
+      data-sell-row
       style={{
         display: "grid",
         gridTemplateColumns: "44px 1.6fr 100px 70px 100px 1fr 120px",
