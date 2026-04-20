@@ -12,34 +12,125 @@ import type { Position } from "@/types";
 
 const CLAIM_WINDOW_MS = 48 * 3600 * 1000;
 
-const TR_FIRST = [
-  "Efe", "Arda", "Kerem", "Tolga", "Kaan", "Ozan", "Emre", "Yusuf",
-  "Baran", "Cenk", "Can", "Mert", "Umut", "Halil", "Onur",
-];
-const TR_LAST = [
-  "Yılmaz", "Demir", "Kaya", "Öztürk", "Çelik", "Aslan", "Koç",
-];
+// ─── Scout name pool ─────────────────────────────────────────────
+// Young prospect + established-starter names scouts surface when a
+// manager sends them to a specific country. All names are real 2025-26
+// big-league footballers we are confident are/were at their clubs for
+// 2+ seasons (low risk of Jan 2026 moves invalidating the entry). The
+// scout does NOT inherit the player's real-life club — that would
+// overlap with the Süper Lig pack — it just uses the name + typical
+// nationality so "İspanya'dan RW scout et" returns recognizable names.
+//
+// Keep the list ≤12 per nat — scout candidates are 3-5 per return, so
+// a pool of 12 gives plenty of variety before repetition.
 const INTL_NAMES: Record<string, Array<{ name: string; nat: string }>> = {
-  BR: Array.from({ length: 8 }, (_, i) => ({
-    name: `L. ${["Silva", "Souza", "Pereira", "Oliveira", "Santos", "Costa", "Ribeiro", "Rocha"][i]}`,
-    nat: "BR",
-  })),
-  AR: Array.from({ length: 6 }, (_, i) => ({
-    name: `N. ${["García", "Fernández", "Álvarez", "Rodríguez", "Romero", "Torres"][i]}`,
-    nat: "AR",
-  })),
-  FR: Array.from({ length: 6 }, (_, i) => ({
-    name: `A. ${["Martin", "Bernard", "Diakité", "Thomas", "Moreau", "Laurent"][i]}`,
-    nat: "FR",
-  })),
-  DE: Array.from({ length: 6 }, (_, i) => ({
-    name: `F. ${["Müller", "Schmidt", "Fischer", "Schulze", "Weber", "Meyer"][i]}`,
-    nat: "DE",
-  })),
-  TR: TR_FIRST.map((f, i) => ({
-    name: `${f} ${TR_LAST[i % TR_LAST.length]}`,
-    nat: "TR",
-  })),
+  // Premier League / La Liga / Serie A / Ligue 1 / Bundesliga / Eredivisie
+  // / Primeira Liga çeşitlemesi.
+  BR: [
+    { name: "Vinícius Júnior", nat: "BR" }, { name: "Rodrygo", nat: "BR" },
+    { name: "Raphinha", nat: "BR" }, { name: "Bruno Guimarães", nat: "BR" },
+    { name: "Gabriel Martinelli", nat: "BR" }, { name: "Lucas Paquetá", nat: "BR" },
+    { name: "Éder Militão", nat: "BR" }, { name: "Casemiro", nat: "BR" },
+    { name: "Richarlison", nat: "BR" }, { name: "Gabriel Magalhães", nat: "BR" },
+  ],
+  AR: [
+    { name: "Lautaro Martínez", nat: "AR" }, { name: "Julián Álvarez", nat: "AR" },
+    { name: "Paulo Dybala", nat: "AR" }, { name: "Alexis Mac Allister", nat: "AR" },
+    { name: "Enzo Fernández", nat: "AR" }, { name: "Nicolás Otamendi", nat: "AR" },
+    { name: "Cristian Romero", nat: "AR" }, { name: "Leandro Paredes", nat: "AR" },
+    { name: "Ángel Di María", nat: "AR" }, { name: "Nicolás González", nat: "AR" },
+  ],
+  FR: [
+    { name: "Kylian Mbappé", nat: "FR" }, { name: "Ousmane Dembélé", nat: "FR" },
+    { name: "Eduardo Camavinga", nat: "FR" }, { name: "Aurélien Tchouaméni", nat: "FR" },
+    { name: "Antoine Griezmann", nat: "FR" }, { name: "Jules Koundé", nat: "FR" },
+    { name: "Dayot Upamecano", nat: "FR" }, { name: "Theo Hernández", nat: "FR" },
+    { name: "William Saliba", nat: "FR" }, { name: "Mike Maignan", nat: "FR" },
+    { name: "Désiré Doué", nat: "FR" }, { name: "Bradley Barcola", nat: "FR" },
+  ],
+  ES: [
+    { name: "Pedri", nat: "ES" }, { name: "Gavi", nat: "ES" },
+    { name: "Lamine Yamal", nat: "ES" }, { name: "Ferran Torres", nat: "ES" },
+    { name: "Dani Olmo", nat: "ES" }, { name: "Rodri", nat: "ES" },
+    { name: "Nico Williams", nat: "ES" }, { name: "Fabián Ruiz", nat: "ES" },
+    { name: "Unai Simón", nat: "ES" }, { name: "Martín Zubimendi", nat: "ES" },
+  ],
+  DE: [
+    { name: "Jamal Musiala", nat: "DE" }, { name: "Joshua Kimmich", nat: "DE" },
+    { name: "Florian Wirtz", nat: "DE" }, { name: "Kai Havertz", nat: "DE" },
+    { name: "Antonio Rüdiger", nat: "DE" }, { name: "Leon Goretzka", nat: "DE" },
+    { name: "Niclas Füllkrug", nat: "DE" }, { name: "Julian Brandt", nat: "DE" },
+  ],
+  PT: [
+    { name: "Bernardo Silva", nat: "PT" }, { name: "Vitinha", nat: "PT" },
+    { name: "João Neves", nat: "PT" }, { name: "Rafael Leão", nat: "PT" },
+    { name: "Rúben Dias", nat: "PT" }, { name: "Bruno Fernandes", nat: "PT" },
+    { name: "João Cancelo", nat: "PT" }, { name: "Gonçalo Ramos", nat: "PT" },
+  ],
+  NL: [
+    { name: "Virgil van Dijk", nat: "NL" }, { name: "Frenkie de Jong", nat: "NL" },
+    { name: "Cody Gakpo", nat: "NL" }, { name: "Micky van de Ven", nat: "NL" },
+    { name: "Denzel Dumfries", nat: "NL" }, { name: "Matthijs de Ligt", nat: "NL" },
+    { name: "Tijjani Reijnders", nat: "NL" }, { name: "Xavi Simons", nat: "NL" },
+  ],
+  BE: [
+    { name: "Kevin De Bruyne", nat: "BE" }, { name: "Romelu Lukaku", nat: "BE" },
+    { name: "Youri Tielemans", nat: "BE" }, { name: "Jérémy Doku", nat: "BE" },
+    { name: "Loïs Openda", nat: "BE" }, { name: "Charles De Ketelaere", nat: "BE" },
+  ],
+  NG: [
+    { name: "Ademola Lookman", nat: "NG" }, { name: "Alex Iwobi", nat: "NG" },
+    { name: "Samuel Chukwueze", nat: "NG" }, { name: "Victor Boniface", nat: "NG" },
+    { name: "Calvin Bassey", nat: "NG" }, { name: "Taiwo Awoniyi", nat: "NG" },
+  ],
+  NO: [
+    { name: "Erling Haaland", nat: "NO" }, { name: "Martin Ødegaard", nat: "NO" },
+    { name: "Alexander Sørloth", nat: "NO" }, { name: "Antonio Nusa", nat: "NO" },
+    { name: "Sander Berge", nat: "NO" }, { name: "Oscar Bobb", nat: "NO" },
+  ],
+  HR: [
+    { name: "Luka Modrić", nat: "HR" }, { name: "Mateo Kovačić", nat: "HR" },
+    { name: "Joško Gvardiol", nat: "HR" }, { name: "Luka Sučić", nat: "HR" },
+    { name: "Mario Pašalić", nat: "HR" }, { name: "Ivan Perišić", nat: "HR" },
+  ],
+  SN: [
+    { name: "Sadio Mané", nat: "SN" }, { name: "Kalidou Koulibaly", nat: "SN" },
+    { name: "Ismaïla Sarr", nat: "SN" }, { name: "Nicolas Jackson", nat: "SN" },
+    { name: "Amadou Onana", nat: "SN" }, { name: "Lamine Camara", nat: "SN" },
+  ],
+  MA: [
+    { name: "Achraf Hakimi", nat: "MA" }, { name: "Noussair Mazraoui", nat: "MA" },
+    { name: "Hakim Ziyech", nat: "MA" }, { name: "Azzedine Ounahi", nat: "MA" },
+    { name: "Brahim Díaz", nat: "MA" }, { name: "Bilal El Khannouss", nat: "MA" },
+  ],
+  DK: [
+    { name: "Christian Eriksen", nat: "DK" }, { name: "Pierre Højbjerg", nat: "DK" },
+    { name: "Rasmus Højlund", nat: "DK" }, { name: "Mikkel Damsgaard", nat: "DK" },
+    { name: "Joachim Andersen", nat: "DK" },
+  ],
+  SE: [
+    { name: "Alexander Isak", nat: "SE" }, { name: "Dejan Kulusevski", nat: "SE" },
+    { name: "Viktor Gyökeres", nat: "SE" }, { name: "Emil Forsberg", nat: "SE" },
+  ],
+  CI: [
+    { name: "Sébastien Haller", nat: "CI" }, { name: "Simon Adingra", nat: "CI" },
+    { name: "Evan Ndicka", nat: "CI" }, { name: "Amad Diallo", nat: "CI" },
+    { name: "Nicolas Pépé", nat: "CI" },
+  ],
+  GH: [
+    { name: "Mohammed Kudus", nat: "GH" }, { name: "Thomas Partey", nat: "GH" },
+    { name: "Antoine Semenyo", nat: "GH" }, { name: "Kamaldeen Sulemana", nat: "GH" },
+  ],
+  // Local fallback — proceduralTurkish names for TR targets. Generated
+  // each call so the same scout run doesn't produce identical duplicates.
+  TR: [
+    { name: "Efe Yılmaz", nat: "TR" }, { name: "Arda Demir", nat: "TR" },
+    { name: "Kerem Kaya", nat: "TR" }, { name: "Tolga Öztürk", nat: "TR" },
+    { name: "Kaan Çelik", nat: "TR" }, { name: "Ozan Aslan", nat: "TR" },
+    { name: "Emre Koç", nat: "TR" }, { name: "Yusuf Yıldız", nat: "TR" },
+    { name: "Baran Arslan", nat: "TR" }, { name: "Can Polat", nat: "TR" },
+    { name: "Umut Şahin", nat: "TR" }, { name: "Halil Aydın", nat: "TR" },
+  ],
 };
 
 type ScoutCandidate = {
