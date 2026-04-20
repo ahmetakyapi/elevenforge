@@ -211,11 +211,14 @@ async function main() {
     console.log(`  ✓ each user owns exactly 1 club`);
   }
 
-  // 7. League has the expected player count. Every club runs the real
-  //    2025-26 squad from lib/squad-packs — Fenerbahçe pack ships 23
-  //    players (deeper keeper rotation + 4 wingers) and the other 15
-  //    packs each carry 20 → 23 + 15 × 20 = 323.
-  const EXPECTED_PLAYERS = 23 + 15 * 20;
+  // 7. League has the expected player count. Every club ships with the
+  //    real 2025-26 squad from lib/squad-packs; pack sizes vary (21-26
+  //    each, sourced from Wikipedia), so we total them dynamically.
+  const { SQUAD_PACKS } = await import("../lib/squad-packs");
+  const EXPECTED_PLAYERS = SQUAD_PACKS.reduce(
+    (n, p) => n + p.players.length,
+    0,
+  );
   const allPlayers = await db
     .select()
     .from(players)

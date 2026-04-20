@@ -429,9 +429,7 @@ export async function createStarterLeague(input: {
         name: p.n,
         position: p.pos,
         role: p.role,
-        secondaryRoles: JSON.stringify(
-          pack.secondary?.[p.n] ?? HAND_SECONDARY[p.n] ?? [],
-        ),
+        secondaryRoles: JSON.stringify(HAND_SECONDARY[p.n] ?? []),
         jerseyNumber: p.num ?? null,
         age: p.age,
         nationality: p.nat,
