@@ -281,11 +281,16 @@ npm run db:migrate     # uygular
 
 ---
 
-## Yol haritası (V7+)
+## Yol haritası (V8+)
 
-- [ ] In-match sub UI (engine hazır, sadece tactic sayfasında set ekranı eksik)
-- [ ] Auto-bid UI (action var, transfer kartına buton eklenecek)
-- [ ] Loan UI (buton eklenecek)
+Yapıldı (V7+):
+- [x] In-match sub UI — `app/(app)/tactic/sub-plan-panel.tsx`
+- [x] Auto-bid UI — `app/(app)/transfer/listing-extra-actions.tsx`
+- [x] Loan UI — aynı dosyada "Kirala" butonu
+- [x] Press conferences (haftalık `press_conferences` tablosu + widget)
+- [x] Skeleton loading state her route için + page-enter animasyonu
+
+Sıradaki:
 - [ ] AI Türkçe TTS commentary
 - [ ] Manager mood engine (basın açıklaması, takım moralini etkiler)
 - [ ] Replay share card (PNG export)
