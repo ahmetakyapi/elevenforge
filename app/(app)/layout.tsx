@@ -17,6 +17,16 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           currentLeagueId={ctx?.league.id ?? null}
           currentLeagueName={ctx?.league.name ?? null}
           balanceCents={ctx?.club.balanceCents ?? null}
+          clubCrest={
+            ctx
+              ? {
+                  clubId: ctx.club.id,
+                  color: ctx.club.color,
+                  color2: ctx.club.color2,
+                  short: ctx.club.shortName,
+                }
+              : null
+          }
         />
         {children}
         <FooterCredit />

@@ -127,13 +127,18 @@ export default function SquadPage({
         userClubCrest={userClubCrest}
       />
 
-      {/* Training slot summary — 4 slots, 1 per position group */}
+      {/* Training slot summary — 4 slots, 1 per position group.
+          Explains the rule so "2/4" isn't a mystery: each slot is 1 player
+          per position group, and trained players pick up +1 overall on the
+          daily tick (faster if ≤22 yaş). */}
       <div
+        data-training-slots
         style={{
           display: "flex",
+          flexWrap: "wrap",
           alignItems: "center",
           gap: 12,
-          padding: "10px 14px",
+          padding: "12px 14px",
           marginTop: 10,
           marginBottom: 12,
           borderRadius: 10,
@@ -141,30 +146,83 @@ export default function SquadPage({
           border: "1px solid var(--border)",
         }}
       >
-        <span className="t-label" style={{ fontSize: 11 }}>
-          ANTRENMAN SLOTLARI
-        </span>
-        <span className="t-mono" style={{ fontSize: 12, color: "var(--muted)" }}>
-          {trainingFilled}/4
-        </span>
-        <div style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            minWidth: 200,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flexWrap: "wrap",
+            }}
+          >
+            <span className="t-label" style={{ fontSize: 11 }}>
+              ANTRENMAN
+            </span>
+            <span
+              className="t-mono"
+              style={{
+                fontSize: 12,
+                padding: "2px 8px",
+                borderRadius: 4,
+                background:
+                  trainingFilled === 4
+                    ? "color-mix(in oklab, var(--emerald) 22%, transparent)"
+                    : "color-mix(in oklab, var(--panel) 80%, transparent)",
+                color: trainingFilled === 4 ? "var(--emerald)" : "var(--muted)",
+                fontWeight: 700,
+              }}
+            >
+              {trainingFilled} / 4 dolu
+            </span>
+          </div>
+          <span
+            className="t-caption"
+            style={{ fontSize: 11, color: "var(--muted)", lineHeight: 1.4 }}
+          >
+            Her pozisyondan 1 oyuncu. Günlük tick +1 OVR şansı verir
+            (≤22 yaş = 3× hız).
+          </span>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            marginLeft: "auto",
+            flexWrap: "wrap",
+          }}
+        >
           {(["GK", "DEF", "MID", "FWD"] as const).map((pos) => {
             const filled = trainingByPos[pos] > 0;
+            const label =
+              pos === "GK" ? "Kaleci" : pos === "DEF" ? "Defans" : pos === "MID" ? "Orta" : "Forvet";
             return (
               <span
                 key={pos}
+                title={
+                  filled
+                    ? `${label} slotu dolu — kartta 🔥 olan oyuncu antrenmanda`
+                    : `${label} slotu boş — bir oyuncuya Antrenman ekle`
+                }
                 style={{
                   fontSize: 11,
-                  padding: "3px 8px",
-                  borderRadius: 4,
+                  padding: "4px 9px",
+                  borderRadius: 999,
                   background: filled
                     ? "color-mix(in oklab, var(--emerald) 24%, transparent)"
                     : "color-mix(in oklab, var(--muted) 14%, transparent)",
                   color: filled ? "var(--emerald)" : "var(--muted)",
                   fontWeight: 600,
+                  whiteSpace: "nowrap",
                 }}
               >
-                {pos} {filled ? "●" : "○"}
+                {label} {filled ? "●" : "○"}
               </span>
             );
           })}

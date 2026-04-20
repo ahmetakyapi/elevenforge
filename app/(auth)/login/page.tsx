@@ -13,7 +13,7 @@ type Status = "idle" | "pending" | "error";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("ahmet@elevenforge.app");
+  const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [remember, setRemember] = useState(true);
   const [status, setStatus] = useState<Status>("idle");
@@ -33,7 +33,7 @@ export default function LoginPage() {
     toast({
       icon: "✓",
       title: `Hoş geldin ${result.userName}`,
-      body: "İstanbul Şehir FK seni bekliyor.",
+      body: "Takımın seni bekliyor.",
       accent: "var(--emerald)",
     });
     router.push("/dashboard");

@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import { Crest } from "@/components/ui/primitives";
 import { LogoLockup } from "@/components/brand/logo";
-import { USER_CLUB_ID } from "@/lib/mock-data";
 import { LeagueSwitcher, type OwnedLeague } from "@/app/(app)/league-switcher";
 import { PushSubscribeButton } from "@/components/push-subscribe";
 import { MobileDrawer } from "./mobile-drawer";
@@ -49,11 +48,13 @@ export function TopNav({
   currentLeagueId,
   currentLeagueName,
   balanceCents,
+  clubCrest,
 }: {
   owned: OwnedLeague[];
   currentLeagueId: string | null;
   currentLeagueName: string | null;
   balanceCents: number | null;
+  clubCrest: { clubId: string; color: string; color2: string; short: string } | null;
 }) {
   const pathname = usePathname();
   const current =
@@ -199,7 +200,17 @@ export function TopNav({
           <PushSubscribeButton />
           <MobileDrawer />
           <div className="v-divider" style={{ height: 22 }} />
-          <Crest clubId={USER_CLUB_ID} size={28} />
+          {clubCrest && (
+            <Crest
+              clubId={clubCrest.clubId}
+              size={28}
+              club={{
+                color: clubCrest.color,
+                color2: clubCrest.color2,
+                short: clubCrest.short,
+              }}
+            />
+          )}
           {current && (
             <LeagueSwitcher current={current} owned={owned} />
           )}
