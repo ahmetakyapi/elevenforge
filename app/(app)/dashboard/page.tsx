@@ -11,6 +11,7 @@ import { loadDashboardData } from "@/lib/queries/dashboard";
 import { requireLeagueContext } from "@/lib/session";
 import { fmtEUR } from "@/lib/utils";
 import { PlayNextRoundButton } from "./play-round-button";
+import { InviteChip } from "./invite-chip";
 import { StreakBanner } from "./streak-banner";
 import { SpyButton } from "./spy-button";
 import { BoardBanner } from "./board-banner";
@@ -471,21 +472,7 @@ export default async function DashboardPage() {
                   flexWrap: "wrap",
                 }}
               >
-                <div
-                  className="chip"
-                  style={{
-                    fontFamily: "var(--font-jetbrains)",
-                    fontWeight: 700,
-                    background:
-                      "color-mix(in oklab, var(--accent) 12%, var(--panel-2))",
-                    borderColor:
-                      "color-mix(in oklab, var(--accent) 30%, var(--border))",
-                    color: "var(--accent)",
-                  }}
-                  title="Davet kodu"
-                >
-                  🔗 {d.leagueInfo.inviteCode}
-                </div>
+                <InviteChip code={d.leagueInfo.inviteCode} />
                 <span
                   className="t-caption"
                   style={{ color: "var(--muted)", fontSize: 11 }}
