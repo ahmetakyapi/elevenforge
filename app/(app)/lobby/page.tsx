@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { clubs, leagues } from "@/lib/schema";
 import { getSessionUserId } from "@/lib/session";

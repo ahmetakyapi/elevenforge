@@ -36,7 +36,7 @@ export default async function FreeAgentsPage() {
           </div>
           <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>
             Sözleşmesi biten oyuncular havuzda — transfer ücreti yok, sadece
-            piyasa değerinin 1/5'i imzalama bonusu. Bütçen: €{(balanceEur / 1_000_000).toFixed(1)}M
+            piyasa değerinin 1/5&apos;i imzalama bonusu. Bütçen: €{(balanceEur / 1_000_000).toFixed(1)}M
           </div>
         </div>
       </div>

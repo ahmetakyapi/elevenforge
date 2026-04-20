@@ -150,7 +150,6 @@ function Tie({ t, ctxClubId }: { t: CupTie; ctxClubId: string }) {
 
 function Side({
   name,
-  short,
   color,
   score,
   isWinner,

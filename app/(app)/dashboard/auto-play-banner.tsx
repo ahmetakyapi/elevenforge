@@ -44,7 +44,7 @@ export function AutoPlayBanner({
         style={{ color: manualAdvance ? "var(--warn)" : "var(--cyan)" }}
       />
       <span style={{ fontSize: 13, fontWeight: 600 }}>
-        Maçlar her gün {matchTime}'da otomatik oynanır.
+        Maçlar her gün {matchTime}&apos;da otomatik oynanır.
       </span>
       {upcoming && (
         <span

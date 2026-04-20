@@ -23,7 +23,6 @@ import { PressWidget } from "./press-widget";
 import { ExpiringContractsCard } from "./expiring-contracts";
 import { AutoPlayBanner } from "./auto-play-banner";
 import { DashboardAutoRefresh } from "@/components/dashboard-auto-refresh";
-import { PushSubscribeButton } from "@/components/push-subscribe";
 import type { BoardGoal } from "@/lib/jobs/board";
 import { SPONSORS } from "@/lib/sponsors";
 import { loadClubAchievements } from "@/lib/queries/achievements";

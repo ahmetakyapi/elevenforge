@@ -6,7 +6,7 @@
  *  - Suspension matches counted down (done post-match, but safety sync here).
  *  - Fitness regenerates by +8 per day, capped at 100.
  */
-import { eq, lte, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { players } from "@/lib/schema";
 

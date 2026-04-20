@@ -18,8 +18,12 @@ import {
 import { buildTOTW, type WeekPerformance } from "@/lib/engine/totw";
 import type { MatchEvent } from "@/lib/engine/match";
 
-const HEADLINES = [
-  (home: string, away: string, diff: number) =>
+// Hero-match headline template. Only the diff-scaled "UÇURDU / FARK ATTI /
+// NETLİĞİ GÖSTERDİ / GÜCÜ" variant is used currently; kept in an array
+// shape so future variants can be slotted in (one per week seed, say)
+// without reshaping the call site.
+const HEADLINES: Array<(home: string, away: string, diff: number) => string> = [
+  (home, _away, diff) =>
     diff >= 4
       ? `${home.toUpperCase()} UÇURDU`
       : diff >= 3
@@ -27,8 +31,6 @@ const HEADLINES = [
         : diff === 2
           ? `${home.toUpperCase()} NETLİĞİ GÖSTERDİ`
           : `${home.toUpperCase()} GÜCÜ`,
-  (home: string, _away: string) => `${home.toUpperCase()} TARİH YAZDI`,
-  (home: string) => `${home.toUpperCase()} UYANIŞI`,
 ];
 
 export async function generateNewspaper(opts: {

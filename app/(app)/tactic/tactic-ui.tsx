@@ -9,7 +9,6 @@ import type { Formation, Player, Position } from "@/types";
 import {
   loadTacticPreset,
   saveTacticPreset,
-  saveTactics,
   type TacticPreset,
 } from "./actions";
 import { SubPlanPanel } from "./sub-plan-panel";

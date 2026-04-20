@@ -213,7 +213,7 @@ export default async function StandingsPage() {
         </span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           <span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--danger)" }} />
-          14-16: Küme düşme bölgesi (board "survive" hedefi)
+          14-16: Küme düşme bölgesi (board &quot;survive&quot; hedefi)
         </span>
       </div>
     </div>

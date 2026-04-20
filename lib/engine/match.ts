@@ -449,7 +449,7 @@ export function simulateMatch(input: SimInput): MatchResult {
     const original = side === "home" ? homeStarters : awayStarters;
     const squad = side === "home" ? input.homeSquad : input.awaySquad;
     const plan = side === "home" ? input.homeSubPlan ?? [] : input.awaySubPlan ?? [];
-    let pool = [...original];
+    const pool = [...original];
     const sorted = [...plan].sort((a, b) => a.minute - b.minute);
     for (const sub of sorted) {
       if (sub.minute > minute) break;

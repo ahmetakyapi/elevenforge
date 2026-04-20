@@ -48,7 +48,7 @@ export default async function ProfilePage() {
             {p.name}
           </div>
           <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>
-            {p.email} · {since.getFullYear()}'den beri menajer
+            {p.email} · {since.getFullYear()}&apos;den beri menajer
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
