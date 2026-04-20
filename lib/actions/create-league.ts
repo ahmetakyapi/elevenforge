@@ -17,7 +17,7 @@ import {
   transferListings,
   users,
 } from "@/lib/schema";
-import { CLUBS as SEED_CLUBS } from "@/lib/mock-data";
+import { CLUBS as SEED_CLUBS, SQUAD as HAND_SQUAD } from "@/lib/mock-data";
 import { applyMatchTime } from "@/lib/match-time";
 import { assignSeasonGoals } from "@/lib/jobs/board";
 import { generateCupBracket } from "@/lib/jobs/cup";
@@ -43,13 +43,32 @@ const TR_LAST = [
   "Güneş", "Güler", "Demirci", "Koçak", "Çakır", "Akgün", "Aktürkoğlu",
   "Çalhanoğlu", "Şanlı", "Toraman", "Çolak", "Türkoğlu", "Sezer", "Akın",
 ];
+// Expanded 2026-era international pool — wider variety so rival bot squads
+// don't feel like 12 generic "V. Laszlo" clones. Names are fictional but
+// stylistically modern (mix of West/Central/Eastern Africa, South America,
+// North Africa, Europe, and Asia).
 const INTL = [
-  { name: "O. Nkemba", nat: "NG" }, { name: "J. Okafor", nat: "NG" },
-  { name: "V. Laszlo", nat: "HU" }, { name: "M. Kovač", nat: "HR" },
-  { name: "A. Diakité", nat: "FR" }, { name: "L. Pereira", nat: "BR" },
-  { name: "N. Álvarez", nat: "AR" }, { name: "F. Schulze", nat: "DE" },
-  { name: "R. Papadakis", nat: "GR" }, { name: "I. Moreno", nat: "ES" },
-  { name: "T. Novák", nat: "CZ" }, { name: "H. Sørensen", nat: "DK" },
+  { name: "O. Nkemba",      nat: "NG" }, { name: "J. Okafor",       nat: "NG" },
+  { name: "K. Boateng",     nat: "GH" }, { name: "S. Diallo",       nat: "SN" },
+  { name: "M. Traoré",      nat: "ML" }, { name: "A. Kouassi",      nat: "CI" },
+  { name: "V. Laszlo",      nat: "HU" }, { name: "M. Kovač",        nat: "HR" },
+  { name: "N. Petrović",    nat: "RS" }, { name: "D. Marković",     nat: "RS" },
+  { name: "A. Diakité",     nat: "FR" }, { name: "R. Mbappé",       nat: "FR" },
+  { name: "T. Rabiot",      nat: "FR" }, { name: "J. Koundé",       nat: "FR" },
+  { name: "L. Pereira",     nat: "BR" }, { name: "G. dos Santos",   nat: "BR" },
+  { name: "R. Almeida",     nat: "BR" }, { name: "E. Martins",      nat: "BR" },
+  { name: "N. Álvarez",     nat: "AR" }, { name: "F. Domínguez",    nat: "AR" },
+  { name: "S. Herrera",     nat: "MX" }, { name: "C. Rojas",        nat: "CL" },
+  { name: "F. Schulze",     nat: "DE" }, { name: "L. Hoffmann",     nat: "DE" },
+  { name: "R. Papadakis",   nat: "GR" }, { name: "I. Moreno",       nat: "ES" },
+  { name: "P. Navarro",     nat: "ES" }, { name: "D. Romero",       nat: "ES" },
+  { name: "T. Novák",       nat: "CZ" }, { name: "H. Sørensen",     nat: "DK" },
+  { name: "O. Berg",        nat: "NO" }, { name: "E. Lindqvist",    nat: "SE" },
+  { name: "K. Bakker",      nat: "NL" }, { name: "D. van Bergen",   nat: "NL" },
+  { name: "Y. Yamamoto",    nat: "JP" }, { name: "S. Kang",         nat: "KR" },
+  { name: "O. Koné",        nat: "CI" }, { name: "A. El-Masry",     nat: "EG" },
+  { name: "M. Ben Ali",     nat: "MA" }, { name: "K. Taleb",        nat: "DZ" },
+  { name: "L. Vanniewel",   nat: "BE" }, { name: "V. Orlov",        nat: "RU" },
 ];
 
 const ROLES: Record<Position, string[]> = {
@@ -95,11 +114,36 @@ function pick<T>(arr: T[], r: () => number): T {
 }
 
 function generateName(r: () => number): { name: string; nat: string } {
-  if (r() < 0.2) return pick(INTL, r);
+  // 35% international mix — gives rival squads a believable 2026 feel where
+  // even mid-tier Turkish clubs run 4-6 foreign players. Below 30% produced
+  // mostly-Turkish rosters that looked repetitive after a couple leagues.
+  if (r() < 0.35) return pick(INTL, r);
   const first = pick(TR_FIRST, r);
   const last = pick(TR_LAST, r);
   return { name: `${first} ${last}`, nat: "TR" };
 }
+
+// Hand-crafted roles map for the SQUAD export — mirrored from seed.ts so
+// the user's brand-new league starts with a recognisable 2026 line-up
+// rather than 20 procedurally generated names they'll never remember.
+const HAND_SECONDARY: Record<string, string[]> = {
+  "Milan Škriniar": ["LB"],
+  "Bright Osayi-Samuel": ["RW", "CB"],
+  "Mert Müldür": ["CB"],
+  "Jayden Oosterwolde": ["CB", "LW"],
+  "Archie Brown": ["LW"],
+  "Sofyan Amrabat": ["CM", "CB"],
+  "N'Golo Kanté": ["CM"],
+  "Mateo Guendouzi": ["CDM", "AM"],
+  "İsmail Yüksek": ["CDM", "AM"],
+  "Sebastian Szymański": ["CM", "LW"],
+  "Marco Asensio": ["RW", "LW"],
+  "Oğuz Aydın": ["LW", "AM"],
+  "Kerem Aktürkoğlu": ["RW", "ST"],
+  "Anderson Talisca": ["AM", "CF"],
+  "Youssef En-Nesyri": ["CF"],
+  "Cherif Ndiaye": ["CF"],
+};
 
 // Per-role attribute offsets from overall. Clamped into [30, 99] after
 // sampling. Keeps strikers' finishing above their tackling even at equal
@@ -376,10 +420,47 @@ export async function createStarterLeague(input: {
     .set({ currentLeagueId: league.id })
     .where(eq(users.id, input.userId));
 
-  // Players — 20 per club, procedurally generated with tier-aware base.
+  // Players — user's club gets the hand-crafted HAND_SQUAD (matches the
+  // demo seed, so new users open /squad and see a recognisable line-up),
+  // while bot clubs are procedural with tier-aware base.
   const allPlayers: Array<typeof players.$inferInsert> = [];
   for (const [idx, club] of clubRows.entries()) {
     const r = rng(club.id.charCodeAt(0) * 997 + idx * 31 + Date.now());
+    if (idx === 0) {
+      for (const p of HAND_SQUAD) {
+        const offsets = ROLE_ATTR_OFFSETS[p.role] ?? ROLE_ATTR_OFFSETS.CM;
+        allPlayers.push({
+          leagueId: league.id,
+          clubId: club.id,
+          name: p.n,
+          position: p.pos,
+          role: p.role,
+          secondaryRoles: JSON.stringify(HAND_SECONDARY[p.n] ?? []),
+          jerseyNumber: p.num ?? null,
+          age: p.age,
+          nationality: p.nat,
+          overall: p.ovr,
+          potential: p.pot,
+          pace: rollAttr(p.ovr, offsets.pace, r),
+          shooting: rollAttr(p.ovr, offsets.shooting, r),
+          passing: rollAttr(p.ovr, offsets.passing, r),
+          defending: rollAttr(p.ovr, offsets.defending, r),
+          physical: rollAttr(p.ovr, offsets.physical, r),
+          goalkeeping: rollAttr(p.ovr, offsets.goalkeeping, r),
+          fitness: p.fit ?? 90,
+          morale: p.mor ?? 4,
+          wageCents: (p.wage ?? 100_000) * 100,
+          marketValueCents: (p.val ?? 1_000_000) * 100,
+          contractYears: p.ctr ?? 3,
+          status:
+            p.status && p.status !== "listed"
+              ? (p.status as "active" | "injured" | "suspended" | "training")
+              : "active",
+          lastRatings: JSON.stringify(p.form ?? []),
+        });
+      }
+      continue;
+    }
     const ratingBase = tiers[idx].base;
     let jersey = 1;
     for (const [pos, count] of SQUAD_COMPOSITION) {

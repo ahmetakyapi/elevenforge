@@ -211,14 +211,19 @@ async function main() {
     console.log(`  ✓ each user owns exactly 1 club`);
   }
 
-  // 7. League has exactly 320 players (16×20), all assigned to clubs.
+  // 7. League has the expected player count: host's club runs the hand-crafted
+  //    2026 squad from lib/mock-data (21 players) + 15 bot clubs ×
+  //    20 procedural = 321. All must be assigned to a club.
+  const EXPECTED_PLAYERS = 21 + 15 * 20;
   const allPlayers = await db
     .select()
     .from(players)
     .where(eq(players.leagueId, created.leagueId));
   const orphans = allPlayers.filter((p) => p.clubId === null).length;
-  if (allPlayers.length !== 320) {
-    console.error(`  ✗ expected 320 players, got ${allPlayers.length}`);
+  if (allPlayers.length !== EXPECTED_PLAYERS) {
+    console.error(
+      `  ✗ expected ${EXPECTED_PLAYERS} players, got ${allPlayers.length}`,
+    );
     bad++;
   }
   if (orphans > 0) {

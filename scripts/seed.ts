@@ -84,21 +84,26 @@ function generateSecondaryRoles(role: string, r: () => number): string[] {
   return [...pool].sort(() => r() - 0.5).slice(0, Math.min(n, pool.length));
 }
 
-// Secondary roles for the hand-crafted Kartel Crew squad (by player name)
+// Secondary roles for the hand-crafted user squad (by player name).
+// Mirrors the SQUAD export in lib/mock-data.ts — keep in sync when that
+// roster is updated.
 const HAND_SECONDARY: Record<string, string[]> = {
-  "Ferdi Kadıoğlu": ["CB", "LW"],
+  "Milan Škriniar": ["LB"],
   "Bright Osayi-Samuel": ["RW", "CB"],
   "Mert Müldür": ["CB"],
   "Jayden Oosterwolde": ["CB", "LW"],
+  "Archie Brown": ["LW"],
   "Sofyan Amrabat": ["CM", "CB"],
-  "Fred": ["CDM", "AM"],
+  "N'Golo Kanté": ["CM"],
+  "Mateo Guendouzi": ["CDM", "AM"],
   "İsmail Yüksek": ["CDM", "AM"],
   "Sebastian Szymański": ["CM", "LW"],
-  "Dušan Tadić": ["LW", "CM"],
-  "Allan Saint-Maximin": ["RW", "ST"],
-  "Cengiz Ünder": ["LW", "AM"],
-  "İrfan Can Kahveci": ["CM", "RW"],
+  "Marco Asensio": ["RW", "LW"],
+  "Oğuz Aydın": ["LW", "AM"],
+  "Kerem Aktürkoğlu": ["RW", "ST"],
+  "Anderson Talisca": ["AM", "CF"],
   "Youssef En-Nesyri": ["CF"],
+  "Cherif Ndiaye": ["CF"],
 };
 
 // Budget for each club (€M in cents)
