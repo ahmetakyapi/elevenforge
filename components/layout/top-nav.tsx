@@ -144,26 +144,10 @@ export function TopNav({
           <Link
             href="/crew"
             className="btn btn-ghost btn-sm"
+            title="Crew · sohbet ve etkinlik akışı"
             style={{ textDecoration: "none" }}
           >
             <Bell size={14} strokeWidth={1.6} />
-            <span
-              style={{
-                background: "var(--danger)",
-                color: "#fff",
-                fontSize: 10,
-                fontWeight: 700,
-                minWidth: 16,
-                height: 16,
-                borderRadius: 999,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "0 5px",
-              }}
-            >
-              3
-            </span>
           </Link>
           <Link
             href="/stats"

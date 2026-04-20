@@ -702,10 +702,12 @@ export function simulateMatch(input: SimInput): MatchResult {
   // Small chance of injury per match per side (~7% baseline). A hired
   // physio scales both incidence and duration down by tier × 18% / 25%.
   const maybeInjure = (starters: DBPlayer[], physioTier: number) => {
+    if (starters.length === 0) return;
     const incidenceScale = Math.max(0.1, 1 - physioTier * 0.18);
     const durationScale = Math.max(0.4, 1 - physioTier * 0.25);
     if (rng() < 0.07 * incidenceScale) {
       const p = starters[Math.floor(rng() * starters.length)];
+      if (!p) return;
       const days = Math.max(1, Math.ceil(rng() * 10 * durationScale));
       upsert(p.id, { injuredMinutes: days * 24 * 60 });
     }

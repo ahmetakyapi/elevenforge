@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import {
   Crest,
   FormDot,
@@ -54,50 +54,9 @@ export default async function DashboardPage() {
         isCommissioner={ctx.isCommissioner}
         nextFixtureMs={d.nextFixture?.scheduledAtMs ?? null}
       />
-      <AchievementsStrip badges={badges} />
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 12,
-        }}
-      >
-        <BoardBanner
-          goal={ctx.club.boardSeasonGoal as BoardGoal}
-          confidence={ctx.club.boardConfidence}
-        />
-        <SponsorWidget
-          active={
-            ctx.club.activeSponsorJson
-              ? (() => {
-                  try {
-                    return JSON.parse(ctx.club.activeSponsorJson);
-                  } catch {
-                    return null;
-                  }
-                })()
-              : null
-          }
-          offers={SPONSORS}
-          prestige={ctx.club.prestige}
-        />
-      </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 12,
-        }}
-      >
-        <StaffWidget staffJson={ctx.club.staffJson} />
-        <UpgradeWidget
-          stadiumLevel={ctx.club.stadiumLevel}
-          trainingLevel={ctx.club.trainingLevel}
-        />
-      </div>
-      <PressWidget />
-      <ExpiringContractsCard clubId={ctx.club.id} />
-      {/* Top ribbon */}
+      {/* Top ribbon — club identity + quick stats first, so the page
+          opens with "who am I / what's my state" before diving into
+          strategic widgets. */}
       <div
         style={{
           display: "flex",
@@ -140,9 +99,6 @@ export default async function DashboardPage() {
           icon={<span style={{ color: "var(--gold)" }}>★</span>}
         />
         <StreakBanner streak={d.streak} />
-        <button type="button" className="btn" style={{ position: "relative" }}>
-          <Bell size={16} strokeWidth={1.6} />
-        </button>
       </div>
 
       {/* Hero: next match + play button */}
@@ -666,6 +622,77 @@ export default async function DashboardPage() {
           </div>
         </GlassCard>
       </div>
+
+      {/* ─── Strategic widgets — below the primary table/feed fold.
+          Users usually come to the dashboard to check "what's my next
+          match" and "where do I sit in the league" first; board goals,
+          sponsor offers, staff hires, stadium upgrades, press duties,
+          expiring contracts are all turn-by-turn tactical decisions
+          that belong under a second-tier heading. */}
+      <div
+        style={{
+          marginTop: 16,
+          paddingTop: 4,
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+        }}
+      >
+        <span className="t-label" style={{ fontSize: 11, color: "var(--muted)" }}>
+          SEZON KARARLARI
+        </span>
+        <div
+          style={{
+            flex: 1,
+            height: 1,
+            background:
+              "linear-gradient(90deg, var(--border) 0%, transparent 80%)",
+          }}
+        />
+      </div>
+      <AchievementsStrip badges={badges} />
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 12,
+        }}
+      >
+        <BoardBanner
+          goal={ctx.club.boardSeasonGoal as BoardGoal}
+          confidence={ctx.club.boardConfidence}
+        />
+        <PressWidget />
+      </div>
+      <ExpiringContractsCard clubId={ctx.club.id} />
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 12,
+        }}
+      >
+        <SponsorWidget
+          active={
+            ctx.club.activeSponsorJson
+              ? (() => {
+                  try {
+                    return JSON.parse(ctx.club.activeSponsorJson);
+                  } catch {
+                    return null;
+                  }
+                })()
+              : null
+          }
+          offers={SPONSORS}
+          prestige={ctx.club.prestige}
+        />
+        <StaffWidget staffJson={ctx.club.staffJson} />
+      </div>
+      <UpgradeWidget
+        stadiumLevel={ctx.club.stadiumLevel}
+        trainingLevel={ctx.club.trainingLevel}
+      />
     </div>
   );
 }

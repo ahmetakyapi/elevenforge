@@ -38,6 +38,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastCtx.Provider value={push}>
       {children}
       <div
+        data-toast-stack
         style={{
           position: "fixed",
           bottom: 20,
