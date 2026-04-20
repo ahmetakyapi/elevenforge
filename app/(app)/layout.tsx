@@ -28,7 +28,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
               : null
           }
         />
-        {children}
+        <main data-page-enter>{children}</main>
         <FooterCredit />
         <MobileBottomNav />
         <TweaksPanel />

@@ -226,6 +226,53 @@ body {
 .anim-slide-up { animation: slide-up var(--t) var(--ease) both; }
 .anim-slide-in-right { animation: slide-in-right var(--t) var(--ease) both; }
 
+/* ───────────────────────────────────────────────────────────────
+   Route transitions — fade + lift on page enter.
+   Every (app) route wraps its content in <main data-page-enter>;
+   the keyframe runs once on mount so navigating between pages feels
+   smoother than the default blink. Kept under 200ms so power users
+   don't feel slowed down.
+─────────────────────────────────────────────────────────────── */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+[data-page-enter] {
+  animation: page-enter 220ms var(--ease) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-page-enter] { animation: none; }
+}
+
+/* ───────────────────────────────────────────────────────────────
+   Skeleton loading — subtle shimmer over the glass palette so the
+   placeholder reads as part of the page, not as a separate loading
+   screen. All <Skeleton*> primitives in components/ui/skeleton.tsx
+   rely on `.skeleton`.
+─────────────────────────────────────────────────────────────── */
+@keyframes skeleton-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--panel-2) 82%, transparent) 0%,
+    color-mix(in oklab, var(--panel-hover) 92%, transparent) 50%,
+    color-mix(in oklab, var(--panel-2) 82%, transparent) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s linear infinite;
+  border: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+  display: block;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background: color-mix(in oklab, var(--panel-2) 85%, transparent);
+  }
+}
+
 /* Responsive helpers (matches prototype) */
 @media (max-width: 899px) {
   .desktop-only { display: none !important; }
