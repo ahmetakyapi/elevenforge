@@ -94,10 +94,32 @@ async function main() {
     let clubsRenamed = 0;
     let playersReplaced = 0;
 
+    // Pack assignment strategy:
+    //   1. Bot clubs whose current name / shortName matches a pack keep
+    //      that identity (Galatasaray stays Galatasaray).
+    //   2. User-owned clubs and unnamed bots claim the remaining packs in
+    //      createdAt order — so "Friend 3 FC" ends up with whichever
+    //      pack hasn't been claimed yet (usually FB since it's at index 0).
+    const claimed = new Set<number>();
+    const assignPackIndex = (club: typeof leagueClubs[number]): number | null => {
+      const isBot = club.ownerUserId === null || club.isBot;
+      if (isBot) {
+        const nameMatch = SQUAD_PACKS.findIndex(
+          (p, idx) => !claimed.has(idx) && (p.club.name === club.name || p.club.short === club.shortName),
+        );
+        if (nameMatch !== -1) return nameMatch;
+      }
+      // Fall through: first unclaimed pack (deterministic by createdAt order).
+      const firstFree = SQUAD_PACKS.findIndex((_, idx) => !claimed.has(idx));
+      return firstFree === -1 ? null : firstFree;
+    };
+
     for (let i = 0; i < leagueClubs.length; i++) {
       const club = leagueClubs[i];
-      const pack = SQUAD_PACKS[i];
-      if (!pack) continue; // more clubs than packs (shouldn't happen)
+      const packIdx = assignPackIndex(club);
+      if (packIdx === null) continue;
+      claimed.add(packIdx);
+      const pack = SQUAD_PACKS[packIdx];
 
       // Clear outgoing transfer listings that reference this club's players
       // — stale listings pointing at deleted players crash the transfer UI.
