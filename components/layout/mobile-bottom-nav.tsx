@@ -44,7 +44,7 @@ export function MobileBottomNav() {
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
         borderTop: "1px solid var(--border)",
-        padding: "8px 4px 10px",
+        padding: "8px 4px calc(10px + env(safe-area-inset-bottom, 0px))",
       }}
     >
       {ITEMS.map(({ href, label, Icon }) => {

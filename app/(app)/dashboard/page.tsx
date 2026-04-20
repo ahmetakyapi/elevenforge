@@ -58,6 +58,7 @@ export default async function DashboardPage() {
           opens with "who am I / what's my state" before diving into
           strategic widgets. */}
       <div
+        data-dashboard-ribbon
         style={{
           display: "flex",
           alignItems: "center",
@@ -315,6 +316,7 @@ export default async function DashboardPage() {
             <span className="t-label">LİG</span>
             <div
               className="t-mono"
+              data-big-stat
               style={{ fontSize: 48, fontWeight: 700, letterSpacing: "-0.02em" }}
             >
               {d.leagueInfo.weekNumber} / {d.leagueInfo.seasonLength}
@@ -440,7 +442,11 @@ export default async function DashboardPage() {
               </div>
             }
           />
-          <div style={{ borderRadius: 12, overflow: "hidden" }}>
+          <div
+            data-dense-table
+            data-dense-table-wide
+            style={{ borderRadius: 12, overflow: "hidden" }}
+          >
             <div
               style={{
                 display: "grid",

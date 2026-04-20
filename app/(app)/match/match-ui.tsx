@@ -162,6 +162,7 @@ export default function MatchUi({ match }: { match: MatchReplayData }) {
       </GlassCard>
 
       <div
+        data-match-body
         style={{
           display: "grid",
           gridTemplateColumns: "minmax(0, 1fr) 360px",
@@ -172,6 +173,7 @@ export default function MatchUi({ match }: { match: MatchReplayData }) {
         <GlassCard
           pad={0}
           hover={false}
+          data-match-commentary
           style={{
             overflow: "hidden",
             maxHeight: "calc(100vh - 260px)",
@@ -237,6 +239,7 @@ export default function MatchUi({ match }: { match: MatchReplayData }) {
         <GlassCard
           pad={0}
           hover={false}
+          data-match-stats
           style={{ overflow: "hidden", alignSelf: "start" }}
         >
           <div

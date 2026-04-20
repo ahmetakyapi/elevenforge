@@ -117,6 +117,7 @@ function SubRow({
   const filled = !!(sub.outId && sub.inId);
   return (
     <div
+      data-subplan-row
       style={{
         display: "grid",
         gridTemplateColumns: "32px 80px 1fr 24px 1fr 32px",

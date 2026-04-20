@@ -67,6 +67,8 @@ export function SpyButton() {
           }}
         >
           <div
+            data-modal
+            data-modal-panel
             onClick={(e) => e.stopPropagation()}
             style={{
               background: "var(--panel)",

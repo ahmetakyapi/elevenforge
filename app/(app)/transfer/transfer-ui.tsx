@@ -140,6 +140,7 @@ export default function TransferMarketUi({ data }: { data: TransferPageData }) {
 
               <GlassCard pad={14} hover={false} style={{ marginBottom: 14 }}>
                 <div
+                  data-transfer-filters
                   style={{
                     display: "grid",
                     gridTemplateColumns: "auto 1fr 1fr 1fr",
@@ -1262,6 +1263,8 @@ function ScoutModal({ onClose }: { onClose: () => void }) {
       }}
     >
       <div
+        data-modal
+        data-modal-panel
         onClick={(e) => e.stopPropagation()}
         className="glass"
         style={{

@@ -47,6 +47,8 @@ export default async function StandingsPage() {
       </div>
 
       <div
+        data-dense-table
+        data-dense-table-xwide
         style={{
           background: "var(--panel)",
           border: "1px solid var(--border)",

@@ -231,6 +231,7 @@ export default function SquadPage({
       {/* Toolbar */}
       <div
         className="anim-slide-up"
+        data-squad-toolbar
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -585,6 +586,7 @@ function SquadHero({
 
       {/* Stat strip */}
       <div
+        data-squad-hero-stats
         style={{
           position: "relative",
           display: "grid",
@@ -1003,7 +1005,7 @@ function PlayerCardGrid({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
+            gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)",
             gap: 10,
             paddingTop: 10,
             borderTop: "1px solid var(--border)",
@@ -1110,7 +1112,12 @@ function PlayerTable({
   onSelect: (p: Player) => void;
 }) {
   return (
-    <div className="glass" style={{ padding: 0, overflow: "hidden" }}>
+    <div
+      className="glass"
+      data-dense-table
+      data-dense-table-xwide
+      style={{ padding: 0, overflow: "hidden" }}
+    >
       <div
         style={{
           display: "grid",
@@ -1315,6 +1322,7 @@ function PlayerSheet({
       }}
     >
       <div
+        data-modal-sheet
         onClick={(e) => e.stopPropagation()}
         style={{
           maxWidth: 920,

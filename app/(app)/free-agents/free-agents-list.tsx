@@ -66,6 +66,7 @@ export function FreeAgentsList({ agents }: { agents: FreeAgentView[] }) {
         {filtered.map((a) => (
           <div
             key={a.id}
+            data-compact-row
             style={{
               display: "grid",
               gridTemplateColumns: "auto 1fr 80px 100px 100px 140px",

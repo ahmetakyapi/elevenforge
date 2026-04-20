@@ -19,6 +19,7 @@ export function Crest({ clubId, size = 28, ring = false, club }: CrestProps) {
   const s = size;
   return (
     <div
+      data-crest
       style={{
         width: s,
         height: s,
@@ -279,7 +280,7 @@ type GlassCardProps = {
   onClick?: MouseEventHandler<HTMLDivElement>;
   hover?: boolean;
   pad?: number;
-};
+} & Record<`data-${string}`, string | number | boolean | undefined>;
 export function GlassCard({
   children,
   style,
@@ -287,12 +288,14 @@ export function GlassCard({
   onClick,
   hover = true,
   pad = 16,
+  ...rest
 }: GlassCardProps) {
   return (
     <div
       className={`glass ${hover ? "glass-hover" : ""} ${className}`}
       onClick={onClick}
       style={{ padding: pad, cursor: onClick ? "pointer" : "default", ...style }}
+      {...rest}
     >
       {children}
     </div>

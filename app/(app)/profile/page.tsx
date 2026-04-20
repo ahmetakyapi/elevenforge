@@ -119,6 +119,7 @@ export default async function ProfilePage() {
             <Link
               key={l.leagueId}
               href="/dashboard"
+              data-profile-league-row
               style={{
                 display: "grid",
                 gridTemplateColumns: "10px 1fr 60px 90px 100px",

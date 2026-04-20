@@ -84,6 +84,7 @@ export function TopNav({
       }}
     >
       <div
+        data-topnav-container
         style={{
           maxWidth: 1600,
           margin: "0 auto",
@@ -140,10 +141,10 @@ export function TopNav({
           })}
         </nav>
 
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <div data-topnav-right style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <Link
             href="/crew"
-            className="btn btn-ghost btn-sm"
+            className="btn btn-ghost btn-sm desktop-only"
             title="Crew · sohbet ve etkinlik akışı"
             style={{ textDecoration: "none" }}
           >
@@ -183,22 +184,27 @@ export function TopNav({
           </Link>
           <PushSubscribeButton />
           <MobileDrawer />
-          <div className="v-divider" style={{ height: 22 }} />
+          <div className="v-divider desktop-only" style={{ height: 22 }} />
           {clubCrest && (
-            <Crest
-              clubId={clubCrest.clubId}
-              size={28}
-              club={{
-                color: clubCrest.color,
-                color2: clubCrest.color2,
-                short: clubCrest.short,
-              }}
-            />
+            <span data-topnav-crest style={{ display: "inline-flex" }}>
+              <Crest
+                clubId={clubCrest.clubId}
+                size={28}
+                club={{
+                  color: clubCrest.color,
+                  color2: clubCrest.color2,
+                  short: clubCrest.short,
+                }}
+              />
+            </span>
           )}
           {current && (
-            <LeagueSwitcher current={current} owned={owned} />
+            <span data-topnav-league className="desktop-only">
+              <LeagueSwitcher current={current} owned={owned} />
+            </span>
           )}
           <span
+            data-topnav-balance
             className="t-mono"
             style={{ fontSize: 13, color: "var(--emerald)" }}
           >

@@ -68,6 +68,7 @@ export default async function CupPage() {
         </div>
       ) : (
         <div
+          data-cup-bracket
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(4, 1fr)",

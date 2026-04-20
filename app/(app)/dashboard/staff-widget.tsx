@@ -158,6 +158,8 @@ export function StaffWidget({ staffJson }: { staffJson: string | null }) {
           }}
         >
           <div
+            data-modal
+            data-modal-panel
             onClick={(e) => e.stopPropagation()}
             style={{
               background: "var(--panel)",
