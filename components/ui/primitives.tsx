@@ -1,6 +1,7 @@
 "use client";
 
 import type { CSSProperties, MouseEventHandler, ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 import { clubById } from "@/lib/mock-data";
 import { fmtEUR, posColor, tierColor, tierLabel } from "@/lib/utils";
 import type { Position } from "@/types";
@@ -268,6 +269,77 @@ export function UserAvatar({ name, size = 24 }: UserAvatarProps) {
       }}
     >
       {initials}
+    </div>
+  );
+}
+
+// ─── EmptyState — reusable placeholder for "nothing here yet" screens ──
+//
+// Replaces the plain `<GlassCard>…text…</GlassCard>` empty states scattered
+// across match, newspaper, crew, free-agents. Gives every blank state the
+// same rhythm: icon-in-a-tinted-disc, title, description, optional action.
+type EmptyStateProps = {
+  Icon?: LucideIcon;
+  title: string;
+  description?: ReactNode;
+  action?: ReactNode;
+  tint?: string;
+  compact?: boolean;
+};
+export function EmptyState({
+  Icon,
+  title,
+  description,
+  action,
+  tint = "var(--accent)",
+  compact = false,
+}: EmptyStateProps) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: compact ? 10 : 16,
+        padding: compact ? "32px 20px" : "56px 28px",
+        textAlign: "center",
+        maxWidth: 420,
+        margin: "0 auto",
+      }}
+    >
+      {Icon && (
+        <div
+          style={{
+            width: compact ? 44 : 60,
+            height: compact ? 44 : 60,
+            borderRadius: compact ? 14 : 18,
+            background: `color-mix(in oklab, ${tint} 14%, transparent)`,
+            border: `1px solid color-mix(in oklab, ${tint} 30%, var(--border))`,
+            color: tint,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: `0 8px 24px -10px color-mix(in oklab, ${tint} 40%, transparent), inset 0 1px 0 color-mix(in oklab, ${tint} 30%, transparent)`,
+          }}
+        >
+          <Icon size={compact ? 20 : 26} strokeWidth={1.7} />
+        </div>
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div className={compact ? "t-h3" : "t-h2"} style={{ color: "var(--text)" }}>
+          {title}
+        </div>
+        {description && (
+          <div
+            className="t-small"
+            style={{ color: "var(--muted)", maxWidth: 320, lineHeight: 1.55 }}
+          >
+            {description}
+          </div>
+        )}
+      </div>
+      {action && <div style={{ marginTop: 4 }}>{action}</div>}
     </div>
   );
 }

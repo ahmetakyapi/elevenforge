@@ -106,6 +106,7 @@ export default async function DashboardPage() {
       <GlassCard
         pad={0}
         hover={false}
+        className="glass-hero"
         style={{ overflow: "hidden", position: "relative" }}
       >
         <div
@@ -114,35 +115,36 @@ export default async function DashboardPage() {
             inset: 0,
             pointerEvents: "none",
             background:
-              "radial-gradient(600px 300px at 20% 0%, color-mix(in oklab, var(--accent) 18%, transparent), transparent 60%), radial-gradient(600px 300px at 100% 100%, color-mix(in oklab, var(--accent-2) 14%, transparent), transparent 60%)",
+              "radial-gradient(700px 320px at 15% 0%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 60%), radial-gradient(700px 320px at 100% 100%, color-mix(in oklab, var(--accent-2) 16%, transparent), transparent 60%)",
           }}
         />
         <div
           style={{
             position: "relative",
-            padding: 28,
+            padding: 32,
             display: "grid",
             gridTemplateColumns: "1.2fr 1fr",
-            gap: 28,
+            gap: 32,
             alignItems: "center",
           }}
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 10,
+                gap: 8,
                 flexWrap: "wrap",
               }}
             >
-              <span className="chip" style={{ color: "var(--emerald)" }}>
+              <span className="chip chip-success">
                 <span
                   style={{
                     width: 6,
                     height: 6,
                     borderRadius: "50%",
                     background: "var(--emerald)",
+                    animation: "pulse-accent 2s ease-in-out infinite",
                   }}
                 />
                 {d.nextFixture ? "SONRAKİ MAÇ" : "MAÇ YOK"}
@@ -155,16 +157,7 @@ export default async function DashboardPage() {
                   : ""}
               </span>
               {d.nextFixture?.isDerby && (
-                <span
-                  className="chip"
-                  style={{
-                    color: "var(--gold)",
-                    borderColor:
-                      "color-mix(in oklab, var(--gold) 40%, var(--border))",
-                    background:
-                      "color-mix(in oklab, var(--gold) 10%, var(--panel))",
-                  }}
-                >
+                <span className="chip chip-gold">
                   🔥 ŞEHİR DERBİSİ · 2× bahis
                 </span>
               )}
@@ -174,8 +167,8 @@ export default async function DashboardPage() {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 18,
-                  marginTop: 4,
+                  gap: 22,
+                  marginTop: 2,
                 }}
               >
                 <div
@@ -183,47 +176,65 @@ export default async function DashboardPage() {
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
-                    gap: 6,
+                    gap: 10,
+                    minWidth: 88,
                   }}
                 >
                   <Crest
                     clubId={d.nextFixture.homeClubId}
-                    size={56}
+                    size={72}
                     club={d.crestLookup[d.nextFixture.homeClubId]}
                   />
-                  <span className="t-h3" style={{ fontSize: 14 }}>
+                  <span className="t-h4" style={{ textAlign: "center" }}>
                     {d.nextFixture.homeClubShort}
                   </span>
-                </div>
-                <div
-                  className="t-mono"
-                  style={{ fontSize: 28, color: "var(--muted)" }}
-                >
-                  vs
                 </div>
                 <div
                   style={{
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
-                    gap: 6,
+                    gap: 4,
+                  }}
+                >
+                  <span
+                    className="t-mono"
+                    style={{
+                      fontSize: 32,
+                      fontWeight: 700,
+                      color: "var(--muted-2)",
+                      letterSpacing: "-0.04em",
+                    }}
+                  >
+                    vs
+                  </span>
+                  <span className="t-eyebrow" style={{ color: "var(--muted)" }}>
+                    {d.nextFixture.isHome ? "EV SAHİBİ" : "DEPLASMAN"}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 10,
+                    minWidth: 88,
                   }}
                 >
                   <Crest
                     clubId={d.nextFixture.awayClubId}
-                    size={56}
+                    size={72}
                     club={d.crestLookup[d.nextFixture.awayClubId]}
                   />
-                  <span className="t-h3" style={{ fontSize: 14 }}>
+                  <span className="t-h4" style={{ textAlign: "center" }}>
                     {d.nextFixture.awayClubShort}
                   </span>
                 </div>
-                <div style={{ flex: 1 }} />
               </div>
             )}
             {d.nextFixture && (
               <div className="t-small" style={{ color: "var(--muted)" }}>
-                {d.nextFixture.venue} · {d.nextFixture.isHome ? "Ev sahibi" : "Deplasman"}
+                {d.nextFixture.venue}
               </div>
             )}
             {d.nextFixture && d.nextFixture.opponentForm.length > 0 && (
@@ -231,35 +242,28 @@ export default async function DashboardPage() {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 10,
+                  gap: 14,
                   flexWrap: "wrap",
-                  marginTop: 6,
+                  paddingTop: 10,
+                  borderTop: "1px solid var(--border)",
                 }}
               >
-                <span
-                  className="t-label"
-                  style={{ fontSize: 10, color: "var(--muted)" }}
-                >
-                  RAKİBİN SON 5
-                </span>
-                <div style={{ display: "flex", gap: 3 }}>
-                  {d.nextFixture.opponentForm.map((r, i) => (
-                    <FormDot key={i} result={r} />
-                  ))}
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span className="t-label" style={{ fontSize: 10 }}>
+                    RAKİBİN SON 5
+                  </span>
+                  <div style={{ display: "flex", gap: 3 }}>
+                    {d.nextFixture.opponentForm.map((r, i) => (
+                      <FormDot key={i} result={r} />
+                    ))}
+                  </div>
                 </div>
                 {d.nextFixture.h2h.length > 0 && (
-                  <>
-                    <span
-                      className="t-label"
-                      style={{
-                        fontSize: 10,
-                        color: "var(--muted)",
-                        marginLeft: 10,
-                      }}
-                    >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span className="t-label" style={{ fontSize: 10 }}>
                       H2H
                     </span>
-                    <div style={{ display: "flex", gap: 6 }}>
+                    <div style={{ display: "flex", gap: 5 }}>
                       {d.nextFixture.h2h.map((m, i) => (
                         <span
                           key={i}
@@ -267,8 +271,8 @@ export default async function DashboardPage() {
                           style={{
                             fontSize: 11,
                             fontWeight: 700,
-                            padding: "2px 6px",
-                            borderRadius: 4,
+                            padding: "3px 7px",
+                            borderRadius: 6,
                             background:
                               m.result === "W"
                                 ? "color-mix(in oklab, var(--emerald) 18%, transparent)"
@@ -281,20 +285,27 @@ export default async function DashboardPage() {
                                 : m.result === "L"
                                   ? "var(--danger)"
                                   : "var(--warn)",
+                            border: `1px solid ${
+                              m.result === "W"
+                                ? "color-mix(in oklab, var(--emerald) 30%, transparent)"
+                                : m.result === "L"
+                                  ? "color-mix(in oklab, var(--danger) 30%, transparent)"
+                                  : "color-mix(in oklab, var(--warn) 30%, transparent)"
+                            }`,
                           }}
                         >
                           {m.ourScore}-{m.theirScore}
                         </span>
                       ))}
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
             )}
-            <div style={{ display: "flex", gap: 10, marginTop: 4, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 10, marginTop: 2, flexWrap: "wrap" }}>
               <Link
                 href="/tactic"
-                className="btn"
+                className="btn btn-primary"
                 style={{ textDecoration: "none" }}
               >
                 Taktik Hazırla <ChevronRight size={14} strokeWidth={1.6} />
@@ -310,30 +321,47 @@ export default async function DashboardPage() {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: 10,
+              gap: 8,
+              padding: "4px 0",
             }}
           >
-            <span className="t-label">LİG</span>
+            <span className="t-eyebrow" style={{ color: "var(--muted)" }}>
+              LİG HAFTA
+            </span>
             <div
               className="t-mono"
               data-big-stat
-              style={{ fontSize: 48, fontWeight: 700, letterSpacing: "-0.02em" }}
+              style={{
+                fontSize: 72,
+                fontWeight: 800,
+                letterSpacing: "-0.04em",
+                lineHeight: 1,
+                background: "linear-gradient(180deg, var(--text) 0%, color-mix(in oklab, var(--text) 50%, transparent) 120%)",
+                WebkitBackgroundClip: "text",
+                backgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                color: "transparent",
+              }}
             >
-              {d.leagueInfo.weekNumber} / {d.leagueInfo.seasonLength}
+              {d.leagueInfo.weekNumber}
+              <span style={{ color: "var(--muted-2)", fontSize: 40, fontWeight: 600 }}>
+                /{d.leagueInfo.seasonLength}
+              </span>
             </div>
             <div className="t-small" style={{ color: "var(--muted)" }}>
-              Hafta · Sezon {d.leagueInfo.seasonNumber}
+              Sezon {d.leagueInfo.seasonNumber}
             </div>
             {secondsToNextMatch !== null && secondsToNextMatch > 0 && (
               <div
-                className="t-mono"
-                style={{
-                  fontSize: 14,
-                  color: "var(--emerald)",
-                  marginTop: 4,
-                }}
+                className="chip chip-success"
+                style={{ marginTop: 8 }}
               >
-                ⏱ {Math.floor(secondsToNextMatch / 3600)}s kaldı
+                <span
+                  className="t-mono"
+                  style={{ fontSize: 12, fontWeight: 700 }}
+                >
+                  ⏱ {Math.floor(secondsToNextMatch / 3600)}s {Math.floor((secondsToNextMatch % 3600) / 60)}dk
+                </span>
               </div>
             )}
           </div>

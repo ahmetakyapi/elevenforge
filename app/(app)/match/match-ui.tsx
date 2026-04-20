@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Crest, GlassCard } from "@/components/ui/primitives";
+import Link from "next/link";
+import { PlayCircle } from "lucide-react";
+import { Crest, EmptyState, GlassCard } from "@/components/ui/primitives";
 import type { MatchReplayData } from "@/lib/queries/match";
 import type { MatchEvent } from "@/lib/engine/match";
 
@@ -13,15 +15,22 @@ export default function MatchUi({ match }: { match: MatchReplayData }) {
   if (!match) {
     return (
       <div style={{ maxWidth: 720, margin: "80px auto", padding: "0 24px" }}>
-        <GlassCard pad={48} hover={false} style={{ textAlign: "center" }}>
-          <div className="t-h2">Henüz maç oynanmadı</div>
-          <div
-            className="t-small"
-            style={{ marginTop: 10, color: "var(--muted)" }}
-          >
-            Dashboard&apos;dan &ldquo;Sıradaki Haftayı Oyna&rdquo; butonuna bas,
-            ilk maçlar simüle olsun.
-          </div>
+        <GlassCard pad={0} hover={false} className="glass-hero">
+          <EmptyState
+            Icon={PlayCircle}
+            title="Henüz maç oynanmadı"
+            description="Takımının ilk maçı henüz simüle edilmedi. Dashboard'dan haftayı oyna, canlı anlatım burada belirecek."
+            tint="var(--emerald)"
+            action={
+              <Link
+                href="/dashboard"
+                className="btn btn-primary"
+                style={{ textDecoration: "none" }}
+              >
+                Dashboard'a git
+              </Link>
+            }
+          />
         </GlassCard>
       </div>
     );
@@ -31,135 +40,148 @@ export default function MatchUi({ match }: { match: MatchReplayData }) {
 
   return (
     <div style={{ maxWidth: 1400, margin: "0 auto", padding: "16px 24px" }}>
-      {/* Scoreboard */}
-      <GlassCard
-        pad={0}
-        hover={false}
-        data-match-scoreboard
-        style={{
-          overflow: "hidden",
-          position: "relative",
-          marginBottom: 16,
-        }}
-      >
-        <div
-          style={{
-            padding: "22px 28px",
-            display: "grid",
-            gridTemplateColumns: "1fr 280px 1fr",
-            alignItems: "center",
-            gap: 20,
-            position: "relative",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <Crest clubId={match.homeClubId} size={56} club={match.homeClubCrest} />
-            <div>
-              <div className="t-h2" style={{ fontSize: 18 }}>
-                {match.homeClubName}
-              </div>
-              <div className="t-caption">
-                Ev sahibi · %{match.stats.possessionHome}
-              </div>
-            </div>
-          </div>
-          <div
+      {/* Scoreboard — dramatic full-bleed treatment with giant score,
+          80px crests, and winner-highlighting via color weight. */}
+      {(() => {
+        const homeWon = match.homeScore > match.awayScore;
+        const awayWon = match.awayScore > match.homeScore;
+        return (
+          <GlassCard
+            pad={0}
+            hover={false}
+            data-match-scoreboard
+            className="glass-hero"
             style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 4,
+              overflow: "hidden",
+              position: "relative",
+              marginBottom: 16,
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <span
-                className="t-mono"
-                data-match-score
-                style={{
-                  fontSize: 54,
-                  fontWeight: 700,
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                {match.homeScore}
-              </span>
-              <span style={{ fontSize: 24, color: "var(--muted)" }}>−</span>
-              <span
-                className="t-mono"
-                data-match-score
-                style={{
-                  fontSize: 54,
-                  fontWeight: 700,
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                {match.awayScore}
-              </span>
-            </div>
             <div
               style={{
-                display: "flex",
+                position: "absolute",
+                inset: 0,
+                pointerEvents: "none",
+                background: `
+                  radial-gradient(600px 220px at 20% 0%, color-mix(in oklab, ${homeWon ? "var(--emerald)" : "var(--accent)"} 16%, transparent), transparent 60%),
+                  radial-gradient(600px 220px at 80% 100%, color-mix(in oklab, ${awayWon ? "var(--emerald)" : "var(--accent-2)"} 14%, transparent), transparent 60%)
+                `,
+              }}
+            />
+            <div
+              style={{
+                position: "relative",
+                padding: "28px 28px 22px",
+                display: "grid",
+                gridTemplateColumns: "1fr 280px 1fr",
                 alignItems: "center",
-                gap: 8,
-                marginTop: 2,
-                flexWrap: "wrap",
-                justifyContent: "center",
+                gap: 20,
               }}
             >
-              <span
-                className="t-mono"
+              <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+                <Crest clubId={match.homeClubId} size={80} club={match.homeClubCrest} />
+                <div>
+                  <div
+                    className="t-h2"
+                    style={{ color: homeWon ? "var(--text)" : "var(--text-2)", opacity: awayWon ? 0.75 : 1 }}
+                  >
+                    {match.homeClubName}
+                  </div>
+                  <div className="t-caption" style={{ marginTop: 2 }}>
+                    Ev sahibi · <span className="t-mono">%{match.stats.possessionHome}</span>
+                  </div>
+                </div>
+              </div>
+              <div
                 style={{
-                  fontSize: 13,
-                  color: "var(--muted)",
-                  letterSpacing: "0.1em",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 6,
                 }}
               >
-                HAFTA {match.weekNumber} · SEZON {match.seasonNumber}
-              </span>
-              {isDerby && (
-                <span
-                  className="chip"
+                <div style={{ display: "flex", alignItems: "baseline", gap: 14 }}>
+                  <span
+                    className="t-mono"
+                    data-match-score
+                    style={{
+                      fontSize: 72,
+                      fontWeight: 800,
+                      letterSpacing: "-0.04em",
+                      lineHeight: 1,
+                      color: homeWon ? "var(--emerald)" : awayWon ? "var(--muted-2)" : "var(--text)",
+                      textShadow: homeWon ? "0 0 32px color-mix(in oklab, var(--emerald) 35%, transparent)" : "none",
+                    }}
+                  >
+                    {match.homeScore}
+                  </span>
+                  <span style={{ fontSize: 28, color: "var(--muted-2)", fontWeight: 300 }}>–</span>
+                  <span
+                    className="t-mono"
+                    data-match-score
+                    style={{
+                      fontSize: 72,
+                      fontWeight: 800,
+                      letterSpacing: "-0.04em",
+                      lineHeight: 1,
+                      color: awayWon ? "var(--emerald)" : homeWon ? "var(--muted-2)" : "var(--text)",
+                      textShadow: awayWon ? "0 0 32px color-mix(in oklab, var(--emerald) 35%, transparent)" : "none",
+                    }}
+                  >
+                    {match.awayScore}
+                  </span>
+                </div>
+                <div
                   style={{
-                    color: "var(--gold)",
-                    fontSize: 10,
-                    padding: "2px 8px",
-                    borderColor:
-                      "color-mix(in oklab, var(--gold) 40%, var(--border))",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginTop: 4,
+                    flexWrap: "wrap",
+                    justifyContent: "center",
                   }}
                 >
-                  DERBİ
-                </span>
-              )}
-            </div>
-            <div className="t-caption" style={{ fontSize: 11, marginTop: 4 }}>
-              {match.playedAt.toLocaleDateString("tr-TR", {
-                day: "numeric",
-                month: "short",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </div>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-              justifyContent: "flex-end",
-            }}
-          >
-            <div style={{ textAlign: "right" }}>
-              <div className="t-h2" style={{ fontSize: 18 }}>
-                {match.awayClubName}
+                  <span className="t-eyebrow" style={{ color: "var(--muted)" }}>
+                    HAFTA {match.weekNumber} · SEZON {match.seasonNumber}
+                  </span>
+                  {isDerby && (
+                    <span className="chip chip-gold chip-sm">DERBİ</span>
+                  )}
+                </div>
+                <div className="t-caption" style={{ fontSize: 11 }}>
+                  {match.playedAt.toLocaleDateString("tr-TR", {
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </div>
               </div>
-              <div className="t-caption">
-                Deplasman · %{match.stats.possessionAway}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 18,
+                  justifyContent: "flex-end",
+                }}
+              >
+                <div style={{ textAlign: "right" }}>
+                  <div
+                    className="t-h2"
+                    style={{ color: awayWon ? "var(--text)" : "var(--text-2)", opacity: homeWon ? 0.75 : 1 }}
+                  >
+                    {match.awayClubName}
+                  </div>
+                  <div className="t-caption" style={{ marginTop: 2 }}>
+                    Deplasman · <span className="t-mono">%{match.stats.possessionAway}</span>
+                  </div>
+                </div>
+                <Crest clubId={match.awayClubId} size={80} club={match.awayClubCrest} />
               </div>
             </div>
-            <Crest clubId={match.awayClubId} size={56} club={match.awayClubCrest} />
-          </div>
-        </div>
-      </GlassCard>
+          </GlassCard>
+        );
+      })()}
 
       <div
         data-match-body

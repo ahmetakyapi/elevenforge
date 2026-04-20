@@ -1,6 +1,7 @@
-import { UserPlus } from "lucide-react";
+import { UserPlus, UserX } from "lucide-react";
 import { requireLeagueContext } from "@/lib/session";
 import { loadFreeAgents } from "@/lib/queries/free-agents";
+import { EmptyState, GlassCard } from "@/components/ui/primitives";
 import { FreeAgentsList } from "./free-agents-list";
 
 export const dynamic = "force-dynamic";
@@ -42,19 +43,15 @@ export default async function FreeAgentsPage() {
       </div>
 
       {agents.length === 0 ? (
-        <div
-          style={{
-            padding: 32,
-            borderRadius: 12,
-            background: "var(--panel)",
-            border: "1px solid var(--border)",
-            textAlign: "center",
-            color: "var(--muted)",
-          }}
-        >
-          Şu an serbest oyuncu yok. Sezon-sonu sözleşme bitişlerinden sonra
-          burada havuz oluşur.
-        </div>
+        <GlassCard pad={0} hover={false} className="glass-hero">
+          <EmptyState
+            Icon={UserX}
+            title="Havuz şu an boş"
+            description="Sezon sonunda sözleşmesi biten oyuncular bu havuza düşer. Bir sezon daha oyna, üst sıralar için bedava imza fırsatları burada belirir."
+            tint="var(--muted)"
+            compact
+          />
+        </GlassCard>
       ) : (
         <FreeAgentsList agents={agents} />
       )}

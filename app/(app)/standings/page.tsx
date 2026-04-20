@@ -90,6 +90,8 @@ export default async function StandingsPage() {
           return (
             <div
               key={row.clubId}
+              className="standings-row"
+              data-is-me={row.isMe || undefined}
               style={{
                 display: "grid",
                 gridTemplateColumns: "32px 32px minmax(0, 1fr) repeat(7, 44px) 110px",
@@ -98,9 +100,13 @@ export default async function StandingsPage() {
                 alignItems: "center",
                 borderBottom: i === d.standings.length - 1 ? "none" : "1px solid var(--border)",
                 background: row.isMe
-                  ? "color-mix(in oklab, var(--accent) 10%, transparent)"
-                  : "transparent",
+                  ? "color-mix(in oklab, var(--accent) 12%, transparent)"
+                  : i % 2 === 0
+                    ? "color-mix(in oklab, var(--panel-2) 45%, transparent)"
+                    : "transparent",
                 position: "relative",
+                transition: "background var(--t-fast) var(--ease)",
+                cursor: "default",
               }}
             >
               <span
@@ -114,6 +120,17 @@ export default async function StandingsPage() {
                       ? "var(--danger)"
                       : "var(--text)",
                   textAlign: "center",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 26,
+                  height: 26,
+                  borderRadius: 6,
+                  background: promo
+                    ? "color-mix(in oklab, var(--emerald) 12%, transparent)"
+                    : releg
+                      ? "color-mix(in oklab, var(--danger) 12%, transparent)"
+                      : "transparent",
                 }}
               >
                 {rank}

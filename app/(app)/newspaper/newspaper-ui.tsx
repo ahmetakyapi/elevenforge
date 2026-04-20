@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { MessageSquare } from "lucide-react";
-import { Crest, GlassCard } from "@/components/ui/primitives";
+import { MessageSquare, Newspaper as NewspaperIcon } from "lucide-react";
+import Link from "next/link";
+import { Crest, EmptyState, GlassCard } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/toast";
 import type { NewspaperData } from "@/lib/queries/newspaper";
 
@@ -22,14 +23,22 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
   if (!paper) {
     return (
       <div style={{ maxWidth: 720, margin: "80px auto", padding: "0 24px" }}>
-        <GlassCard pad={48} hover={false} style={{ textAlign: "center" }}>
-          <div className="t-h2">Henüz gazete çıkmadı</div>
-          <div
-            className="t-small"
-            style={{ marginTop: 10, color: "var(--muted)" }}
-          >
-            Bir hafta oyna, ertesi sabah manşet burada olur.
-          </div>
+        <GlassCard pad={0} hover={false} className="glass-hero">
+          <EmptyState
+            Icon={NewspaperIcon}
+            title="Henüz gazete çıkmadı"
+            description="İlk haftanın maçları oynandıktan sonra ElevenForge Spor'un manşeti, Haftanın 11'i ve basın odası burada yayımlanır."
+            tint="var(--gold)"
+            action={
+              <Link
+                href="/dashboard"
+                className="btn btn-outline"
+                style={{ textDecoration: "none" }}
+              >
+                Haftayı oyna
+              </Link>
+            }
+          />
         </GlassCard>
       </div>
     );
