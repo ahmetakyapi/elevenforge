@@ -573,13 +573,13 @@ function SquadHero({
           </p>
         </div>
         <div className="anim-slide-up" style={{ animationDelay: "100ms" }}>
-          <button
-            type="button"
+          <Link
+            href="/transfer"
             className="btn btn-primary btn-lg"
-            style={{ padding: "12px 22px" }}
+            style={{ padding: "12px 22px", textDecoration: "none" }}
           >
-            <Plus size={14} strokeWidth={1.6} /> Oyuncu Kirala
-          </button>
+            <Plus size={14} strokeWidth={1.6} /> Transfer Pazarı
+          </Link>
         </div>
       </div>
 
@@ -695,11 +695,77 @@ function SquadHero({
 }
 
 // ─── Player card (grid view) ────────────────────────────────
+//
+// Premium layout: the card leads with a giant tier-coloured OVR
+// chip (sağ üst), a bold name, and a 3-attribute micro-bar strip
+// chosen by role. Secondary info (age, value, fitness pill) sits
+// on a single line below. Status + potential / listed / training
+// show as small top-left chips only when non-default.
+//
+// Removed from the previous card: the 5-match form bar chart, the
+// fit+moral dual bars, and the watermarked jersey number — they
+// made every tile feel busy. The PlayerSheet still has all of it.
+
+// Role → the 3 attributes most relevant to that role. Strikers see
+// pace/shooting/physical; CBs see defending/physical/pace; etc. If a
+// role isn't mapped we fall back to a generic trio for that position.
+const ROLE_KEY_ATTRS: Record<string, Array<["pace" | "shooting" | "passing" | "defending" | "physical" | "goalkeeping", string]>> = {
+  GK:  [["goalkeeping", "SAV"], ["physical", "FIZ"], ["passing", "PAS"]],
+  CB:  [["defending", "DEF"], ["physical", "FIZ"], ["pace", "HIZ"]],
+  LB:  [["pace", "HIZ"], ["defending", "DEF"], ["passing", "PAS"]],
+  RB:  [["pace", "HIZ"], ["defending", "DEF"], ["passing", "PAS"]],
+  CDM: [["defending", "DEF"], ["passing", "PAS"], ["physical", "FIZ"]],
+  CM:  [["passing", "PAS"], ["defending", "DEF"], ["pace", "HIZ"]],
+  AM:  [["passing", "PAS"], ["shooting", "ŞUT"], ["pace", "HIZ"]],
+  LW:  [["pace", "HIZ"], ["shooting", "ŞUT"], ["passing", "PAS"]],
+  RW:  [["pace", "HIZ"], ["shooting", "ŞUT"], ["passing", "PAS"]],
+  ST:  [["shooting", "ŞUT"], ["pace", "HIZ"], ["physical", "FIZ"]],
+  CF:  [["shooting", "ŞUT"], ["passing", "PAS"], ["physical", "FIZ"]],
+};
+
+const POS_FALLBACK_ATTRS: Record<Position, Array<["pace" | "shooting" | "passing" | "defending" | "physical" | "goalkeeping", string]>> = {
+  GK:  [["goalkeeping", "SAV"], ["physical", "FIZ"], ["passing", "PAS"]],
+  DEF: [["defending", "DEF"], ["physical", "FIZ"], ["pace", "HIZ"]],
+  MID: [["passing", "PAS"], ["defending", "DEF"], ["pace", "HIZ"]],
+  FWD: [["shooting", "ŞUT"], ["pace", "HIZ"], ["physical", "FIZ"]],
+};
+
+// Tier palette: gives the OVR chip + the top edge a recognisable
+// colour so a quick scan distinguishes stars from squad depth.
+function tierPalette(ovr: number): {
+  label: string;
+  accent: string;
+  glow: string;
+} {
+  if (ovr >= 85)
+    return {
+      label: "ELITE",
+      accent: "var(--gold)",
+      glow: "0 0 40px -8px color-mix(in oklab, var(--gold) 45%, transparent)",
+    };
+  if (ovr >= 80)
+    return {
+      label: "STAR",
+      accent: "var(--emerald)",
+      glow:
+        "0 0 32px -10px color-mix(in oklab, var(--emerald) 40%, transparent)",
+    };
+  if (ovr >= 75)
+    return {
+      label: "FIRST-11",
+      accent: "var(--cyan)",
+      glow:
+        "0 0 28px -12px color-mix(in oklab, var(--cyan) 35%, transparent)",
+    };
+  if (ovr >= 70)
+    return { label: "ROTATION", accent: "var(--indigo)", glow: "none" };
+  return { label: "DEPTH", accent: "var(--muted)", glow: "none" };
+}
+
 function PlayerCardGrid({
   p,
   i,
   onClick,
-  hovered,
   onHover,
   compareMark,
 }: {
@@ -713,6 +779,10 @@ function PlayerCardGrid({
   const [localHover, setLocalHover] = useState(false);
   const potBuff = p.pot - p.ovr;
   const statusStyles = STATUS_STYLE[p.status ?? "_"] ?? null;
+  const tier = tierPalette(p.ovr);
+  const keyAttrs = ROLE_KEY_ATTRS[p.role] ?? POS_FALLBACK_ATTRS[p.pos];
+  const valueEur = p.val ?? 0;
+
   return (
     <div
       onClick={onClick}
@@ -727,38 +797,44 @@ function PlayerCardGrid({
       }}
       className="anim-slide-up"
       style={{
-        animationDelay: `${Math.min(i * 35, 420)}ms`,
+        animationDelay: `${Math.min(i * 30, 360)}ms`,
         position: "relative",
-        borderRadius: 14,
+        borderRadius: 16,
         overflow: "hidden",
-        background: `linear-gradient(170deg, color-mix(in oklab, ${posColor(
-          p.pos,
-        )} 12%, var(--panel)) 0%, var(--panel) 50%, var(--panel-2) 100%)`,
-        border: `${compareMark ? "2px" : "1px"} solid ${
-          compareMark
-            ? "var(--accent)"
-            : localHover
-              ? `color-mix(in oklab, ${posColor(p.pos)} 45%, var(--border))`
-              : "var(--border)"
-        }`,
+        background:
+          "linear-gradient(180deg, color-mix(in oklab, var(--panel-hover) 35%, var(--panel)) 0%, var(--panel) 60%, var(--panel-2) 100%)",
+        border: compareMark
+          ? "2px solid var(--accent)"
+          : `1px solid ${
+              localHover
+                ? `color-mix(in oklab, ${tier.accent} 50%, var(--border))`
+                : "var(--border)"
+            }`,
         cursor: "pointer",
-        transform: localHover ? "translateY(-4px)" : "translateY(0)",
-        boxShadow: localHover
-          ? `0 20px 40px -16px color-mix(in oklab, ${posColor(
-              p.pos,
-            )} 30%, black), 0 0 0 1px color-mix(in oklab, ${posColor(
-              p.pos,
-            )} 20%, transparent)`
-          : "var(--shadow-sm)",
-        transition: "all 300ms var(--ease)",
+        transform: localHover ? "translateY(-3px)" : "translateY(0)",
+        boxShadow: localHover ? tier.glow : "var(--shadow-sm)",
+        transition: "all 260ms var(--ease)",
       }}
     >
+      {/* Tier accent stripe along the top edge */}
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 3,
+          background: `linear-gradient(90deg, ${tier.accent} 0%, color-mix(in oklab, ${tier.accent} 40%, transparent) 100%)`,
+          zIndex: 2,
+        }}
+      />
+
       {compareMark && (
         <div
           style={{
             position: "absolute",
-            top: 8,
-            left: 8,
+            top: 10,
+            left: 10,
             zIndex: 5,
             width: 22,
             height: 22,
@@ -775,38 +851,19 @@ function PlayerCardGrid({
           {compareMark}
         </div>
       )}
-      {/* Jersey watermark */}
-      <div
-        style={{
-          position: "absolute",
-          top: -20,
-          right: -10,
-          fontFamily: "var(--font-manrope)",
-          fontWeight: 900,
-          fontSize: 140,
-          color: `color-mix(in oklab, ${posColor(p.pos)} 22%, transparent)`,
-          lineHeight: 1,
-          letterSpacing: "-0.05em",
-          pointerEvents: "none",
-          transform: localHover ? "translateX(-8px) scale(1.05)" : "none",
-          transition: "transform 500ms var(--ease)",
-        }}
-      >
-        {p.num ?? "?"}
-      </div>
 
-      {statusStyles && (
+      {statusStyles && !compareMark && (
         <div
           style={{
             position: "absolute",
-            top: 10,
-            left: 10,
-            padding: "4px 8px",
+            top: 12,
+            left: 12,
+            padding: "3px 8px",
             borderRadius: 6,
             fontSize: 10,
             fontFamily: "var(--font-jetbrains)",
             fontWeight: 600,
-            letterSpacing: "0.05em",
+            letterSpacing: "0.04em",
             background: statusStyles.bg,
             color: statusStyles.c,
             border: "1px solid currentColor",
@@ -817,251 +874,206 @@ function PlayerCardGrid({
         </div>
       )}
 
-      <div style={{ position: "relative", padding: "18px 18px 14px", zIndex: 1 }}>
+      <div style={{ position: "relative", padding: "16px 16px 14px", zIndex: 1 }}>
+        {/* Header row: pos + role aside, giant OVR right */}
         <div
           style={{
             display: "flex",
             alignItems: "flex-start",
             justifyContent: "space-between",
-            marginBottom: 14,
+            gap: 10,
+            marginBottom: 10,
+            marginTop: statusStyles || compareMark ? 20 : 0,
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 8,
-              alignItems: "flex-start",
-            }}
-          >
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <PosBadge pos={p.pos} showLabel />
-            <div
+            <span
               className="t-mono"
               style={{
                 fontSize: 10,
                 color: "var(--muted)",
-                letterSpacing: "0.08em",
+                letterSpacing: "0.09em",
               }}
             >
               {p.role} · {p.nat}
-            </div>
+              {p.num !== undefined && ` · #${p.num}`}
+            </span>
           </div>
           <div
             style={{
               display: "flex",
               flexDirection: "column",
               alignItems: "flex-end",
-              gap: 3,
+              gap: 2,
             }}
           >
-            <OvrChip ovr={p.ovr} size="lg" />
-            {potBuff > 0 && (
-              <span
-                className="t-mono"
-                style={{ fontSize: 10, color: "var(--gold)", fontWeight: 600 }}
-              >
-                →{p.pot}{" "}
-                <span style={{ opacity: 0.7 }}>(+{potBuff})</span>
-              </span>
-            )}
+            <div
+              style={{
+                fontFamily: "var(--font-manrope)",
+                fontWeight: 800,
+                fontSize: 34,
+                letterSpacing: "-0.04em",
+                lineHeight: 1,
+                color: tier.accent,
+                textShadow: localHover
+                  ? `0 0 18px color-mix(in oklab, ${tier.accent} 55%, transparent)`
+                  : "none",
+                transition: "text-shadow 260ms var(--ease)",
+              }}
+            >
+              {p.ovr}
+            </div>
+            <span
+              className="t-mono"
+              style={{
+                fontSize: 9,
+                letterSpacing: "0.14em",
+                fontWeight: 700,
+                color: tier.accent,
+                opacity: 0.85,
+              }}
+            >
+              {tier.label}
+            </span>
           </div>
         </div>
 
+        {/* Name */}
         <div
           style={{
             fontFamily: "var(--font-manrope)",
             fontWeight: 700,
-            fontSize: 20,
-            letterSpacing: "-0.02em",
-            lineHeight: 1.1,
-            minHeight: 44,
+            fontSize: 17,
+            letterSpacing: "-0.015em",
+            lineHeight: 1.15,
             color: "var(--text)",
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
+            marginBottom: 6,
           }}
           title={p.n}
         >
           {p.n}
         </div>
 
+        {/* Secondary meta line: age · value · potential arrow */}
         <div
           style={{
             display: "flex",
             gap: 8,
             alignItems: "center",
-            marginTop: 12,
+            marginBottom: 14,
             flexWrap: "wrap",
           }}
         >
           <AgePill age={p.age} size="sm" />
           <span
             className="t-mono"
-            style={{ fontSize: 12, fontWeight: 600, color: "var(--emerald)" }}
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: "var(--emerald)",
+            }}
           >
-            {fmtEUR(p.val ?? 0)}
+            {fmtEUR(valueEur)}
           </span>
-          <span style={{ opacity: 0.4, fontSize: 11 }}>·</span>
-          <span
-            className="t-mono"
-            style={{ fontSize: 11, color: "var(--muted)" }}
-          >
-            {p.ctr ?? 0}y söz.
-          </span>
+          {potBuff > 0 && (
+            <span
+              className="t-mono"
+              title={`Potansiyel: ${p.pot}`}
+              style={{
+                fontSize: 10,
+                fontWeight: 600,
+                padding: "2px 6px",
+                borderRadius: 999,
+                background:
+                  "color-mix(in oklab, var(--gold) 14%, transparent)",
+                color: "var(--gold)",
+                letterSpacing: "0.02em",
+              }}
+            >
+              ↑ +{potBuff}
+            </span>
+          )}
         </div>
 
+        {/* Role-aware attribute strip — 3 mini bars */}
         <div
           style={{
-            marginTop: 14,
-            paddingTop: 12,
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 10,
+            paddingTop: 10,
             borderTop: "1px solid var(--border)",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 6,
-            }}
-          >
-            <span className="t-label" style={{ fontSize: 10 }}>
-              SON 5 MAÇ
-            </span>
-            <span
-              className="t-mono"
-              style={{
-                fontSize: 11,
-                color:
-                  avgForm(p) >= 7.3
-                    ? "var(--emerald)"
-                    : avgForm(p) >= 6.8
-                      ? "var(--cyan)"
-                      : "var(--muted)",
-                fontWeight: 600,
-              }}
-            >
-              {avgForm(p).toFixed(2)}
-            </span>
-          </div>
-          <div style={{ display: "flex", gap: 3, height: 24 }}>
-            {(p.form ?? []).map((r, j) => {
-              const pct = ((r - 5) / 4) * 100;
-              return (
+          {keyAttrs.map(([key, label]) => {
+            const v = (p[key] as number | undefined) ?? p.ovr;
+            const bandColor =
+              v >= 85
+                ? "var(--gold)"
+                : v >= 78
+                  ? "var(--emerald)"
+                  : v >= 70
+                    ? "var(--cyan)"
+                    : "var(--muted-2)";
+            return (
+              <div
+                key={key}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                }}
+              >
                 <div
-                  key={`f-${j}`}
                   style={{
-                    flex: 1,
                     display: "flex",
-                    alignItems: "flex-end",
-                    background: "var(--panel-2)",
+                    justifyContent: "space-between",
+                    alignItems: "baseline",
+                  }}
+                >
+                  <span
+                    className="t-label"
+                    style={{ fontSize: 9, letterSpacing: "0.1em" }}
+                  >
+                    {label}
+                  </span>
+                  <span
+                    className="t-mono"
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: bandColor,
+                    }}
+                  >
+                    {v}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    height: 3,
                     borderRadius: 3,
+                    background: "var(--panel-2)",
                     overflow: "hidden",
                   }}
                 >
                   <div
                     style={{
-                      width: "100%",
-                      height: `${Math.max(10, pct)}%`,
-                      background:
-                        r >= 8
-                          ? "var(--gold)"
-                          : r >= 7.3
-                            ? "var(--emerald)"
-                            : r >= 6.5
-                              ? "var(--cyan)"
-                              : "var(--muted-2)",
-                      transition: `height 500ms ${400 + j * 60}ms var(--ease)`,
-                      transform: localHover ? "scaleY(1.08)" : "scaleY(1)",
-                      transformOrigin: "bottom",
+                      width: `${Math.min(100, Math.max(10, v))}%`,
+                      height: "100%",
+                      background: bandColor,
+                      transition: "width 400ms var(--ease)",
                     }}
                   />
                 </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div
-          style={{
-            marginTop: 12,
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 10,
-          }}
-        >
-          <div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: 4,
-              }}
-            >
-              <span className="t-label" style={{ fontSize: 9 }}>
-                FIT
-              </span>
-              <span
-                className="t-mono"
-                style={{
-                  fontSize: 10,
-                  color:
-                    (p.fit ?? 0) >= 90
-                      ? "var(--emerald)"
-                      : (p.fit ?? 0) >= 75
-                        ? "var(--cyan)"
-                        : "var(--warn)",
-                  fontWeight: 600,
-                }}
-              >
-                {p.fit ?? 0}
-              </span>
-            </div>
-            <Bar
-              value={p.fit ?? 0}
-              height={3}
-              color={
-                (p.fit ?? 0) >= 90
-                  ? "var(--emerald)"
-                  : (p.fit ?? 0) >= 75
-                    ? "var(--cyan)"
-                    : "var(--warn)"
-              }
-            />
-          </div>
-          <div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: 4,
-              }}
-            >
-              <span className="t-label" style={{ fontSize: 9 }}>
-                MORAL
-              </span>
-              <span style={{ fontSize: 10, letterSpacing: "-0.04em" }}>
-                {"●".repeat(p.mor ?? 0)}
-                <span style={{ color: "var(--muted-2)" }}>
-                  {"●".repeat(5 - (p.mor ?? 0))}
-                </span>
-              </span>
-            </div>
-            <Bar
-              value={(p.mor ?? 0) * 20}
-              height={3}
-              color={
-                (p.mor ?? 0) >= 4
-                  ? "var(--emerald)"
-                  : (p.mor ?? 0) >= 3
-                    ? "var(--cyan)"
-                    : "var(--warn)"
-              }
-            />
-          </div>
+              </div>
+            );
+          })}
         </div>
       </div>
-      <div style={{ display: "none" }}>{hovered ? "1" : "0"}</div>
     </div>
   );
 }

@@ -38,6 +38,15 @@ export type Player = {
   ctr?: number;
   status?: PlayerStatus;
   id?: string;
+  // Position-aware attributes (0-99). Optional because landing-page
+  // mock Players don't carry them; the squad query hydrates these from
+  // the DB so the premium card can show a role-appropriate stat strip.
+  pace?: number;
+  shooting?: number;
+  passing?: number;
+  defending?: number;
+  physical?: number;
+  goalkeeping?: number;
 };
 
 export type TransferListing = {

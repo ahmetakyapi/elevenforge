@@ -44,6 +44,12 @@ export async function loadSquad(ctx: LeagueContext): Promise<Player[]> {
       ctr: p.contractYears,
       status:
         p.status === "active" ? undefined : p.status,
+      pace: p.pace,
+      shooting: p.shooting,
+      passing: p.passing,
+      defending: p.defending,
+      physical: p.physical,
+      goalkeeping: p.goalkeeping,
     };
   });
 }
