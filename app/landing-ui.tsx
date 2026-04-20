@@ -124,11 +124,8 @@ export default function LandingUi() {
           [data-lp-nav] { padding: 12px 14px !important; }
           [data-lp-nav-links] { display: none !important; }
           [data-lp-orbit] {
-            max-width: min(100%, 320px) !important;
-            transform: scale(0.72) !important;
-            transform-origin: center !important;
-            margin-top: -40px !important;
-            margin-bottom: -40px !important;
+            max-width: min(100%, 340px) !important;
+            margin-top: 8px !important;
           }
         }
         @keyframes scroll-hint { 0%{opacity:0;transform:translateY(0);} 40%{opacity:1;} 100%{opacity:0;transform:translateY(10px);} }
@@ -923,24 +920,29 @@ function CrewSection() {
           style={{
             position: "relative",
             aspectRatio: "1/1",
+            width: "100%",
             maxWidth: 540,
             margin: "0 auto",
             opacity: on ? 1 : 0,
             transform: on ? "scale(1)" : "scale(0.9)",
             transition: "all 900ms var(--ease)",
-            overflow: "hidden",
           }}
         >
-          <OrbitRing clubs={CLUBS.slice(0, 8)} radius={220} duration={40} y={y} />
-          <OrbitRing clubs={CLUBS.slice(8, 16)} radius={140} duration={24} reverse y={y} />
+          <OrbitRing clubs={CLUBS.slice(0, 8)} sizePct={88} crestSize={40} duration={40} y={y} />
+          <OrbitRing clubs={CLUBS.slice(8, 16)} sizePct={56} crestSize={32} duration={24} reverse y={y} />
           <div
+            data-lp-orbit-core
             style={{
               position: "absolute",
               top: "50%",
               left: "50%",
               transform: "translate(-50%,-50%)",
-              width: 110,
-              height: 110,
+              width: "22%",
+              height: "22%",
+              minWidth: 72,
+              minHeight: 72,
+              maxWidth: 110,
+              maxHeight: 110,
               borderRadius: "50%",
               background:
                 "linear-gradient(135deg, color-mix(in oklab, var(--indigo) 80%, transparent), color-mix(in oklab, var(--emerald) 80%, transparent))",
@@ -956,7 +958,7 @@ function CrewSection() {
               style={{
                 fontFamily: "var(--font-manrope)",
                 fontWeight: 800,
-                fontSize: 36,
+                fontSize: "clamp(22px, 6vw, 36px)",
                 color: "#fff",
                 letterSpacing: "-0.03em",
               }}
@@ -972,28 +974,29 @@ function CrewSection() {
 
 function OrbitRing({
   clubs,
-  radius,
+  sizePct,
+  crestSize,
   duration,
   reverse,
   y,
 }: {
   clubs: typeof CLUBS;
-  radius: number;
+  sizePct: number;
+  crestSize: number;
   duration: number;
   reverse?: boolean;
   y: number;
 }) {
   const spin = y * 0.2 * (reverse ? -1 : 1);
+  const inset = `${(100 - sizePct) / 2}%`;
   return (
     <div
       style={{
         position: "absolute",
-        top: "50%",
-        left: "50%",
-        width: radius * 2,
-        height: radius * 2,
-        marginLeft: -radius,
-        marginTop: -radius,
+        top: inset,
+        left: inset,
+        right: inset,
+        bottom: inset,
         borderRadius: "50%",
         border: "1px dashed color-mix(in oklab, var(--text) 10%, transparent)",
         animation: `spin ${duration}s linear infinite ${reverse ? "reverse" : ""}`,
@@ -1002,19 +1005,19 @@ function OrbitRing({
     >
       {clubs.map((c, i) => {
         const angle = (i / clubs.length) * Math.PI * 2;
-        const x = Math.cos(angle) * radius;
-        const yy = Math.sin(angle) * radius;
+        const cx = Math.cos(angle) * 50;
+        const cy = Math.sin(angle) * 50;
         return (
           <div
             key={c.id}
             style={{
               position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: `translate(${x}px, ${yy}px) translate(-50%,-50%) rotate(${-spin}deg)`,
+              top: `${50 + cy}%`,
+              left: `${50 + cx}%`,
+              transform: `translate(-50%,-50%) rotate(${-spin}deg)`,
             }}
           >
-            <Crest clubId={c.id} size={44} />
+            <Crest clubId={c.id} size={crestSize} />
           </div>
         );
       })}
