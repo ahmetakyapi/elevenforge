@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { Clock } from "lucide-react";
 
 /**
@@ -17,10 +20,19 @@ export function AutoPlayBanner({
   isCommissioner: boolean;
   nextFixtureMs: number | null;
 }) {
-  const now = Date.now();
-  const upcoming = nextFixtureMs && nextFixtureMs > now ? nextFixtureMs : null;
-  const hours = upcoming ? Math.floor((upcoming - now) / 3600000) : null;
-  const minutes = upcoming ? Math.floor(((upcoming - now) % 3600000) / 60000) : null;
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    setNow(Date.now());
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  const upcoming =
+    now !== null && nextFixtureMs && nextFixtureMs > now ? nextFixtureMs : null;
+  const hours = upcoming && now !== null ? Math.floor((upcoming - now) / 3600000) : null;
+  const minutes =
+    upcoming && now !== null
+      ? Math.floor(((upcoming - now) % 3600000) / 60000)
+      : null;
   return (
     <div
       style={{

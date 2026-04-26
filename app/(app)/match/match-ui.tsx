@@ -27,7 +27,7 @@ export default function MatchUi({ match }: { match: MatchReplayData }) {
                 className="btn btn-primary"
                 style={{ textDecoration: "none" }}
               >
-                Dashboard'a git
+                Dashboard&apos;a git
               </Link>
             }
           />

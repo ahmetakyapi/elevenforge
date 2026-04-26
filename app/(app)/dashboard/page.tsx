@@ -22,6 +22,7 @@ import { AchievementsStrip } from "./achievements-strip";
 import { PressWidget } from "./press-widget";
 import { ExpiringContractsCard } from "./expiring-contracts";
 import { AutoPlayBanner } from "./auto-play-banner";
+import { NextMatchCountdown } from "./next-match-countdown";
 import { DashboardAutoRefresh } from "@/components/dashboard-auto-refresh";
 import type { BoardGoal } from "@/lib/jobs/board";
 import { SPONSORS } from "@/lib/sponsors";
@@ -33,9 +34,6 @@ export default async function DashboardPage() {
   const ctx = await requireLeagueContext();
   const d = await loadDashboardData(ctx);
   const badges = await loadClubAchievements(ctx.club.id);
-  const secondsToNextMatch = d.nextFixture
-    ? Math.max(0, Math.floor((d.nextFixture.scheduledAtMs - Date.now()) / 1000))
-    : null;
   return (
     <div
       style={{
@@ -351,18 +349,8 @@ export default async function DashboardPage() {
             <div className="t-small" style={{ color: "var(--muted)" }}>
               Sezon {d.leagueInfo.seasonNumber}
             </div>
-            {secondsToNextMatch !== null && secondsToNextMatch > 0 && (
-              <div
-                className="chip chip-success"
-                style={{ marginTop: 8 }}
-              >
-                <span
-                  className="t-mono"
-                  style={{ fontSize: 12, fontWeight: 700 }}
-                >
-                  ⏱ {Math.floor(secondsToNextMatch / 3600)}s {Math.floor((secondsToNextMatch % 3600) / 60)}dk
-                </span>
-              </div>
+            {d.nextFixture && (
+              <NextMatchCountdown scheduledAtMs={d.nextFixture.scheduledAtMs} />
             )}
           </div>
         </div>
