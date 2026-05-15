@@ -11,7 +11,7 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
     "db:reseed-squads": "tsx scripts/reseed-squads.ts",
-    "db:reset": "rm -rf data/pgdata && npm run db:migrate && npm run db:seed",
+    "db:reset": "node -e \"require('fs').rmSync('./data/pgdata',{recursive:true,force:true})\" && npm run db:migrate && npm run db:seed",
     "cron:dev": "tsx scripts/cron-dev.ts"
   },
   "dependencies": {

@@ -203,7 +203,7 @@ async function main() {
         leagueId: lg.id,
         clubId: firstClub.id,
         eventType: "morale",
-        text: `2025-26 kadroları güncellendi — ${leagueClubs.length} takım yenilendi.`,
+        text: `Haziran 2026 kadroları güncellendi — ${leagueClubs.length} takım yenilendi.`,
       });
     }
 

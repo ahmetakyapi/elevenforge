@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Landing + seed demo data — now thin shim over lib/squad-packs.ts.
  *
  * CLUBS + SQUAD come from the 16 real Süper Lig packs so the landing
@@ -44,20 +44,20 @@ export const COMMENTARY: Commentary[] = [
   { m: 74, icon: "⚽", type: "goal",     text: "TALISCA! Ceza yayının sağından, dış kötü ayakla kaleciyi çaresiz bırakacak bir vuruş. Fenerbahçe 2-1 öne geçti. Derbilerde ilk golü atan takım bu sezon %71 kazanıyor." },
   { m: 72, icon: "🎯", type: "shot",     text: "Kerem Aktürkoğlu sol kanattan içeri döndü, vuruşu direğin dibinden auta gitti. Kadıköy inledi." },
   { m: 68, icon: "🟨", type: "card",     text: "Galatasaray forveti sert girdi — sarı kart. Kanté kaşları çatık halde soğukkanlılık çağrısı yapıyor." },
-  { m: 64, icon: "🔄", type: "sub",      text: "Cherif Ndiaye yerine Dorgeles Nene — taze bacaklar, kanat baskısı." },
+  { m: 64, icon: "🔄", type: "sub",      text: "Sidiki Cherif yerine Dorgeles Nene — taze bacaklar, kanat baskısı." },
   { m: 58, icon: "📣", type: "analysis", text: "Son 6 dakikada Galatasaray topa daha çok sahip — ev sahibi geri çekildi, tehlike sinyalleri." },
   { m: 52, icon: "⚽", type: "goal",     text: "OSIMHEN EŞİTLEDİ! Orta sahadan gelen topu klasik bir vuruşla filelerle buluşturdu. 1-1!" },
   { m: 45, icon: "⏱", type: "half",     text: "İlk yarı sonu. Fenerbahçe 1, Galatasaray 0. Asensio'nun direkten dönen vuruşu hâlâ aklımda." },
-  { m: 38, icon: "⚽", type: "goal",     text: "SZYMAŃSKI! 10 numaranın sol çaprazdan vuruşu köşeye, kalecinin uzandığı yerden bir santim içeri. Fenerbahçe öne geçti!" },
+  { m: 38, icon: "⚽", type: "goal",     text: "GUENDOUZI! 6 numaranın sol çaprazdan vuruşu köşeye, kalecinin uzandığı yerden bir santim içeri. Fenerbahçe öne geçti!" },
   { m: 24, icon: "🎯", type: "shot",     text: "Asensio'nun frikiği direkten döndü. Milim farkla gol değil." },
   { m: 12, icon: "⚽", type: "start",    text: "Düdük çaldı. Derbi Kadıköy'de başladı. 48.000 kişi ayakta." },
 ];
 
 export const GLOBAL_TRANSFERS: GlobalTransfer[] = [
-  { buyer: "Ahmet D.",  buyerClub: "gs",  player: "M. Guendouzi",     price: 32000000, seller: "bot" },
-  { buyer: "Elif Ö.",   buyerClub: "bjk", player: "A. Talisca",       price: 30000000, seller: "bot" },
+  { buyer: "Ahmet D.",  buyerClub: "sam", player: "M. Guendouzi",     price: 32000000, seller: "bot" },
+  { buyer: "Elif Ö.",   buyerClub: "bjk", player: "Talisca",       price: 30000000, seller: "bot" },
   { buyer: "Kaan T.",   buyerClub: "ts",  player: "C. Ndiaye",        price:  9500000, seller: "user", sellerName: "Mehmet S." },
   { buyer: "Deniz A.",  buyerClub: "kay", player: "M. Asensio",       price: 24000000, seller: "bot" },
-  { buyer: "Zeynep K.", buyerClub: "sam", player: "N. Kanté",         price: 18000000, seller: "bot" },
+  { buyer: "Zeynep K.", buyerClub: "gs",  player: "V. Osimhen",        price: 85000000, seller: "bot" },
   { buyer: "Ceren P.",  buyerClub: "gfk", player: "A. Brown",         price: 16000000, seller: "bot" },
 ];

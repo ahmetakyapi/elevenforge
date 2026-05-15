@@ -283,10 +283,11 @@ function CreateWizard({
   onBack: () => void;
 }) {
   const [step, setStep] = useState(0);
-  const [name, setName] = useState("Akyapı Crew");
+  const [name, setName] = useState("");
   const [color, setColor] = useState("#dc2626");
   const [time, setTime] = useState("21:00");
   const [vis, setVis] = useState<"private" | "public">("private");
+  const [manualAdvance, setManualAdvance] = useState(true);
   const [createdCode, setCreatedCode] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const toast = useToast();
@@ -299,6 +300,7 @@ function CreateWizard({
         matchTime: time,
         visibility: vis,
         accentColor: color,
+        manualAdvanceEnabled: manualAdvance,
       });
       if (!res.ok) {
         toast({
@@ -443,10 +445,42 @@ function CreateWizard({
                   display: "block",
                 }}
               >
-                Her gün bu saatte cron tetiklenip o günün fikstürlerini oynar.
-                Manuel oynatmayı sezon başladıktan sonra açabilirsin.
+                Production&apos;da cron bu saatte /api/cron/match-day&apos;i
+                tetikler. Local dev&apos;de npm run cron:dev kullan.
               </span>
             </Field>
+            <div>
+              <span className="t-label">Manuel oynatma butonu</span>
+              <span
+                style={{
+                  fontSize: 12,
+                  color: "var(--muted)",
+                  display: "block",
+                  marginTop: 4,
+                  marginBottom: 10,
+                }}
+              >
+                Açık: dashboard&apos;da &ldquo;Sıradaki Haftayı Oyna&rdquo;
+                butonu çıkar — arkadaşlarınla hemen oynayabilirsin. Kapalı:
+                sadece cron.
+              </span>
+              <div style={{ display: "flex", gap: 8 }}>
+                {[
+                  { v: true,  label: "Açık (hemen oyna)" },
+                  { v: false, label: "Kapalı (sadece otomatik)" },
+                ].map(({ v, label }) => (
+                  <button
+                    key={String(v)}
+                    type="button"
+                    className={`chip ${manualAdvance === v ? "active" : ""}`}
+                    onClick={() => setManualAdvance(v)}
+                    style={{ cursor: "pointer", padding: "8px 16px" }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
         {step === 2 && (

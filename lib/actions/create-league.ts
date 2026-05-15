@@ -123,26 +123,24 @@ function generateName(r: () => number): { name: string; nat: string } {
   return { name: `${first} ${last}`, nat: "TR" };
 }
 
-// Hand-crafted roles map for the SQUAD export — mirrored from seed.ts so
-// the user's brand-new league starts with a recognisable 2026 line-up
-// rather than 20 procedurally generated names they'll never remember.
+// Secondary roles for the Fenerbahçe 2025-26 squad (Haziran 2026).
+// Keys must match `n` field in squad-packs.ts FENERBAHCE pack exactly.
 const HAND_SECONDARY: Record<string, string[]> = {
   "Milan Škriniar": ["LB"],
-  "Bright Osayi-Samuel": ["RW", "CB"],
+  "Nélson Semedo": ["CB"],
   "Mert Müldür": ["CB"],
   "Jayden Oosterwolde": ["CB", "LW"],
   "Archie Brown": ["LW"],
-  "Sofyan Amrabat": ["CM", "CB"],
   "N'Golo Kanté": ["CM"],
   "Mateo Guendouzi": ["CDM", "AM"],
   "İsmail Yüksek": ["CDM", "AM"],
-  "Sebastian Szymański": ["CM", "LW"],
+  "Fred": ["CDM"],
   "Marco Asensio": ["RW", "LW"],
   "Oğuz Aydın": ["LW", "AM"],
   "Kerem Aktürkoğlu": ["RW", "ST"],
-  "Anderson Talisca": ["AM", "CF"],
-  "Youssef En-Nesyri": ["CF"],
-  "Cherif Ndiaye": ["CF"],
+  "Talisca": ["AM", "CF"],
+  "Dorgeles Nene": ["CF"],
+  "Sidiki Cherif": ["CF"],
 };
 
 // Per-role attribute offsets from overall. Clamped into [30, 99] after
@@ -322,6 +320,7 @@ export async function createStarterLeague(input: {
   matchTime?: string;
   visibility?: "private" | "public";
   accentColor?: string;
+  manualAdvanceEnabled?: boolean;
 }): Promise<{ leagueId: string; clubId: string; inviteCode: string }> {
   const leagueName = `${input.teamName} Ligi`;
   const inviteCode = await allocInviteCode();
@@ -340,7 +339,7 @@ export async function createStarterLeague(input: {
       accentColor: input.accentColor ?? "#dc2626",
       status: "active",
       commissionerOnlyAdvance: true,
-      manualAdvanceEnabled: false,
+      manualAdvanceEnabled: input.manualAdvanceEnabled ?? false,
     })
     .returning();
 

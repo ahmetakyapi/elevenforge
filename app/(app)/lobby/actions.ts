@@ -23,6 +23,7 @@ export async function createNewLeague(input: {
   matchTime?: string;
   visibility?: "private" | "public";
   accentColor?: string;
+  manualAdvanceEnabled?: boolean;
 }) {
   const userId = await getSessionUserId();
   if (!userId) return { ok: false as const, error: "Oturum yok." };
@@ -40,6 +41,7 @@ export async function createNewLeague(input: {
     matchTime,
     visibility: input.visibility,
     accentColor: input.accentColor,
+    manualAdvanceEnabled: input.manualAdvanceEnabled,
   });
   revalidatePath("/dashboard");
   revalidatePath("/lobby");

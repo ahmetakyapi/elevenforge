@@ -16,10 +16,11 @@ export async function verifyCron(req: Request): Promise<Response | null> {
   if (process.env.NODE_ENV !== "production") return null;
 
   const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const header = req.headers.get("authorization") ?? "";
-    if (header === `Bearer ${secret}`) return null;
-  }
+  // No secret configured → open endpoints (operator opted out of auth).
+  if (!secret) return null;
+
+  const header = req.headers.get("authorization") ?? "";
+  if (header === `Bearer ${secret}`) return null;
 
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }

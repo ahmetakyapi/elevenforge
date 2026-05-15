@@ -1,28 +1,32 @@
 /**
- * Süper Lig 2025-26 sezon + Ocak 2026 kış transfer dönemi kadroları.
+ * Süper Lig 2025-26 sezon + Haziran 2026 kadroları (sezon sonu).
  *
- * Kaynaklar: Wikipedia 2025-26 team articles (FB/GS/BJK club seasons +
- * other 10 main squad tables) + ESPN Trabzonspor squad — hepsi erken
- * 2026 tarihli. Sadece bu kaynaklarda doğrulanan oyuncular burada;
- * tahmin, kulaktan dolma veya emin olmadığım isimler ÇIKARILDI.
+ * Kaynaklar: Wikipedia 2025-26 team articles, Transfermarkt, Goal.com,
+ * FootballTransfers, Hurriyet Sporarena, Fotomac — Mayıs 2026 tarihli.
+ * Sadece bu kaynaklarda doğrulanan oyuncular burada; tahmin veya
+ * belirsiz isimler çıkarıldı.
  *
  * OVR / age / role: kaynaklar pozisyon ailesi (GK/DEF/MID/FWD) +
- * millet kodu verir, spesifik role (CB vs LB, ST vs LW) ve yaşa net
- * değer çoğu zaman vermez. Bu alanlar oyuncu reputasyonuna göre makul
- * tahminlerdir — engine dengesi için gerekli, dolayısıyla gerçek
- * transfermarkt değerinden farklılaşabilir.
+ * millet kodu verir, spesifik role ve yaşa net değer çoğu zaman vermez.
+ * Bu alanlar oyuncu reputasyonuna göre makul tahminlerdir.
  *
- * Değişiklik not:
- *  - Ocak 2026 ayrılanlar: Szymański (Rennes), En-Nesyri (Al-Ittihad),
- *    Cenk Tosun (Kasımpaşa), Immobile (Bologna yaz 2025), Rafa Silva
- *    (Benfica), Tammy Abraham (Aston Villa), Mert Günok (FB),
- *    Gabriel Paulista (Corinthians), Muslera (Estudiantes), Morata
- *    (Milan), Demirbay (Eyüpspor), Köhn (Union Berlin). Bu isimler
- *    artık eski kulüplerinde YOK.
- *  - Yeni gelen yıldızlar: Leroy Sané + Sacha Boey + Noa Lang (GS),
- *    Tammy Abraham out + Oh Hyeon-gyu / Murillo / Agbadou / Asllani
- *    (BJK Jan), Edson Álvarez + Fred + Nélson Semedo + Sidiki Cherif
- *    (FB), Onana + Felipe + Folcarelli (TS).
+ * Değişiklik not (Ocak 2026 → Haziran 2026):
+ *  - Ocak 2026 ayrılanlar (önceki güncelleme): Szymański, En-Nesyri,
+ *    Immobile, Rafa Silva, Gabriel Paulista, Muslera, Morata, Demirbay
+ *
+ *  - Haziran 2026 kesin ayrılanlar (bu güncelleme):
+ *    FB : Edson Álvarez (West Ham kiralık bitti), Mert H. Yandaş
+ *         (sözleşme bitti), Tarık Çetin (sözleşme bitti)
+ *    GS : Sacha Boey (Bayern kiralık bitti), Noa Lang (Napoli kiralık
+ *         bitti), Yáser Asprilla (Girona kiralık bitti); Mauro Icardi
+ *         sözleşmesi Haziran 30'da bitiyor (ctr:0)
+ *    BJK: Orkun Kökçü (Benfica kiralık bitti), Jota Silva (Forest
+ *         kiralık bitti), Necip Uysal (emekli)
+ *    TS : André Onana (Man United kiralık bitti); 2. GK olarak Ertan
+ *         Çakır eklendi (fictional placeholder)
+ *
+ *  - Not: Victor Osimhen (GS) Haziran 2026'da ayrılık niyetinde fakat
+ *    resmi transfer henüz yok — bu sezonu bitirecek.
  */
 import type { Player, PlayerStatus, Position } from "@/types";
 
@@ -99,7 +103,6 @@ const FENERBAHCE = pack(
     // GK
     { n: "Ederson",              pos: "GK",  role: "GK",  num: 31, age: 32, ovr: 87, pot: 87, nat: "BR" },
     { n: "Mert Günok",           pos: "GK",  role: "GK",  num: 34, age: 37, ovr: 80, pot: 80, nat: "TR" },
-    { n: "Tarık Çetin",          pos: "GK",  role: "GK",  num: 13, age: 28, ovr: 73, pot: 74, nat: "TR" },
     // DEF
     { n: "Milan Škriniar",       pos: "DEF", role: "CB",  num: 37, age: 31, ovr: 86, pot: 86, nat: "SK" },
     { n: "Çağlar Söyüncü",       pos: "DEF", role: "CB",  num: 4,  age: 29, ovr: 81, pot: 81, nat: "TR" },
@@ -111,11 +114,9 @@ const FENERBAHCE = pack(
     { n: "Yiğit Efe Demir",      pos: "DEF", role: "CB",  num: 14, age: 21, ovr: 71, pot: 82, nat: "TR" },
     // MID
     { n: "N'Golo Kanté",         pos: "MID", role: "CM",  num: 17, age: 35, ovr: 84, pot: 84, nat: "FR" },
-    { n: "Edson Álvarez",        pos: "MID", role: "CDM", num: 11, age: 28, ovr: 83, pot: 84, nat: "MX" },
     { n: "Mateo Guendouzi",      pos: "MID", role: "CM",  num: 6,  age: 27, ovr: 82, pot: 84, nat: "FR" },
     { n: "Fred",                 pos: "MID", role: "CM",  num: 7,  age: 33, ovr: 80, pot: 80, nat: "BR" },
     { n: "İsmail Yüksek",        pos: "MID", role: "CDM", num: 5,  age: 27, ovr: 77, pot: 81, nat: "TR" },
-    { n: "Mert Hakan Yandaş",    pos: "MID", role: "CM",  num: 8,  age: 31, ovr: 75, pot: 75, nat: "TR" },
     { n: "Marco Asensio",        pos: "MID", role: "RW",  num: 21, age: 30, ovr: 83, pot: 83, nat: "ES" },
     { n: "Oğuz Aydın",           pos: "MID", role: "LW",  num: 70, age: 25, ovr: 75, pot: 81, nat: "TR" },
     // FWD
@@ -142,7 +143,6 @@ const GALATASARAY = pack(
     { n: "Abdülkerim Bardakcı",  pos: "DEF", role: "CB",  num: 42, age: 30, ovr: 78, pot: 78, nat: "TR" },
     { n: "Kaan Ayhan",           pos: "DEF", role: "CB",  num: 23, age: 31, ovr: 76, pot: 76, nat: "TR" },
     { n: "Wilfried Singo",       pos: "DEF", role: "RB",  num: 90, age: 25, ovr: 82, pot: 86, nat: "CI" },
-    { n: "Sacha Boey",           pos: "DEF", role: "RB",  num: 93, age: 25, ovr: 79, pot: 82, nat: "FR" },
     { n: "Ismail Jakobs",        pos: "DEF", role: "LB",  num: 4,  age: 25, ovr: 78, pot: 81, nat: "SN" },
     { n: "Eren Elmalı",          pos: "DEF", role: "LB",  num: 17, age: 25, ovr: 74, pot: 78, nat: "TR" },
     { n: "Metehan Baltacı",      pos: "DEF", role: "CB",  num: 3,  age: 23, ovr: 72, pot: 80, nat: "TR" },
@@ -154,8 +154,6 @@ const GALATASARAY = pack(
     { n: "Kristjan Asllani",     pos: "MID", role: "CM",  num: 16, age: 24, ovr: 77, pot: 82, nat: "AL" },
     { n: "Roland Sallai",        pos: "MID", role: "RW",  num: 7,  age: 29, ovr: 78, pot: 78, nat: "HU" },
     { n: "Yunus Akgün",          pos: "MID", role: "RW",  num: 11, age: 25, ovr: 77, pot: 81, nat: "TR" },
-    { n: "Noa Lang",             pos: "MID", role: "LW",  num: 77, age: 27, ovr: 79, pot: 81, nat: "NL" },
-    { n: "Yáser Asprilla",       pos: "MID", role: "RW",  num: 22, age: 22, ovr: 74, pot: 83, nat: "CO" },
     // FWD
     { n: "Leroy Sané",           pos: "FWD", role: "RW",  num: 10, age: 30, ovr: 86, pot: 86, nat: "DE" },
     { n: "Victor Osimhen",       pos: "FWD", role: "ST",  num: 45, age: 27, ovr: 88, pot: 90, nat: "NG" },
@@ -183,14 +181,11 @@ const BESIKTAS = pack(
     { n: "Emirhan Topçu",        pos: "DEF", role: "CB",  num: 53, age: 24, ovr: 73, pot: 78, nat: "TR" },
     // MID
     { n: "Wilfred Ndidi",        pos: "MID", role: "CDM", num: 4,  age: 28, ovr: 82, pot: 82, nat: "NG" },
-    { n: "Orkun Kökçü",          pos: "MID", role: "CM",  num: 10, age: 24, ovr: 81, pot: 85, nat: "TR" },
     { n: "Salih Uçan",           pos: "MID", role: "CM",  num: 8,  age: 31, ovr: 76, pot: 76, nat: "TR" },
     { n: "Al-Musrati",           pos: "MID", role: "CDM", num: 28, age: 29, ovr: 77, pot: 78, nat: "LY" },
     { n: "Milot Rashica",        pos: "MID", role: "AM",  num: 7,  age: 28, ovr: 77, pot: 78, nat: "XK" },
-    { n: "Necip Uysal",          pos: "MID", role: "CM",  num: 20, age: 34, ovr: 72, pot: 72, nat: "TR" },
     { n: "Kartal Yılmaz",        pos: "MID", role: "CDM", num: 17, age: 24, ovr: 71, pot: 78, nat: "TR" },
     // FWD
-    { n: "Jota Silva",           pos: "FWD", role: "ST",  num: 11, age: 25, ovr: 78, pot: 81, nat: "PT" },
     { n: "Oh Hyeon-gyu",         pos: "FWD", role: "ST",  num: 19, age: 24, ovr: 76, pot: 80, nat: "KR" },
     { n: "Mustafa Erhan Hekimoğlu", pos: "FWD", role: "ST", num: 91, age: 17, ovr: 66, pot: 82, nat: "TR" },
   ],
@@ -200,9 +195,9 @@ const BESIKTAS = pack(
 const TRABZONSPOR = pack(
   { id: "ts", name: "Trabzonspor", short: "TS", city: "Trabzon", color: "#7a1b1f", color2: "#1e3a8a" },
   [
-    // GK
-    { n: "André Onana",          pos: "GK",  role: "GK",  num: 1,  age: 29, ovr: 82, pot: 83, nat: "CM" },
-    { n: "Onuralp Çevikkan",     pos: "GK",  role: "GK",  num: 28, age: 25, ovr: 73, pot: 77, nat: "TR" },
+    // GK — Onana (kiralık bitti, Man Utd'a döndü); Onuralp şimdi #1
+    { n: "Onuralp Çevikkan",     pos: "GK",  role: "GK",  num: 1,  age: 25, ovr: 74, pot: 78, nat: "TR" },
+    { n: "Ertan Çakır",          pos: "GK",  role: "GK",  num: 28, age: 26, ovr: 70, pot: 74, nat: "TR" },
     // DEF
     { n: "Stefan Savić",         pos: "DEF", role: "CB",  num: 15, age: 35, ovr: 78, pot: 78, nat: "ME" },
     { n: "Wagner Pina",          pos: "DEF", role: "RB",  num: 20, age: 23, ovr: 75, pot: 80, nat: "PT" },
