@@ -1,6 +1,9 @@
 /**
  * Quick DB inspection — prints league standings, recent fixture, feed.
  */
+// Must be first: populates process.env from .env.local before anything
+// reads it at module load time.
+import "./load-env";
 import { desc, eq } from "drizzle-orm";
 import { db } from "../lib/db";
 import { clubs, feedEvents, fixtures, leagues, newspapers } from "../lib/schema";

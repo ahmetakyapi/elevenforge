@@ -43,3 +43,6 @@ next-env.d.ts
 
 # local dev data
 /data
+
+# Local DB snapshots taken before destructive migrations
+/.backups

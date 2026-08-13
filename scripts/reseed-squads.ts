@@ -15,6 +15,9 @@
  *
  * Run: npx tsx scripts/reseed-squads.ts
  */
+// Must be first: populates process.env from .env.local before anything
+// reads it at module load time.
+import "./load-env";
 import { and, asc, eq, ne } from "drizzle-orm";
 import { db } from "../lib/db";
 import {
@@ -25,6 +28,7 @@ import {
   transferListings,
 } from "../lib/schema";
 import { SQUAD_PACKS } from "../lib/squad-packs";
+import { assertLocalDatabase } from "./guard-remote-db";
 
 // Per-role attribute offsets from overall (match seed.ts). Keeping a
 // local copy here avoids pulling the seed module, whose bottom-level
@@ -67,6 +71,7 @@ function computeAttrsFromOvr(ovr: number, role: string, r: () => number) {
 }
 
 async function main() {
+  assertLocalDatabase("db:reseed-squads");
   console.log("Reseeding squads from SQUAD_PACKS…");
 
   const allLeagues = await db

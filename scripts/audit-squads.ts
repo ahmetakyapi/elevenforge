@@ -1,3 +1,6 @@
+// Must be first: populates process.env from .env.local before anything
+// reads it at module load time.
+import "./load-env";
 import { SQUAD_PACKS } from "../lib/squad-packs";
 
 const errs: string[] = [];

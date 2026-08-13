@@ -13,6 +13,9 @@
  *  - ai-managers:   every 15 minutes (bots pick line-ups, trade, negotiate)
  *  - inactivity:    every 30 minutes (hands dormant clubs to the AI)
  */
+// Must be first: populates process.env from .env.local before anything
+// reads it at module load time.
+import "./load-env";
 import {
   runAiManagers,
   syncInactiveManagers,

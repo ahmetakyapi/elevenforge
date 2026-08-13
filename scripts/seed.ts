@@ -9,6 +9,9 @@
  *
  * Safe to re-run: clears existing league named "Kartel Crew" first.
  */
+// Must be first: populates process.env from .env.local before anything
+// reads it at module load time.
+import "./load-env";
 import { hash } from "bcryptjs";
 import { and, eq } from "drizzle-orm";
 import { db } from "../lib/db";
@@ -25,6 +28,7 @@ import { SQUAD_PACKS } from "../lib/squad-packs";
 import { roundRobin as sharedRoundRobin } from "../lib/jobs/season";
 import { STARTING_BALANCE_CENTS } from "../lib/economy";
 import type { Position } from "../types";
+import { assertLocalDatabase } from "./guard-remote-db";
 
 const USER_EMAIL = "ahmet@elevenforge.app";
 const USER_PASSWORD = "eleven123";
@@ -261,6 +265,7 @@ function roundRobin(teamIds: string[]) {
 }
 
 async function main() {
+  assertLocalDatabase("db:seed");
   console.log("Seeding ElevenForge world…");
 
   // Clean existing league if present

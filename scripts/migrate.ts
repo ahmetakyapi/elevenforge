@@ -6,6 +6,9 @@
  *
  * Usage: `npm run db:migrate`
  */
+// Must be first: populates process.env from .env.local before anything
+// reads it at module load time.
+import "./load-env";
 import { existsSync, mkdirSync } from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
 import { Pool, neonConfig } from "@neondatabase/serverless";

@@ -4,13 +4,18 @@
  *
  * Usage: `tsx scripts/simulate-matchday.ts`
  */
+// Must be first: populates process.env from .env.local before anything
+// reads it at module load time.
+import "./load-env";
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "../lib/db";
 import { fixtures, leagues } from "../lib/schema";
 import { runMatchDay } from "../lib/jobs";
 import { runWeeklyNewspaper } from "../lib/jobs/newspaper";
+import { assertLocalDatabase } from "./guard-remote-db";
 
 async function main() {
+  assertLocalDatabase("simulate-matchday");
   const active = await db
     .select()
     .from(leagues)

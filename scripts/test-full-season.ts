@@ -11,6 +11,9 @@
  *  - No suspended player stays stuck.
  *  - Young players assigned to training actually develop.
  */
+// Must be first: populates process.env from .env.local before anything
+// reads it at module load time.
+import "./load-env";
 import { and, asc, desc, eq } from "drizzle-orm";
 import { db } from "../lib/db";
 import { clubs, fixtures, leagues, players, users } from "../lib/schema";
@@ -19,6 +22,7 @@ import { runDailyTraining } from "../lib/jobs/training";
 import { runWeeklyNewspaper } from "../lib/jobs/newspaper";
 import { rollSeasonIfDone } from "../lib/jobs/season";
 import { simulateMatch } from "../lib/engine/match";
+import { assertLocalDatabase } from "./guard-remote-db";
 
 type Snapshot = {
   clubs: Array<{
@@ -387,6 +391,7 @@ async function checkDeterminism(leagueId: string): Promise<number> {
 }
 
 async function main() {
+  assertLocalDatabase("test-full-season");
   const [u] = await db
     .select()
     .from(users)

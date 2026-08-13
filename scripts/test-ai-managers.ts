@@ -9,6 +9,9 @@
  *  - the tick is idempotent within a day
  *  - squads survive repeated season rolls instead of draining to zero
  */
+// Must be first: populates process.env from .env.local before anything
+// reads it at module load time.
+import "./load-env";
 import { and, eq, isNull, ne } from "drizzle-orm";
 import { db } from "../lib/db";
 import { runAiManagers } from "../lib/ai/manager";
@@ -22,6 +25,7 @@ import {
   transferOffers,
   leagues,
 } from "../lib/schema";
+import { assertLocalDatabase } from "./guard-remote-db";
 
 let bad = 0;
 const ok = (cond: boolean, msg: string) => {
@@ -33,6 +37,7 @@ const ok = (cond: boolean, msg: string) => {
 };
 
 async function main() {
+  assertLocalDatabase("test-ai-managers");
   const [league] = await db.select().from(leagues).limit(1);
   if (!league) throw new Error("seed first");
   const leagueId = league.id;

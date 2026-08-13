@@ -12,6 +12,9 @@
  *  6. Each user's requireLeagueContext-equivalent lookup resolves to their
  *     own club, not someone else's.
  */
+// Must be first: populates process.env from .env.local before anything
+// reads it at module load time.
+import "./load-env";
 import { and, eq } from "drizzle-orm";
 import { hash } from "bcryptjs";
 import { db } from "../lib/db";
@@ -24,6 +27,7 @@ import {
 } from "../lib/schema";
 import { createStarterLeague } from "../lib/actions/create-league";
 import { joinLeagueByInviteCode } from "../lib/actions/join-league";
+import { assertLocalDatabase } from "./guard-remote-db";
 
 const NUM_USERS = 10;
 
@@ -45,6 +49,7 @@ async function clean() {
 }
 
 async function main() {
+  assertLocalDatabase("test-multiplayer");
   let bad = 0;
 
   console.log("\n=== Multiplayer concurrency test ===\n");
