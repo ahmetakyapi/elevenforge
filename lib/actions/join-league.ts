@@ -82,6 +82,8 @@ export async function joinLeagueByInviteCode(input: {
       .set({
         ownerUserId: input.userId,
         isBot: false,
+        // A human is at the wheel now — stand the AI manager down.
+        aiManaged: false,
         name: newName,
         shortName: newShort,
       })

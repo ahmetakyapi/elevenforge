@@ -1,10 +1,16 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, gte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { clubs, feedEvents, friendlies, players } from "@/lib/schema";
+import { debitClub } from "@/lib/money";
+import { feedEvents, friendlies, players } from "@/lib/schema";
 import { requireLeagueContext } from "@/lib/session";
+import { uuidSchema, validate } from "@/lib/validation";
+
+/** €150K per friendly. */
+const FRIENDLY_COST_CENTS = 15_000_000;
+const FRIENDLY_DAILY_CAP = 3;
 
 /**
  * Toggle a player into / out of training mode.
@@ -80,12 +86,14 @@ export async function toggleTraining(playerId: string) {
  */
 export async function playFriendly(playerId: string) {
   const ctx = await requireLeagueContext();
+  const parsedId = validate(uuidSchema, playerId);
+  if (!parsedId.ok) return parsedId;
   const row = (
     await db
       .select()
       .from(players)
       .where(
-        and(eq(players.id, playerId), eq(players.clubId, ctx.club.id)),
+        and(eq(players.id, parsedId.data), eq(players.clubId, ctx.club.id)),
       )
       .limit(1)
   )[0];
@@ -94,24 +102,41 @@ export async function playFriendly(playerId: string) {
     return { ok: false as const, error: "Uygun olmayan oyuncu." };
   }
 
-  // Rate limit: max 3 friendlies per club per rolling 24h window.
+  // Rate limit: max 3 friendlies per club per rolling 24h window. Counted in
+  // SQL rather than by loading the club's entire friendly history.
   const dayAgo = new Date(Date.now() - 24 * 3600 * 1000);
-  const recent = await db
-    .select()
+  const within = await db
+    .select({ id: friendlies.id })
     .from(friendlies)
-    .where(eq(friendlies.clubId, ctx.club.id));
-  const within = recent.filter(
-    (f) => new Date(f.playedAt).getTime() >= dayAgo.getTime(),
-  );
-  if (within.length >= 3) {
+    .where(
+      and(
+        eq(friendlies.clubId, ctx.club.id),
+        gte(friendlies.playedAt, dayAgo),
+      ),
+    );
+  if (within.length >= FRIENDLY_DAILY_CAP) {
     return {
       ok: false as const,
-      error: "24 saatlik limit doldu (3 dostluk maçı).",
+      error: `24 saatlik limit doldu (${FRIENDLY_DAILY_CAP} dostluk maçı).`,
     };
   }
 
+  // Charge first. The previous absolute write (`Math.max(0, snapshot - cost)`)
+  // erased any credit that landed since the page loaded — a player could
+  // receive transfer income and have it wiped by a friendly.
+  const paid = await debitClub(ctx.club.id, FRIENDLY_COST_CENTS);
+  if (!paid) return { ok: false as const, error: "Bütçe yetersiz." };
+
+  // Record the friendly immediately so the 24h cap counts this one even if
+  // the boosts below are interrupted.
+  await db.insert(friendlies).values({
+    leagueId: ctx.league.id,
+    clubId: ctx.club.id,
+    boostApplied: true,
+  });
+
   // Apply boosts. Fitness +15 (capped 100), morale +1 (capped 5),
-  // 30% chance of overall +1 if young + not at potential yet.
+  // small chance of overall +1 if young + not at potential yet.
   const newFit = Math.min(100, row.fitness + 15);
   const newMor = Math.min(5, row.morale + 1);
   const ageBonus = row.age <= 22 ? 0.5 : row.age <= 26 ? 0.25 : 0.1;
@@ -122,21 +147,11 @@ export async function playFriendly(playerId: string) {
     .set({
       fitness: newFit,
       morale: newMor,
-      overall: row.overall + ovrBump,
+      // Never exceed potential — the cap is what stops a manager from
+      // grinding friendlies into an unbounded overall.
+      overall: Math.min(row.potential, row.overall + ovrBump),
     })
     .where(eq(players.id, row.id));
-
-  await db.insert(friendlies).values({
-    leagueId: ctx.league.id,
-    clubId: ctx.club.id,
-    boostApplied: true,
-  });
-
-  // Small cost — €150K
-  await db
-    .update(clubs)
-    .set({ balanceCents: Math.max(0, ctx.club.balanceCents - 15_000_000) })
-    .where(eq(clubs.id, ctx.club.id));
 
   await db.insert(feedEvents).values({
     leagueId: ctx.league.id,

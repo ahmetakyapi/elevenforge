@@ -1,12 +1,31 @@
 "use server";
 
 import { hash } from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { headers } from "next/headers";
+import { z } from "zod";
 import { signIn } from "@/auth";
 import { db } from "@/lib/db";
+import { clientIpFrom, rateLimit } from "@/lib/rate-limit";
 import { users } from "@/lib/schema";
 import { createStarterLeague } from "@/lib/actions/create-league";
 import { joinLeagueByInviteCode } from "@/lib/actions/join-league";
+import {
+  displayNameSchema,
+  emailSchema,
+  inviteCodeSchema,
+  passwordSchema,
+  validate,
+} from "@/lib/validation";
+
+const registerSchema = z.object({
+  email: emailSchema,
+  password: passwordSchema,
+  teamName: displayNameSchema,
+  inviteCode: z
+    .union([inviteCodeSchema, z.literal("")])
+    .optional()
+    .transform((v) => (v ? v : undefined)),
+});
 
 type RegisterResult =
   | {
@@ -23,33 +42,36 @@ export async function register(input: {
   teamName: string;
   inviteCode?: string;
 }): Promise<RegisterResult> {
-  const email = input.email.trim().toLowerCase();
-  const teamName = input.teamName.trim();
-  const inviteCode = input.inviteCode?.trim().toUpperCase() ?? "";
-  if (!/.+@.+\..+/.test(email)) {
-    return { ok: false, error: "Geçersiz e-posta adresi." };
-  }
-  if (input.password.length < 6) {
-    return { ok: false, error: "Şifre en az 6 karakter olmalı." };
-  }
-  if (teamName.length < 2) {
-    return { ok: false, error: "Takım adı çok kısa." };
+  // Registration is unauthenticated and each success writes ~400 rows (16
+  // clubs, 361 players, 120 fixtures). Left open it is the cheapest way to
+  // fill the database, so it is throttled per IP before any work happens.
+  const ip = clientIpFrom(await headers());
+  const limited = rateLimit(`register:${ip}`, 5, 60 * 60_000);
+  if (!limited.ok) {
+    return {
+      ok: false,
+      error: "Çok fazla kayıt denemesi. Bir süre sonra tekrar dene.",
+    };
   }
 
-  const existing = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
-  if (existing.length > 0) {
+  const parsed = validate(registerSchema, input);
+  if (!parsed.ok) return { ok: false, error: parsed.error };
+  const { email, password, teamName } = parsed.data;
+  const inviteCode = parsed.data.inviteCode ?? "";
+
+  const passwordHash = await hash(password, 12);
+  let inserted: typeof users.$inferSelect | undefined;
+  try {
+    // Let the unique index on users.email decide the race. A check-then-insert
+    // lets two simultaneous signups for the same address both pass the check.
+    [inserted] = await db
+      .insert(users)
+      .values({ email, passwordHash, name: teamName })
+      .returning();
+  } catch {
     return { ok: false, error: "Bu e-posta zaten kayıtlı." };
   }
-
-  const passwordHash = await hash(input.password, 10);
-  const [inserted] = await db
-    .insert(users)
-    .values({ email, passwordHash, name: teamName })
-    .returning();
+  if (!inserted) return { ok: false, error: "Kayıt oluşturulamadı." };
 
   let resultInviteCode: string | undefined;
   let joinedExisting = false;
@@ -83,7 +105,7 @@ export async function register(input: {
   try {
     await signIn("credentials", {
       email,
-      password: input.password,
+      password,
       redirect: false,
     });
   } catch {

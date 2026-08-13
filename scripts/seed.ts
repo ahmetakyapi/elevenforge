@@ -22,6 +22,8 @@ import {
   users,
 } from "../lib/schema";
 import { SQUAD_PACKS } from "../lib/squad-packs";
+import { roundRobin as sharedRoundRobin } from "../lib/jobs/season";
+import { STARTING_BALANCE_CENTS } from "../lib/economy";
 import type { Position } from "../types";
 
 const USER_EMAIL = "ahmet@elevenforge.app";
@@ -105,7 +107,7 @@ const HAND_SECONDARY: Record<string, string[]> = {
 };
 
 // Budget for each club (€M in cents)
-const START_BALANCE_CENTS = 4_500_000_000; // €45M
+const START_BALANCE_CENTS = STARTING_BALANCE_CENTS;
 
 const SQUAD_COMPOSITION: Array<[Position, number]> = [
   ["GK", 2],
@@ -253,30 +255,9 @@ function generatePlayerForClub(
 }
 
 function roundRobin(teamIds: string[]) {
-  const teams = teamIds.slice();
-  const n = teams.length;
-  if (n % 2 !== 0) teams.push("BYE");
-  const rounds: Array<Array<{ home: string; away: string }>> = [];
-  const half = teams.length / 2;
-  let arr = teams.slice();
-  for (let r = 0; r < arr.length - 1; r++) {
-    const matches: Array<{ home: string; away: string }> = [];
-    for (let i = 0; i < half; i++) {
-      const t1 = arr[i];
-      const t2 = arr[arr.length - 1 - i];
-      if (t1 !== "BYE" && t2 !== "BYE") {
-        if (r % 2 === 0) matches.push({ home: t1, away: t2 });
-        else matches.push({ home: t2, away: t1 });
-      }
-    }
-    rounds.push(matches);
-    // Rotate: keep first fixed, cycle rest
-    const first = arr[0];
-    const rest = arr.slice(1);
-    rest.unshift(rest.pop()!);
-    arr = [first, ...rest];
-  }
-  return rounds;
+  // Shared implementation — see lib/jobs/season.ts for why the schedule is a
+  // mirrored double round-robin rather than a single circle.
+  return sharedRoundRobin(teamIds);
 }
 
 async function main() {
@@ -365,6 +346,8 @@ async function main() {
         leagueId: league.id,
         ownerUserId: i === 0 ? user.id : null,
         isBot: i !== 0,
+        // Bots are run by the AI manager from day one.
+        aiManaged: i !== 0,
         name: c.name,
         shortName: c.short,
         city: c.city,
@@ -376,12 +359,12 @@ async function main() {
           i === 0
             ? START_BALANCE_CENTS
             : i <= 3
-              ? 6_000_000_000
+              ? 33_000_000_000
               : i <= 7
-                ? 5_000_000_000
+                ? 28_000_000_000
                 : i <= 11
-                  ? 4_500_000_000
-                  : 3_500_000_000,
+                  ? 25_000_000_000
+                  : 22_000_000_000,
         formation: personality.formation,
         mentality: personality.mentality,
         pressing: personality.pressing,

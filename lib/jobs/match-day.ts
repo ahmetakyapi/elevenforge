@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { clubs, fixtures, leagues, players } from "@/lib/schema";
 import { applyMatchResult } from "@/lib/engine/apply-match";
 import { simulateMatch, type TacticInput } from "@/lib/engine/match";
+import { parseLineup, resolveLineup } from "@/lib/lineup";
 import { rollSeasonIfDone } from "./season";
 import { runCupRound } from "./cup";
 import { dispatchMatchPush } from "@/lib/push-dispatch";
@@ -103,19 +104,37 @@ export async function runMatchDay(opts: {
     if (!leagueRow) continue;
 
     const leagueFixtures = due.filter((f) => f.leagueId === leagueId);
+
+    // Load every club and player for this league once. The previous shape ran
+    // four queries per fixture; at 8 fixtures × 12 leagues that was ~400
+    // round-trips before the simulation even started, and on Neon each one is
+    // a network hop. That is what pushed match-day past the serverless
+    // timeout — and a timeout means QStash retries, which is how a
+    // double-simulation happens in the first place.
+    const leagueClubs = await db
+      .select()
+      .from(clubs)
+      .where(eq(clubs.leagueId, leagueId));
+    const clubById = new Map(leagueClubs.map((c) => [c.id, c]));
+    const leaguePlayers = await db
+      .select()
+      .from(players)
+      .where(eq(players.leagueId, leagueId));
+    const squadByClub = new Map<string, typeof leaguePlayers>();
+    for (const p of leaguePlayers) {
+      if (!p.clubId) continue;
+      const list = squadByClub.get(p.clubId);
+      if (list) list.push(p);
+      else squadByClub.set(p.clubId, [p]);
+    }
+
     for (const fx of leagueFixtures) {
-      const [homeRow, awayRow] = await Promise.all([
-        db.select().from(clubs).where(eq(clubs.id, fx.homeClubId)).limit(1),
-        db.select().from(clubs).where(eq(clubs.id, fx.awayClubId)).limit(1),
-      ]);
-      const home = homeRow[0];
-      const away = awayRow[0];
+      const home = clubById.get(fx.homeClubId);
+      const away = clubById.get(fx.awayClubId);
       if (!home || !away) continue;
 
-      const [homeSquad, awaySquad] = await Promise.all([
-        db.select().from(players).where(eq(players.clubId, home.id)),
-        db.select().from(players).where(eq(players.clubId, away.id)),
-      ]);
+      const homeSquad = squadByClub.get(home.id) ?? [];
+      const awaySquad = squadByClub.get(away.id) ?? [];
 
       const homeTactics: TacticInput = {
         formation: home.formation,
@@ -137,6 +156,24 @@ export async function runMatchDay(opts: {
       const awayPhysioTier = physioTierFromStaff(away.staffJson);
       const homeSubPlan = parseSubPlan(home.subPlanJson);
       const awaySubPlan = parseSubPlan(away.subPlanJson);
+      // The managers' saved team sheets — this is what makes arranging a
+      // squad matter. resolveLineup drops anyone unavailable today and fills
+      // the gaps, so a sheet that has gone stale still produces a valid XI.
+      const homeLineup = parseLineup(home.lineupJson);
+      const awayLineup = parseLineup(away.lineupJson);
+      const homeResolved = resolveLineup(
+        homeSquad,
+        home.formation,
+        homeLineup,
+        now,
+      );
+      const awayResolved = resolveLineup(
+        awaySquad,
+        away.formation,
+        awayLineup,
+        now,
+      );
+
       const result = simulateMatch({
         homeClubId: home.id,
         awayClubId: away.id,
@@ -154,14 +191,37 @@ export async function runMatchDay(opts: {
         awayPhysioTier,
         homeSubPlan,
         awaySubPlan,
+        homeLineup,
+        awayLineup,
         seed,
       });
 
+      // Snapshot who actually played. Squad rows mutate the moment the
+      // result is applied (fitness, morale, cards), so without this the
+      // match page can only guess at the eleven that took the field.
+      const snapshot = (list: typeof homeSquad) =>
+        list.map((p) => ({
+          id: p.id,
+          name: p.name,
+          role: p.role,
+          pos: p.position,
+          ovr: p.overall,
+        }));
       await db
         .update(fixtures)
-        .set({ rngSeed: seed })
+        .set({
+          rngSeed: seed,
+          lineupsJson: JSON.stringify({
+            home: snapshot(homeResolved.starters),
+            away: snapshot(awayResolved.starters),
+            homeBench: snapshot(homeResolved.bench),
+            awayBench: snapshot(awayResolved.bench),
+          }),
+        })
         .where(eq(fixtures.id, fx.id));
-      await applyMatchResult(fx.id, leagueId, result);
+      const applied = await applyMatchResult(fx.id, leagueId, result);
+      // A concurrent run already played this fixture — don't notify twice.
+      if (!applied) continue;
       // Push notify both club owners (no-op if they have no subscription)
       await dispatchMatchPush({
         leagueId,
@@ -178,13 +238,25 @@ export async function runMatchDay(opts: {
     // Cup ties scheduled for today, if any.
     await runCupRound({ leagueId }).catch(() => {});
 
-    // Bump league week number by however many *distinct* weeks we just
-    // played. If the cron missed a day and processed weeks 6+7 in one go,
-    // weekNumber should jump from 5 → 7, not 5 → 6.
-    const weeksPlayed = new Set(leagueFixtures.map((f) => f.weekNumber)).size;
+    // Derive the week number from the fixtures themselves rather than
+    // incrementing a value we read earlier. `weekNumber = highest week
+    // actually played this season` is idempotent: a duplicate cron run
+    // recomputes the same number instead of double-bumping it, and a cron
+    // that missed a day still lands on the right week.
+    const playedWeeks = await db
+      .select({ week: fixtures.weekNumber })
+      .from(fixtures)
+      .where(
+        and(
+          eq(fixtures.leagueId, leagueId),
+          eq(fixtures.seasonNumber, leagueRow.seasonNumber),
+          eq(fixtures.status, "finished"),
+        ),
+      );
+    const maxWeek = playedWeeks.reduce((m, r) => Math.max(m, r.week), 0);
     await db
       .update(leagues)
-      .set({ weekNumber: leagueRow.weekNumber + weeksPlayed })
+      .set({ weekNumber: maxWeek })
       .where(eq(leagues.id, leagueId));
 
     // If we just played the last scheduled round, roll into next season

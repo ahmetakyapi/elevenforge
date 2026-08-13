@@ -92,6 +92,34 @@
       "when": 1776636339598,
       "tag": "0012_position_attributes",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1776636340598,
+      "tag": "0013_integrity_constraints",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1776636341598,
+      "tag": "0014_lineups_offers_ai",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1776636342598,
+      "tag": "0015_ai_backfill",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1776636343598,
+      "tag": "0016_economy_rebalance",
+      "breakpoints": true
     }
   ]
 }

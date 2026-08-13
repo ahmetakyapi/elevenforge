@@ -1,6 +1,8 @@
 import { requireLeagueContext } from "@/lib/session";
 import { loadSquad } from "@/lib/queries/squad";
 import TacticUi from "./tactic-ui";
+import LineupPanel from "./lineup-panel";
+import { parseLineup } from "@/lib/lineup";
 import type { TacticPreset } from "./actions";
 import type { Formation } from "@/types";
 
@@ -39,17 +41,32 @@ export default async function TacticPage() {
     if (Array.isArray(parsed)) subPlan = parsed.slice(0, 3);
   } catch {}
 
+  // The saved team sheet, filtered to players still in the squad (someone may
+  // have been sold since it was written).
+  const owned = new Set(squad.map((p) => p.id).filter(Boolean) as string[]);
+  const saved = parseLineup(ctx.club.lineupJson);
+  const xi = saved.xi.filter((id) => owned.has(id));
+  const bench = saved.bench.filter((id) => owned.has(id));
+
   return (
-    <TacticUi
-      squad={squad}
-      initial={{
-        formation,
-        mentality: ctx.club.mentality,
-        pressing: ctx.club.pressing,
-        tempo: ctx.club.tempo,
-      }}
-      presets={presets}
-      subPlan={subPlan}
-    />
+    <div className="space-y-8">
+      <LineupPanel
+        squad={squad}
+        formation={formation}
+        initialXi={xi}
+        initialBench={bench}
+      />
+      <TacticUi
+        squad={squad}
+        initial={{
+          formation,
+          mentality: ctx.club.mentality,
+          pressing: ctx.club.pressing,
+          tempo: ctx.club.tempo,
+        }}
+        presets={presets}
+        subPlan={subPlan}
+      />
+    </div>
   );
 }

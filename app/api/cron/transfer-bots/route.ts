@@ -9,4 +9,6 @@ export async function POST(req: Request) {
   return NextResponse.json(result);
 }
 
-export const GET = POST;
+// Cron jobs sweep every league; give them the full serverless budget.
+export const maxDuration = 300;
+export const dynamic = "force-dynamic";

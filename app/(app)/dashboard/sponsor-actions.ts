@@ -1,6 +1,6 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { clubs, feedEvents } from "@/lib/schema";
@@ -45,33 +45,6 @@ export async function signSponsor(input: { sponsorId: string }) {
 
   revalidatePath("/dashboard");
   return { ok: true as const };
-}
-
-/**
- * Credit the sponsor income for a finished match. Called from
- * applyMatchResult.
- */
-export async function creditSponsorForMatch(
-  clubId: string,
-  isWin: boolean,
-): Promise<void> {
-  const [c] = await db.select().from(clubs).where(eq(clubs.id, clubId));
-  if (!c?.activeSponsorJson) return;
-  let sponsor: {
-    payPerMatchCents: number;
-    bonusPerWinCents: number;
-  };
-  try {
-    sponsor = JSON.parse(c.activeSponsorJson);
-  } catch {
-    return;
-  }
-  const credit =
-    sponsor.payPerMatchCents + (isWin ? sponsor.bonusPerWinCents : 0);
-  await db
-    .update(clubs)
-    .set({ balanceCents: sql`${clubs.balanceCents} + ${credit}` })
-    .where(eq(clubs.id, clubId));
 }
 
 export async function listAvailableSponsors() {

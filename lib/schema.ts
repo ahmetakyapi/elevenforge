@@ -1,4 +1,5 @@
 import { relations } from "drizzle-orm";
+import { STARTING_BALANCE_CENTS } from "./economy";
 import {
   bigint,
   boolean,
@@ -146,7 +147,9 @@ export const clubs = pgTable(
     city: text("city").notNull(),
     color: text("color").notNull(),
     color2: text("color2").notNull(),
-    balanceCents: money("balance_cents").notNull().default(4_500_000_000),
+    balanceCents: money("balance_cents")
+      .notNull()
+      .default(STARTING_BALANCE_CENTS),
     stadiumLevel: integer("stadium_level").notNull().default(1),
     trainingLevel: integer("training_level").notNull().default(1),
     pitchLevel: integer("pitch_level").notNull().default(1),
@@ -174,6 +177,18 @@ export const clubs = pgTable(
     boardConfidence: integer("board_confidence").notNull().default(60),
     // Active sponsor contract: { name, payPerMatch, bonusPerWin, seasonBonus, weeksLeft } | null
     activeSponsorJson: text("active_sponsor_json"),
+    // The manager's actual team sheet:
+    //   { "xi": [playerId × 11], "bench": [playerId × N] }
+    // The engine starts from this and only deviates to replace players who
+    // are unavailable on the day. Empty xi = let the engine auto-pick.
+    lineupJson: text("lineup_json")
+      .notNull()
+      .default('{"xi":[],"bench":[]}'),
+    // AI manager personality + state (see lib/ai/profile.ts).
+    aiProfileJson: text("ai_profile_json"),
+    aiLastRunAt: timestamp("ai_last_run_at", { withTimezone: true }),
+    // True for bot clubs and for human clubs whose manager went inactive.
+    aiManaged: boolean("ai_managed").notNull().default(false),
     // Staff slots: { headCoach: {id,name,tier}|null, physio: {...}|null, scout: {...}|null }
     // Each role boosts a specific subsystem (see lib/staff.ts):
     //   headCoach → match-day morale & tactic edge
@@ -233,6 +248,11 @@ export const players = pgTable(
     goalsSeason: integer("goals_season").notNull().default(0),
     assistsSeason: integer("assists_season").notNull().default(0),
     lastRatings: text("last_ratings").notNull().default("[]"),
+    // Career totals. goalsSeason/assistsSeason are zeroed at every season
+    // roll; these survive so a player has a history worth reading.
+    careerGoals: integer("career_goals").notNull().default(0),
+    careerAssists: integer("career_assists").notNull().default(0),
+    careerApps: integer("career_apps").notNull().default(0),
     // JSON array of extra role codes (e.g. ["LW","RW"]) the player can play.
     // The `role` column is the primary one; these are secondary.
     secondaryRoles: text("secondary_roles").notNull().default("[]"),
@@ -273,6 +293,12 @@ export const fixtures = pgTable(
     awayScore: integer("away_score"),
     commentaryJson: text("commentary_json"),
     statsJson: text("stats_json"),
+    // The eleven each side actually fielded, captured at kick-off:
+    //   { home: [{id,name,role,ovr}], away: [...] }
+    // Squad rows mutate immediately after a match (fitness, morale, cards), so
+    // without this snapshot a finished fixture cannot be reported or replayed
+    // faithfully.
+    lineupsJson: text("lineups_json"),
     playedAt: timestamp("played_at", { withTimezone: true }),
     // Deterministic seed used when this fixture was simulated. Same fixture →
     // same scoreline on replay; never re-rolls just because the page reloaded.
@@ -658,3 +684,84 @@ export const transferWishlist = pgTable(
 );
 
 export type WishlistRow = typeof transferWishlist.$inferSelect;
+
+// ─── Transfer offers ──────────────────────────────────────────────
+// A direct bid for a player who is NOT on the transfer list. This is what
+// makes a squad feel owned: you cannot simply buy anyone off a shelf, you
+// have to approach the club that holds him and they can say no or name their
+// price. Works in every direction — human→bot, bot→human, human→human.
+export const offerStatus = pgEnum("offer_status", [
+  "pending",
+  "accepted",
+  "rejected",
+  "countered",
+  "withdrawn",
+  "expired",
+]);
+
+export const transferOffers = pgTable(
+  "transfer_offers",
+  {
+    id: id(),
+    leagueId: uuid("league_id")
+      .notNull()
+      .references(() => leagues.id, { onDelete: "cascade" }),
+    playerId: uuid("player_id")
+      .notNull()
+      .references(() => players.id, { onDelete: "cascade" }),
+    fromClubId: uuid("from_club_id")
+      .notNull()
+      .references(() => clubs.id, { onDelete: "cascade" }),
+    toClubId: uuid("to_club_id")
+      .notNull()
+      .references(() => clubs.id, { onDelete: "cascade" }),
+    amountCents: money("amount_cents").notNull(),
+    // Set when the receiving club counters: the price they would accept.
+    counterCents: money("counter_cents"),
+    status: offerStatus("status").notNull().default("pending"),
+    message: text("message"),
+    respondedAt: timestamp("responded_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("offers_to_club_idx").on(t.toClubId, t.status),
+    index("offers_from_club_idx").on(t.fromClubId, t.status),
+    index("offers_league_idx").on(t.leagueId, t.status),
+  ],
+);
+
+export type TransferOffer = typeof transferOffers.$inferSelect;
+
+// ─── Season history ───────────────────────────────────────────────
+// One row per club per completed season. Written by the season roll before
+// the per-club tallies are reset, so past seasons remain readable.
+export const seasonHistory = pgTable(
+  "season_history",
+  {
+    id: id(),
+    leagueId: uuid("league_id")
+      .notNull()
+      .references(() => leagues.id, { onDelete: "cascade" }),
+    seasonNumber: integer("season_number").notNull(),
+    clubId: uuid("club_id")
+      .notNull()
+      .references(() => clubs.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(),
+    points: integer("points").notNull(),
+    wins: integer("wins").notNull(),
+    draws: integer("draws").notNull(),
+    losses: integer("losses").notNull(),
+    goalsFor: integer("goals_for").notNull(),
+    goalsAgainst: integer("goals_against").notNull(),
+    wonCup: boolean("won_cup").notNull().default(false),
+    topScorerJson: text("top_scorer_json"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    unique("season_history_unique").on(t.leagueId, t.seasonNumber, t.clubId),
+    index("season_history_league_idx").on(t.leagueId, t.seasonNumber),
+  ],
+);
+
+export type SeasonHistoryRow = typeof seasonHistory.$inferSelect;

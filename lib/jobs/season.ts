@@ -6,42 +6,63 @@
  */
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { SEASON_PRIZES_CENTS } from "@/lib/economy";
+import { creditClub } from "@/lib/money";
 import {
   clubs,
+  cupFixtures,
   feedEvents,
   fixtures,
   leagues,
   players,
+  seasonHistory,
 } from "@/lib/schema";
 import { assignSeasonGoals, evaluateBoardConfidence } from "./board";
 import { generateCupBracket } from "./cup";
 import { evaluateSeasonAchievements } from "./achievements";
+import { backfillThinSquads, generateYouthIntake } from "./youth";
 import { applyMatchTime } from "@/lib/match-time";
 
-function roundRobin(teamIds: string[]) {
+/**
+ * Full double round-robin: every club plays every other club twice, once at
+ * home and once away.
+ *
+ * The old version generated a single circle (15 rounds for 16 clubs) and
+ * alternated home/away by round parity, which left the fixed team in the
+ * rotation — and any club drawn against it — with a permanently lopsided
+ * split: four clubs got 6 home games and 9 away, every single season. A
+ * mirrored second half makes the schedule exactly fair by construction.
+ */
+export function roundRobin(teamIds: string[]) {
   const teams = teamIds.slice();
   if (teams.length % 2 !== 0) teams.push("BYE");
-  const rounds: Array<Array<{ home: string; away: string }>> = [];
+  const firstHalf: Array<Array<{ home: string; away: string }>> = [];
   const half = teams.length / 2;
   let arr = teams.slice();
-  for (let r = 0; r < arr.length - 1; r++) {
+  for (let r = 0; r < teams.length - 1; r++) {
     const matches: Array<{ home: string; away: string }> = [];
     for (let i = 0; i < half; i++) {
       const t1 = arr[i];
       const t2 = arr[arr.length - 1 - i];
       if (t1 !== "BYE" && t2 !== "BYE") {
+        // Alternating the orientation of each pairing by both round and slot
+        // keeps the per-club home/away counts balanced across the half.
         matches.push(
-          r % 2 === 0 ? { home: t1, away: t2 } : { home: t2, away: t1 },
+          (r + i) % 2 === 0 ? { home: t1, away: t2 } : { home: t2, away: t1 },
         );
       }
     }
-    rounds.push(matches);
+    firstHalf.push(matches);
     const first = arr[0];
     const rest = arr.slice(1);
     rest.unshift(rest.pop()!);
     arr = [first, ...rest];
   }
-  return rounds;
+  // Second half is the exact mirror, so every pairing is played both ways.
+  const secondHalf = firstHalf.map((round) =>
+    round.map((m) => ({ home: m.away, away: m.home })),
+  );
+  return [...firstHalf, ...secondHalf];
 }
 
 export async function rollSeasonIfDone(leagueId: string): Promise<{
@@ -73,6 +94,23 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
     .where(eq(clubs.leagueId, leagueId));
   if (clubRows.length < 2) return { rolled: false };
 
+  // Compare-and-swap the season number *before* doing any of the work. Two
+  // match-day runs finishing the last fixture at the same moment would
+  // otherwise both roll: every player aged twice, two full fixture sets
+  // generated, and prize money paid out twice. Whoever loses this UPDATE
+  // simply reports "not rolled".
+  const rollClaim = await db
+    .update(leagues)
+    .set({ seasonNumber: newSeason, weekNumber: 0 })
+    .where(
+      and(
+        eq(leagues.id, leagueId),
+        eq(leagues.seasonNumber, league.seasonNumber),
+      ),
+    )
+    .returning();
+  if (rollClaim.length === 0) return { rolled: false };
+
   // Award season prize money (top 4) BEFORE resetting stats.
   const standings = [...clubRows].sort((a, b) => {
     if (b.seasonPoints !== a.seasonPoints)
@@ -95,15 +133,13 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
     season: league.seasonNumber,
     standings: rankedStandings,
   });
-  // EUR amounts: 30M / 20M / 10M / 5M (stored in cents)
-  const prizes = [3_000_000_000, 2_000_000_000, 1_000_000_000, 500_000_000];
+  const prizes = SEASON_PRIZES_CENTS;
   for (let rank = 0; rank < Math.min(4, standings.length); rank++) {
     const c = standings[rank];
-    const prize = prizes[rank];
+    await creditClub(c.id, prizes[rank]);
     await db
       .update(clubs)
       .set({
-        balanceCents: c.balanceCents + prize,
         prestige: Math.min(100, c.prestige + (rank === 0 ? 8 : rank === 1 ? 5 : 3)),
       })
       .where(eq(clubs.id, c.id));
@@ -116,6 +152,61 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
       text: `Sezon ${league.seasonNumber} şampiyonu ${standings[0].name}! ${standings[0].seasonPoints} puan.`,
     });
   }
+
+  // Archive the season BEFORE the tallies are wiped. Without this every
+  // record of what happened was destroyed at the roll — no past champions,
+  // no historic tables, nothing to look back on.
+  const seasonPlayers = await db
+    .select()
+    .from(players)
+    .where(eq(players.leagueId, leagueId));
+  const topScorerByClub = new Map<string, { name: string; goals: number }>();
+  for (const p of seasonPlayers) {
+    if (!p.clubId || p.goalsSeason <= 0) continue;
+    const current = topScorerByClub.get(p.clubId);
+    if (!current || p.goalsSeason > current.goals) {
+      topScorerByClub.set(p.clubId, { name: p.name, goals: p.goalsSeason });
+    }
+  }
+  const [cupWinner] = await db
+    .select({ winnerClubId: cupFixtures.winnerClubId })
+    .from(cupFixtures)
+    .where(
+      and(
+        eq(cupFixtures.leagueId, leagueId),
+        eq(cupFixtures.seasonNumber, league.seasonNumber),
+        eq(cupFixtures.round, 4),
+      ),
+    )
+    .limit(1);
+
+  const historyRows = standings.map((c, i) => ({
+    leagueId,
+    seasonNumber: league.seasonNumber,
+    clubId: c.id,
+    position: i + 1,
+    points: c.seasonPoints,
+    wins: c.seasonWins,
+    draws: c.seasonDraws,
+    losses: c.seasonLosses,
+    goalsFor: c.seasonGoalsFor,
+    goalsAgainst: c.seasonGoalsAgainst,
+    wonCup: cupWinner?.winnerClubId === c.id,
+    topScorerJson: JSON.stringify(topScorerByClub.get(c.id) ?? null),
+  }));
+  if (historyRows.length > 0) {
+    // The unique index makes a duplicated roll a no-op rather than an error.
+    await db.insert(seasonHistory).values(historyRows).onConflictDoNothing();
+  }
+
+  // Roll season totals into career totals before they are zeroed.
+  await db
+    .update(players)
+    .set({
+      careerGoals: sql`${players.careerGoals} + ${players.goalsSeason}`,
+      careerAssists: sql`${players.careerAssists} + ${players.assistsSeason}`,
+    })
+    .where(eq(players.leagueId, leagueId));
 
   // Reset club season stats
   for (const c of clubRows) {
@@ -199,12 +290,31 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
       .where(eq(players.id, p.id));
     if (expiring) freeAgents++;
   }
+  // Clear match-day state that must not survive the summer: nobody starts a
+  // new season injured, banned or exhausted.
+  await db
+    .update(players)
+    .set({
+      status: sql`CASE WHEN ${players.status} IN ('injured','suspended') THEN 'active' ELSE ${players.status} END`,
+      injuryUntil: null,
+      suspensionMatchesLeft: 0,
+      fitness: 95,
+      lastRatings: "[]",
+    })
+    .where(eq(players.leagueId, leagueId));
+
+  // Youth intake — the other half of the lifecycle. Retirement used to
+  // delete players with nothing ever replacing them, so squads shrank every
+  // season until clubs could not field eleven.
+  const intake = await generateYouthIntake(leagueId, newSeason, clubRows);
+  const backfilled = await backfillThinSquads(leagueId, clubRows);
+
   if (retired > 0 || freeAgents > 0) {
     await db.insert(feedEvents).values({
       leagueId,
       clubId: null,
       eventType: "paper",
-      text: `Sezon sonu: ${retired} oyuncu emekli oldu, ${freeAgents} oyuncu serbest kaldı.`,
+      text: `Sezon sonu: ${retired} oyuncu emekli oldu, ${freeAgents} oyuncu serbest kaldı, altyapıdan ${intake.academy + backfilled} genç çıktı.`,
     });
   }
 
@@ -237,12 +347,6 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
     }
   }
   await db.insert(fixtures).values(fixtureRows);
-
-  // Update league: new season, week 0
-  await db
-    .update(leagues)
-    .set({ seasonNumber: newSeason, weekNumber: 0 })
-    .where(eq(leagues.id, leagueId));
 
   // Assign new board goals + generate cup bracket for the new season.
   await assignSeasonGoals(leagueId);

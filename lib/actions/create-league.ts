@@ -19,6 +19,7 @@ import {
 } from "@/lib/schema";
 import { SQUAD_PACKS } from "@/lib/squad-packs";
 import { applyMatchTime } from "@/lib/match-time";
+import { roundRobin as sharedRoundRobin } from "@/lib/jobs/season";
 import { assignSeasonGoals } from "@/lib/jobs/board";
 import { generateCupBracket } from "@/lib/jobs/cup";
 import type { Position } from "@/types";
@@ -244,29 +245,9 @@ function generatePlayer(
 }
 
 function roundRobin(teamIds: string[]) {
-  const teams = teamIds.slice();
-  if (teams.length % 2 !== 0) teams.push("BYE");
-  const rounds: Array<Array<{ home: string; away: string }>> = [];
-  const half = teams.length / 2;
-  let arr = teams.slice();
-  for (let r = 0; r < arr.length - 1; r++) {
-    const matches: Array<{ home: string; away: string }> = [];
-    for (let i = 0; i < half; i++) {
-      const t1 = arr[i];
-      const t2 = arr[arr.length - 1 - i];
-      if (t1 !== "BYE" && t2 !== "BYE") {
-        matches.push(
-          r % 2 === 0 ? { home: t1, away: t2 } : { home: t2, away: t1 },
-        );
-      }
-    }
-    rounds.push(matches);
-    const first = arr[0];
-    const rest = arr.slice(1);
-    rest.unshift(rest.pop()!);
-    arr = [first, ...rest];
-  }
-  return rounds;
+  // Shared implementation — see lib/jobs/season.ts for why the schedule is a
+  // mirrored double round-robin rather than a single circle.
+  return sharedRoundRobin(teamIds);
 }
 
 function generateInviteCode(): string {
@@ -351,24 +332,26 @@ export async function createStarterLeague(input: {
   // Budget + prestige follow pack order so Big-4 start richer / more
   // prestigious than the Anatolian clubs — board goals and transfer
   // fees feel right out of the box.
+  // Balances are scaled to lib/economy.ts STARTING_BALANCE_CENTS (€250M
+  // baseline); the spread keeps big clubs able to outbid smaller ones.
   type TierMeta = { prestige: number; balance: number };
   const TIER_TEMPLATE: TierMeta[] = [
-    { prestige: 82, balance: 6_000_000_000 }, // 0 FB (user)
-    { prestige: 85, balance: 6_200_000_000 }, // 1 GS
-    { prestige: 78, balance: 5_400_000_000 }, // 2 BJK
-    { prestige: 76, balance: 5_000_000_000 }, // 3 TS
-    { prestige: 66, balance: 4_800_000_000 }, // 4 Başakşehir
-    { prestige: 60, balance: 4_600_000_000 }, // 5 Samsun
-    { prestige: 56, balance: 4_400_000_000 }, // 6 Göztepe
-    { prestige: 52, balance: 4_300_000_000 }, // 7 Antalya
-    { prestige: 48, balance: 4_200_000_000 }, // 8 Konya
-    { prestige: 46, balance: 4_100_000_000 }, // 9 Alanya
-    { prestige: 44, balance: 4_000_000_000 }, // 10 Kasımpaşa
-    { prestige: 42, balance: 3_900_000_000 }, // 11 Eyüp
-    { prestige: 36, balance: 3_700_000_000 }, // 12 Kayseri
-    { prestige: 32, balance: 3_500_000_000 }, // 13 Rizespor
-    { prestige: 30, balance: 3_400_000_000 }, // 14 Gaziantep
-    { prestige: 28, balance: 3_300_000_000 }, // 15 Kocaeli
+    { prestige: 82, balance: 33_000_000_000 }, // 0 FB (user)
+    { prestige: 85, balance: 34_000_000_000 }, // 1 GS
+    { prestige: 78, balance: 30_000_000_000 }, // 2 BJK
+    { prestige: 76, balance: 28_000_000_000 }, // 3 TS
+    { prestige: 66, balance: 26_000_000_000 }, // 4 Başakşehir
+    { prestige: 60, balance: 25_000_000_000 }, // 5 Samsun
+    { prestige: 56, balance: 24_000_000_000 }, // 6 Göztepe
+    { prestige: 52, balance: 24_000_000_000 }, // 7 Antalya
+    { prestige: 48, balance: 23_000_000_000 }, // 8 Konya
+    { prestige: 46, balance: 23_000_000_000 }, // 9 Alanya
+    { prestige: 44, balance: 22_000_000_000 }, // 10 Kasımpaşa
+    { prestige: 42, balance: 21_000_000_000 }, // 11 Eyüp
+    { prestige: 36, balance: 20_000_000_000 }, // 12 Kayseri
+    { prestige: 32, balance: 19_000_000_000 }, // 13 Rizespor
+    { prestige: 30, balance: 19_000_000_000 }, // 14 Gaziantep
+    { prestige: 28, balance: 18_000_000_000 }, // 15 Kocaeli
   ];
 
   const clubRows: Array<typeof clubs.$inferSelect> = [];
@@ -386,6 +369,8 @@ export async function createStarterLeague(input: {
         leagueId: league.id,
         ownerUserId: i === 0 ? input.userId : null,
         isBot: i !== 0,
+        // Bots are run by the AI manager from day one.
+        aiManaged: i !== 0,
         // User renames club 0 to their chosen team name; bots keep the
         // real club name so derbies feel authentic.
         name: i === 0 ? input.teamName : meta.name,

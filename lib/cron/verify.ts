@@ -1,26 +1,51 @@
 /**
  * Guard for cron webhook endpoints.
  *
- * Accepts a request if ANY of these pass:
- *  1. CRON_SECRET env is set and the request has `Authorization: Bearer <secret>`.
- *  2. QStash signing keys are set and the `Upstash-Signature` header verifies
- *     (future-proof; not implemented yet to avoid extra deps — QStash also
- *     works with the bearer token pattern via forward headers).
- *  3. Local dev (NODE_ENV !== "production") — always allowed.
+ * These endpoints simulate matches, pay out the weekly economy and run the
+ * transfer market across EVERY league in the database, so they are the most
+ * damaging thing an outsider could reach. The guard is therefore fail-closed:
+ * in production a missing or mismatched CRON_SECRET is a 401, never an
+ * implicit "auth disabled". Forgetting an env var must break the cron, not
+ * silently open the game to the internet.
+ *
+ * Local development (NODE_ENV !== "production") stays open so `npm run
+ * cron:dev` needs no configuration.
  *
  * Returns a Response if the request is rejected, or null to continue.
  */
+import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
+
+/**
+ * Compare via fixed-length SHA-256 digests so the comparison is constant-time
+ * *and* immune to the length leak of a raw timingSafeEqual (which throws on
+ * mismatched buffer lengths).
+ */
+function secretsMatch(a: string, b: string): boolean {
+  const da = createHash("sha256").update(a).digest();
+  const db = createHash("sha256").update(b).digest();
+  return timingSafeEqual(da, db);
+}
 
 export async function verifyCron(req: Request): Promise<Response | null> {
   if (process.env.NODE_ENV !== "production") return null;
 
   const secret = process.env.CRON_SECRET;
-  // No secret configured → open endpoints (operator opted out of auth).
-  if (!secret) return null;
+  if (!secret) {
+    console.error(
+      "[cron] CRON_SECRET is not set — refusing to run a scheduled job in production.",
+    );
+    return NextResponse.json(
+      { error: "Cron is not configured." },
+      { status: 503 },
+    );
+  }
 
+  // Accept either the bearer header (QStash forward header, cron-job.org) or
+  // Vercel Cron's own x-vercel-cron-signature style bearer.
   const header = req.headers.get("authorization") ?? "";
-  if (header === `Bearer ${secret}`) return null;
+  const bearer = header.startsWith("Bearer ") ? header.slice(7) : "";
+  if (bearer && secretsMatch(bearer, secret)) return null;
 
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }

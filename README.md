@@ -34,7 +34,22 @@ modern menajerlik oyunlarının kalitesinde animasyon ve UX.
 - **Sponsor sözleşmeleri** (3 tier × 6 marka) — maç başı + galibiyet bonusu + sezon bonusu
 - **Sezon prize money** (top 4: €30M/€20M/€10M/€5M) + prestij artışı
 
+### 🤖 AI Menajerler
+- **Menajersiz her kulüp gerçekten oynanıyor** — 6 farklı kişilik (Genç Kurucu,
+  Müsrif Patron, Pragmatist, Kale Bekçisi, Kumarbaz, Kâhya); her kulübün
+  kişiliği id'sinden deterministik türer
+- Günlük tick: ilk 11'i dizer, taktik kadranlarını oynatır, sözleşme yeniler,
+  fazla oyuncuyu **kendi adına** listeler (satıştan parayı kulüp alır),
+  serbest oyuncu imzalar, pazardan alır ve **insan kulüplerine teklif götürür**
+- **Teklif pazarlığı** — gelen teklifi kabul / ret / karşı teklif ile yanıtlar;
+  komik teklifi reddeder, yakın teklifte fiyat söyler
+- **Atıl menajer devri** — 5 gün giriş yapmayan oyuncunun kulübünü yardımcı
+  antrenör devralır; menajer döndüğü an kontrol ona geçer
+- Tick günde bir kez ve idempotent (`clubs.ai_last_run_at`)
+
 ### 👥 Kadro & Personel
+- **Kalıcı ilk 11 + yedek kulübesi** — dizdiğin kadro gerçekten sahaya çıkar;
+  sakat/cezalı oyuncunun yerine mevkisine en uygun yedek otomatik girer
 - **Taktik board** — 6 formasyon × 7 saved preset
 - **Pozisyon-bazlı 4 antrenman slotu** (1 GK + 1 DEF + 1 MID + 1 FWD)
 - **Genç gelişim** (≤19 yaş %52/gün +1 OVR şansı, kapsamlı age tier'ları)
@@ -144,8 +159,13 @@ npm run dev
 | `POST /api/cron/training` | günde bir |
 | `POST /api/cron/newspaper` | match-day'den hemen sonra |
 | `POST /api/cron/economy` | haftada bir |
+| `POST /api/cron/ai-managers` | 15 dk'da bir |
 
 Her birine `Authorization: Bearer <CRON_SECRET>` header ekle (env'e `CRON_SECRET` koy).
+
+> **Önemli:** `CRON_SECRET` production'da **zorunlu**. Ayarlanmadığında cron
+> uçları 503 döner — eskiden auth'suz açık kalıyordu. Uçlar yalnızca `POST`
+> kabul eder; `GET` ile tetiklenemez.
 
 ### Web Push (opsiyonel)
 
@@ -173,6 +193,7 @@ iOS 16.4+ için kullanıcının PWA'yı Ana Ekran'a eklemesi gerekir.
 | `npm run db:seed` | Demo lig + 16 kulüp + 320 oyuncu + fikstür |
 | `npm run db:reset` | DB'yi komple sıfırla |
 | `npm run cron:dev` | Dev cron runner (setInterval) |
+| `npx tsx scripts/test-ai-managers.ts` | AI menajer davranış testi |
 | `npx tsx scripts/test-full-season.ts` | E2E sezon testi (invariants + determinism) |
 | `npx tsx scripts/test-multiplayer.ts` | 10-kullanıcı concurrent multiplayer testi |
 
@@ -239,6 +260,14 @@ npx tsx scripts/test-full-season.ts
 #   - ΣW = ΣL ve ΣGF = ΣGA (zero-sum lig)
 #   - aynı seed ile fixture replay → aynı skor (determinism)
 #   - genç oyuncu antrenmanda gerçekten gelişiyor
+
+npx tsx scripts/test-ai-managers.ts
+# → AI menajerlerin gerçekten oynadığını doğrular:
+#   - her kulüp formasyona uygun, dolu bir ilk 11 kaydediyor
+#   - sakat/cezalı oyuncu ilk 11'e giremiyor
+#   - kendi oyuncusunu sellerClubId ile listeliyor (satış kulübe ödeniyor)
+#   - komik teklif reddediliyor, cömert teklif kabul ediliyor, para el değiştiriyor
+#   - aynı gün ikinci tick no-op (idempotent)
 
 npx tsx scripts/test-multiplayer.ts
 # → 10 kullanıcı, 1 lig, eşzamanlı join + race scenarios:

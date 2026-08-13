@@ -12,6 +12,8 @@
  * stronger away side (gameplay-fair).
  */
 import type { DBPlayer } from "@/lib/schema";
+import { parseFormation } from "./formation";
+import { EMPTY_LINEUP, resolveLineup, type SavedLineup } from "@/lib/lineup";
 import { buildCommentary } from "./commentary";
 
 // ─── Types ────────────────────────────────────────────────────
@@ -129,6 +131,9 @@ export type SimInput = {
   // pitch. Up to 3 subs is the convention but the engine accepts more.
   homeSubPlan?: Array<{ minute: number; outId: string; inId: string }>;
   awaySubPlan?: Array<{ minute: number; outId: string; inId: string }>;
+  // The managers' saved team sheets. Omitted → the engine auto-picks.
+  homeLineup?: SavedLineup;
+  awayLineup?: SavedLineup;
   seed?: number;
 };
 
@@ -142,56 +147,16 @@ function createRng(seed: number | undefined) {
   };
 }
 
-// ─── Formation parsing ────────────────────────────────────────
-// Accepts classic formation strings ("4-3-3", "4-2-3-1", "5-3-2", etc.).
-// First number → DEF count. Last number → FWD count. All middle numbers
-// collapse into MID. Totals always add to 10 field players (+1 GK = 11).
-export function parseFormation(formation: string): {
-  def: number;
-  mid: number;
-  fwd: number;
-} {
-  const parts = formation
-    .split("-")
-    .map((n) => parseInt(n, 10))
-    .filter((n) => Number.isFinite(n) && n > 0);
-  if (parts.length < 2) return { def: 4, mid: 4, fwd: 2 };
-  const def = parts[0];
-  const fwd = parts[parts.length - 1];
-  const mid = parts.slice(1, -1).reduce((a, b) => a + b, 0);
-  const total = def + mid + fwd;
-  if (total !== 10) return { def: 4, mid: 4, fwd: 2 };
-  return { def, mid, fwd };
-}
-
 // ─── Line-up selection ────────────────────────────────────────
-// Picks 11 starters respecting the chosen formation. Falls back to best
-// available from other lines if a line is short (injuries/suspensions).
+// Delegated to lib/lineup.ts so the manager's saved team sheet is what
+// actually takes the field. The engine used to re-pick the best eleven by
+// `overall` here, which silently discarded whatever the manager arranged.
 function pickStarters(
   squad: DBPlayer[],
   formation: string,
+  saved: SavedLineup,
 ): DBPlayer[] {
-  const { def, mid, fwd } = parseFormation(formation);
-  const active = squad.filter(
-    (p) => p.status !== "injured" && p.status !== "suspended",
-  );
-  const pickN = (pos: DBPlayer["position"], n: number) =>
-    active
-      .filter((p) => p.position === pos)
-      .sort((a, b) => b.overall - a.overall)
-      .slice(0, n);
-  const gk = pickN("GK", 1);
-  const defs = pickN("DEF", def);
-  const mids = pickN("MID", mid);
-  const fwds = pickN("FWD", fwd);
-  const starters = [...gk, ...defs, ...mids, ...fwds];
-  if (starters.length < 11) {
-    const remaining = active
-      .filter((p) => !starters.some((s) => s.id === p.id))
-      .sort((a, b) => b.overall - a.overall);
-    starters.push(...remaining.slice(0, 11 - starters.length));
-  }
-  return starters.slice(0, 11);
+  return resolveLineup(squad, formation, saved).starters;
 }
 
 // Attribute-aware unit power. Instead of averaging `overall`, each unit
@@ -206,8 +171,16 @@ function teamPower(
 ): { attack: number; midfield: number; defense: number; overall: number } {
   const byPos = (pos: DBPlayer["position"]) =>
     starters.filter((p) => p.position === pos);
+  // An empty line means nobody is playing there — it must be *terrible*, not
+  // league-average. The old value of 70 meant a club with no defenders (or no
+  // squad at all) defended like a mid-table side, which let drained bot
+  // squads stay competitive and made having no goalkeeper better than having
+  // a bad one.
+  const EMPTY_LINE = 30;
   const avgAttr = (arr: DBPlayer[], pick: (p: DBPlayer) => number) =>
-    arr.length === 0 ? 70 : arr.reduce((s, p) => s + pick(p), 0) / arr.length;
+    arr.length === 0
+      ? EMPTY_LINE
+      : arr.reduce((s, p) => s + pick(p), 0) / arr.length;
 
   const defs = byPos("DEF");
   const mids = byPos("MID");
@@ -260,33 +233,51 @@ function teamPower(
   const pressingBoost = (tactics.pressing - 2) * 0.6;
   const tempoBoost = (tactics.tempo - 2) * 0.4;
 
-  // Formation-driven structural weights: more defenders = sturdier back
-  // line but less midfield creativity; more forwards = sharper attack but
-  // fewer bodies in midfield. Weight per line ≈ count / ideal-count, so a
-  // 4-4-2 sits at baseline and a 5-3-2 shifts the balance toward defense.
+  // Formation shifts effort between the lines. These are ADDITIVE, not
+  // multiplicative: a formation should trade attack for defence, never
+  // create or destroy team strength outright. The previous version scaled
+  // each unit by count/ideal — so a lone striker in 4-2-3-1 kept only 50% of
+  // the attack score (roughly 0.1 expected goals, a near-guaranteed loss)
+  // while 4-3-3 got a 150% multiplier and produced 6-7 goal scorelines.
   const { def: defCount, mid: midCount, fwd: fwdCount } = parseFormation(
     tactics.formation,
   );
-  const defWeight = defCount / 4; // 0.75–1.25
-  const midWeight = midCount / 4;
-  const fwdWeight = fwdCount / 2;
+  const defShift = (defCount - 4) * 1.6;
+  const midShift = (midCount - 4) * 1.6;
+  const fwdShift = (fwdCount - 2) * 2.2;
+
+  // Fielding fewer than eleven is a real handicap — each empty shirt costs
+  // the whole side, not just the line it came from.
+  const shortfall = Math.max(0, 11 - starters.length) * 2.5;
 
   const attack =
-    attackCore * fwdWeight * 0.8 +
-    midCore * 0.2 +
+    attackCore * 0.75 +
+    midCore * 0.25 +
+    fwdShift +
     mentalityBoost +
-    moraleBoost;
+    moraleBoost +
+    homeBoost * 0.6 -
+    fitPenalty -
+    shortfall;
   const midfield =
-    midCore * midWeight + pressingBoost + tempoBoost + moraleBoost * 0.5;
+    midCore +
+    midShift +
+    pressingBoost +
+    tempoBoost +
+    moraleBoost * 0.5 +
+    homeBoost * 0.4 -
+    fitPenalty -
+    shortfall;
   const defense =
-    defCore * defWeight * 0.7 + gkPwr * 0.3 - mentalityBoost * 0.5;
-  const overall =
-    attack * 0.4 +
-    midfield * 0.3 +
-    defense * 0.3 +
-    homeBoost +
-    moraleBoost * 0.3 -
-    fitPenalty;
+    defCore * 0.7 +
+    gkPwr * 0.3 +
+    defShift -
+    mentalityBoost * 0.5 +
+    moraleBoost * 0.5 +
+    homeBoost * 0.4 -
+    fitPenalty -
+    shortfall;
+  const overall = attack * 0.4 + midfield * 0.3 + defense * 0.3;
 
   return { attack, midfield, defense, overall };
 }
@@ -294,8 +285,16 @@ function teamPower(
 // ─── Simulate ─────────────────────────────────────────────────
 export function simulateMatch(input: SimInput): MatchResult {
   const rng = createRng(input.seed);
-  const homeStarters = pickStarters(input.homeSquad, input.homeTactics.formation);
-  const awayStarters = pickStarters(input.awaySquad, input.awayTactics.formation);
+  const homeStarters = pickStarters(
+    input.homeSquad,
+    input.homeTactics.formation,
+    input.homeLineup ?? EMPTY_LINEUP,
+  );
+  const awayStarters = pickStarters(
+    input.awaySquad,
+    input.awayTactics.formation,
+    input.awayLineup ?? EMPTY_LINEUP,
+  );
 
   // Referee deterministically picked from the seed so replays match. The
   // reference passes through to commentary + influences card frequency.
@@ -329,17 +328,25 @@ export function simulateMatch(input: SimInput): MatchResult {
     && input.homeCity === input.awayCity;
   const stakesMultiplier = sameCityDerby ? 1.15 : 1.0;
 
-  // Expected goals for each side — roughly based on attack vs opponent defense
+  // Expected goals: attack against the opponent's defence, nudged by who
+  // controls midfield. Divisors are deliberately large so a talent gap
+  // shifts the odds rather than guaranteeing a rout — a 15-point power
+  // advantage is worth about +0.6 xG, not +4.
+  const midEdge = (homePower.midfield - awayPower.midfield) / 40;
+  const baseHome = 1.42;
+  const baseAway = 1.14;
   const homeXG =
-    Math.max(
-      0.1,
-      (homePower.attack - awayPower.defense * 1.05) / 14 + 1.35,
+    Math.min(
+      4.2,
+      Math.max(0.18, (homePower.attack - awayPower.defense) / 24 + baseHome + midEdge),
     ) * stakesMultiplier;
   const awayXG =
-    Math.max(0.1, (awayPower.attack - homePower.defense * 1.05) / 14 + 1.05) *
-    stakesMultiplier;
+    Math.min(
+      4.2,
+      Math.max(0.18, (awayPower.attack - homePower.defense) / 24 + baseAway - midEdge),
+    ) * stakesMultiplier;
 
-  // Poisson-ish realization via k-Bernoulli-events bounded 0..7
+  // Poisson realization, capped at 7 goals per side.
   const drawGoals = (lambda: number): number => {
     // Knuth-style Poisson
     const L = Math.exp(-lambda);
@@ -475,7 +482,11 @@ export function simulateMatch(input: SimInput): MatchResult {
 
   const raw: Ev[] = [];
   // Strict refs increase the chance a card is red (0.05 + 0.04*strict)
-  const redChance = 0.04 + 0.03 * refStrict;
+  // Share of cards that are red. Real football sends someone off in roughly
+  // one match in eight; at 0.04 + 0.03×strictness this was producing about
+  // half a red card *per match* (nearly one with the strictest referee),
+  // which wrecked squads and the suspension ledger.
+  const redChance = 0.012 + 0.006 * refStrict;
 
   for (const ev of allEventMins) {
     if (ev.kind === "goalHome") {

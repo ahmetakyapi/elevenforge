@@ -4,6 +4,7 @@ import { ArrowLeft, ChevronRight } from "lucide-react";
 import { requireLeagueContext } from "@/lib/session";
 import { loadPlayerDetail } from "@/lib/queries/player-detail";
 import { fmtEUR } from "@/lib/utils";
+import MakeOffer from "./make-offer";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,17 @@ export default async function PlayerDetailPage({
       >
         <ArrowLeft size={14} strokeWidth={1.6} /> Kadroya dön
       </Link>
+
+      {/* Another club's player — you can approach them directly. */}
+      {p.clubId && p.clubId !== ctx.club.id && (
+        <div style={{ marginBottom: 18 }}>
+          <MakeOffer
+            playerId={p.id}
+            playerName={p.name}
+            marketValueEur={p.marketValueEur}
+          />
+        </div>
+      )}
 
       {/* Hero */}
       <div

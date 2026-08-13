@@ -2,8 +2,10 @@
  * Daily login streak — tick-once-per-day ladder with claimable rewards.
  * Called from the Dashboard server component on every load.
  */
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { releaseClubToOwner } from "@/lib/ai/inactivity";
+import { creditClub } from "@/lib/money";
 import { clubs, feedEvents, users } from "@/lib/schema";
 
 function daysBetween(a: Date, b: Date): number {
@@ -38,6 +40,10 @@ export async function tickLoginStreak(userId: string): Promise<{
     }
   }
 
+  // The manager is here — take their club back off the assistant. Cheap
+  // no-op when nothing was handed over.
+  await releaseClubToOwner(userId);
+
   if (newStreak !== u.loginStreak || u.lastLoginAt === null) {
     await db
       .update(users)
@@ -68,14 +74,24 @@ export async function claimLoginReward(userId: string): Promise<{
   const [c] = await db.select().from(clubs).where(eq(clubs.ownerUserId, u.id)).limit(1);
   if (!c) return { ok: false, error: "Kulüp bulunamadı." };
 
-  await db
-    .update(clubs)
-    .set({ balanceCents: c.balanceCents + rewardEur * 100 })
-    .where(eq(clubs.id, c.id));
-  await db
+  // Mark the reward as taken first, conditional on it still being unclaimed.
+  // Two rapid clicks both passed the read-only check above; only one can win
+  // this UPDATE, so only one gets paid.
+  const claimed = await db
     .update(users)
     .set({ lastStreakRewardDay: u.loginStreak })
-    .where(eq(users.id, u.id));
+    .where(
+      and(
+        eq(users.id, u.id),
+        eq(users.lastStreakRewardDay, u.lastStreakRewardDay),
+      ),
+    )
+    .returning();
+  if (claimed.length === 0) {
+    return { ok: false, error: "Bugünün ödülünü zaten aldın." };
+  }
+
+  await creditClub(c.id, rewardEur * 100);
 
   if (rewardDay === 7) {
     await db.insert(feedEvents).values({

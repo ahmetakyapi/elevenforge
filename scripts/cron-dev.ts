@@ -10,8 +10,12 @@
  *  - match-day:     every 5 minutes (picks up any due fixtures)
  *  - newspaper:     every 10 minutes (generates missing papers)
  *  - economy:       every 6 hours
+ *  - ai-managers:   every 15 minutes (bots pick line-ups, trade, negotiate)
+ *  - inactivity:    every 30 minutes (hands dormant clubs to the AI)
  */
 import {
+  runAiManagers,
+  syncInactiveManagers,
   runDailyTraining,
   runMatchDay,
   runPriceDecay,
@@ -34,6 +38,8 @@ const JOBS: Job[] = [
   { name: "training",      intervalMs: 12 * HOUR, run: () => runDailyTraining() },
   { name: "newspaper",     intervalMs: 10 * MIN, run: () => runWeeklyNewspaper() },
   { name: "economy",       intervalMs: 6 * HOUR, run: () => runWeeklyEconomy() },
+  { name: "ai-managers",   intervalMs: 15 * MIN, run: () => runAiManagers() },
+  { name: "inactivity",    intervalMs: 30 * MIN, run: () => syncInactiveManagers() },
 ];
 
 async function fire(j: Job) {

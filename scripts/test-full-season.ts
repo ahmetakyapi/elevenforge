@@ -113,6 +113,7 @@ function checkFixtureCoverage(
   finished: Array<{ id: string; weekNumber: number; homeClubId: string; awayClubId: string }>,
   expectedTotal: number,
   label: string,
+  clubCount: number,
 ): number {
   let bad = 0;
   if (finished.length !== expectedTotal) {
@@ -121,7 +122,8 @@ function checkFixtureCoverage(
     );
     bad++;
   }
-  // Each (home, away) pair should appear at most once per season.
+  // Double round-robin: each ordered (home, away) pair appears exactly once,
+  // so each unordered pairing is played twice — once at each ground.
   const seen = new Set<string>();
   for (const f of finished) {
     const key = `${f.homeClubId}|${f.awayClubId}`;
@@ -131,23 +133,36 @@ function checkFixtureCoverage(
     }
     seen.add(key);
   }
-  // Every team should play exactly N-1 = 15 games (8 home + 8 away in a
-  // 16-team single round-robin... wait, 15 = 7 or 8 each side depending
-  // on draw). What's invariant is total appearances = 30 per club / 2.
+  // Every club plays 2*(N-1) games, split exactly N-1 home and N-1 away.
+  const expectedGames = 2 * (clubCount - 1);
   const appearances = new Map<string, number>();
+  const homeCount = new Map<string, number>();
+  const awayCount = new Map<string, number>();
   for (const f of finished) {
     appearances.set(f.homeClubId, (appearances.get(f.homeClubId) ?? 0) + 1);
     appearances.set(f.awayClubId, (appearances.get(f.awayClubId) ?? 0) + 1);
+    homeCount.set(f.homeClubId, (homeCount.get(f.homeClubId) ?? 0) + 1);
+    awayCount.set(f.awayClubId, (awayCount.get(f.awayClubId) ?? 0) + 1);
   }
   for (const [clubId, count] of appearances) {
-    if (count !== 15) {
-      console.error(`  ✗ [${label}] ${clubId.slice(0, 8)} played ${count} games (expected 15)`);
+    if (count !== expectedGames) {
+      console.error(
+        `  ✗ [${label}] ${clubId.slice(0, 8)} played ${count} games (expected ${expectedGames})`,
+      );
+      bad++;
+    }
+    const h = homeCount.get(clubId) ?? 0;
+    const a = awayCount.get(clubId) ?? 0;
+    if (h !== a) {
+      console.error(
+        `  ✗ [${label}] ${clubId.slice(0, 8)} home/away split ${h}/${a} — should be equal`,
+      );
       bad++;
     }
   }
   if (bad === 0) {
     console.log(
-      `  [${label}] coverage ✓ — ${finished.length} fixtures, every team played 15 games`,
+      `  [${label}] coverage ✓ — ${finished.length} fixtures, every team played ${expectedGames} games (${expectedGames / 2} home, ${expectedGames / 2} away)`,
     );
   }
   return bad;
@@ -420,7 +435,13 @@ async function main() {
         eq(fixtures.status, "finished"),
       ),
     );
-  totalBad += checkFixtureCoverage(s1Fix, 120, "S1 coverage");
+  const clubCount = s1.clubs.length;
+  totalBad += checkFixtureCoverage(
+    s1Fix,
+    clubCount * (clubCount - 1),
+    "S1 coverage",
+    clubCount,
+  );
 
   console.log("\n=== Season 2 (auto-rolled) ===");
   const s2 = await playUntilSeasonEnd(leagueId, "S2");
@@ -441,7 +462,12 @@ async function main() {
         eq(fixtures.status, "finished"),
       ),
     );
-  totalBad += checkFixtureCoverage(s2Fix, 120, "S2 coverage");
+  totalBad += checkFixtureCoverage(
+    s2Fix,
+    clubCount * (clubCount - 1),
+    "S2 coverage",
+    clubCount,
+  );
 
   console.log("\n=== Determinism check ===");
   totalBad += await checkDeterminism(leagueId);

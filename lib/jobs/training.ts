@@ -1,75 +1,110 @@
 /**
- * Daily training + recovery tick.
- *  - Every active player on "training" status gets a small overall bump.
- *    Young players (<=22) progress 3x faster; high-potential players gain more.
- *  - Injured players whose injuryUntil has passed → back to "active".
- *  - Suspension matches counted down (done post-match, but safety sync here).
- *  - Fitness regenerates by +8 per day, capped at 100.
+ * Daily training + recovery tick, and the weekly economy tick.
+ *
+ * Both jobs run across every league in the database, so they are written as
+ * set-based SQL wherever possible. The previous shape issued one UPDATE per
+ * player — roughly 4,000 sequential round-trips at 12 leagues — which on Neon
+ * is 4,000 network hops and a guaranteed serverless timeout. Only the genuinely
+ * per-row decisions (a random training bump) fall back to individual writes,
+ * and those are batched by the value being written.
  */
-import { eq } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, lte, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { players } from "@/lib/schema";
+import { weeklyInterestCents } from "@/lib/economy";
+import { adjustClubBalance } from "@/lib/money";
+import { clubs, feedEvents, players } from "@/lib/schema";
+import { staffById } from "@/lib/staff";
 
 export async function runDailyTraining(opts: { leagueId?: string } = {}) {
-  const where = opts.leagueId ? eq(players.leagueId, opts.leagueId) : undefined;
-  const allPlayers = await (where
-    ? db.select().from(players).where(where)
-    : db.select().from(players));
-
+  const leagueFilter = opts.leagueId
+    ? eq(players.leagueId, opts.leagueId)
+    : undefined;
   const now = new Date();
-  let promoted = 0;
-  let healed = 0;
-  let fitnessBumped = 0;
 
-  for (const p of allPlayers) {
-    const updates: Partial<typeof players.$inferInsert> = {};
+  // 1. Injury recovery — one statement for every player whose lay-off ended.
+  const healedRows = await db
+    .update(players)
+    .set({ status: "active", injuryUntil: null })
+    .where(
+      and(
+        eq(players.status, "injured"),
+        isNotNull(players.injuryUntil),
+        lte(players.injuryUntil, now),
+        ...(leagueFilter ? [leagueFilter] : []),
+      ),
+    )
+    .returning();
+  const healed = healedRows.length;
 
-    // Injury recovery
-    if (p.status === "injured" && p.injuryUntil && p.injuryUntil <= now) {
-      updates.status = "active";
-      updates.injuryUntil = null;
-      healed++;
-    }
+  // 2. Fitness regen — one statement for everyone below 100.
+  const fitnessRows = await db
+    .update(players)
+    .set({
+      fitness: sql`LEAST(100, ${players.fitness} + 8)`,
+    })
+    .where(
+      and(
+        sql`${players.fitness} < 100`,
+        ...(leagueFilter ? [leagueFilter] : []),
+      ),
+    )
+    .returning();
+  const fitnessBumped = fitnessRows.length;
 
-    // Training progression
-    if ((updates.status ?? p.status) === "training" && p.overall < p.potential) {
-      const ageBonus = p.age <= 19 ? 3 : p.age <= 22 ? 2 : p.age <= 26 ? 1 : 0.5;
-      const progress = Math.random() < 0.35 * ageBonus / 2 ? 1 : 0;
-      if (progress > 0) {
-        updates.overall = Math.min(p.potential, p.overall + 1);
-        promoted++;
-      }
-    }
-
-    // Fitness regen
-    if (p.fitness < 100) {
-      updates.fitness = Math.min(100, p.fitness + 8);
-      fitnessBumped++;
-    }
-
-    if (Object.keys(updates).length > 0) {
-      await db.update(players).set(updates).where(eq(players.id, p.id));
-    }
+  // 3. Training progression — genuinely per-player because it is a dice roll,
+  //    but only the winners are written, and they go out as a single batched
+  //    UPDATE ... WHERE id IN (...).
+  const trainees = await db
+    .select()
+    .from(players)
+    .where(
+      and(
+        eq(players.status, "training"),
+        sql`${players.overall} < ${players.potential}`,
+        ...(leagueFilter ? [leagueFilter] : []),
+      ),
+    );
+  const promotedIds: string[] = [];
+  for (const p of trainees) {
+    const ageBonus = p.age <= 19 ? 3 : p.age <= 22 ? 2 : p.age <= 26 ? 1 : 0.5;
+    if (Math.random() < (0.35 * ageBonus) / 2) promotedIds.push(p.id);
+  }
+  if (promotedIds.length > 0) {
+    await db
+      .update(players)
+      .set({ overall: sql`LEAST(${players.potential}, ${players.overall} + 1)` })
+      .where(inArray(players.id, promotedIds));
   }
 
-  return { promoted, healed, fitnessBumped };
+  return { promoted: promotedIds.length, healed, fitnessBumped };
 }
 
+/** Weekly wage bill, staff salaries, bank interest and the sponsor tick. */
 export async function runWeeklyEconomy(opts: { leagueId?: string } = {}) {
-  // Weekly wage deduction + bank interest on positive balance + sponsor
-  // contract tick (decrements weeksLeft, pays season bonus + ends contract).
-  const { clubs, players, feedEvents } = await import("@/lib/schema");
   const allClubs = await (opts.leagueId
     ? db.select().from(clubs).where(eq(clubs.leagueId, opts.leagueId))
     : db.select().from(clubs));
+  if (allClubs.length === 0) return { clubs: 0 };
+
+  // One query for every wage in scope instead of one per club.
+  const clubIds = allClubs.map((c) => c.id);
+  const wageRows = await db
+    .select({ clubId: players.clubId, wage: players.wageCents })
+    .from(players)
+    .where(inArray(players.clubId, clubIds));
+  const wageByClub = new Map<string, number>();
+  for (const r of wageRows) {
+    if (!r.clubId) continue;
+    wageByClub.set(r.clubId, (wageByClub.get(r.clubId) ?? 0) + Number(r.wage));
+  }
+
   for (const c of allClubs) {
-    const squad = await db
-      .select({ wage: players.wageCents })
-      .from(players)
-      .where(eq(players.clubId, c.id));
-    const weeklyWage = squad.reduce((s, r) => s + Number(r.wage), 0);
-    const interest = Math.max(0, Math.round(c.balanceCents * 0.005)); // 0.5% weekly on positive
-    // Staff weekly wages — head coach + physio + scout combined.
+    const weeklyWage = wageByClub.get(c.id) ?? 0;
+    // Interest only accrues on a positive balance — a club in the red does
+    // not earn money for being in the red — and is capped so hoarding cash
+    // never out-earns running the club.
+    const interest = weeklyInterestCents(c.balanceCents);
+
     let staffWage = 0;
     if (c.staffJson) {
       try {
@@ -78,13 +113,14 @@ export async function runWeeklyEconomy(opts: { leagueId?: string } = {}) {
           physio: { id: string };
           scout: { id: string };
         }>;
-        const { staffById } = await import("@/lib/staff");
         for (const ref of [raw.headCoach, raw.physio, raw.scout]) {
-          if (!ref) continue;
+          if (!ref?.id) continue;
           const m = staffById(ref.id);
           if (m) staffWage += m.weeklyWageCents;
         }
-      } catch {}
+      } catch {
+        /* malformed staff JSON — treat as no staff */
+      }
     }
     let delta = -weeklyWage - staffWage + interest;
 
@@ -119,13 +155,15 @@ export async function runWeeklyEconomy(opts: { leagueId?: string } = {}) {
       }
     }
 
-    await db
-      .update(clubs)
-      .set({
-        balanceCents: c.balanceCents + delta,
-        activeSponsorJson: nextSponsorJson,
-      })
-      .where(eq(clubs.id, c.id));
+    // Signed SQL delta, not an absolute write: a transfer completing between
+    // the read above and this line must not be erased.
+    await adjustClubBalance(c.id, delta);
+    if (nextSponsorJson !== c.activeSponsorJson) {
+      await db
+        .update(clubs)
+        .set({ activeSponsorJson: nextSponsorJson })
+        .where(eq(clubs.id, c.id));
+    }
   }
   return { clubs: allClubs.length };
 }

@@ -3,10 +3,12 @@
  *  - sendScout(clubId, params) creates a scout that returns after 8h with 3-5 candidates.
  *  - processScoutReturns() activates scouts whose returnsAt has passed, generating
  *    new Player rows (not yet attached to a club) tagged with resultsJson.
- *  - claimScoutPlayer(scoutId, playerIdx) attaches the player to the club.
+ *  - claimScoutPlayer(callerClubId, scoutId, playerIdx) attaches the player to
+ *    the club, after checking the scout actually belongs to the caller.
  */
 import { and, eq, lt, lte } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { debitClub } from "@/lib/money";
 import { feedEvents, players, scouts, clubs } from "@/lib/schema";
 import type { Position } from "@/types";
 
@@ -285,23 +287,60 @@ export async function processScoutReturns(opts: { leagueId?: string } = {}) {
   return { returned: active.length };
 }
 
+/**
+ * Sign one of a returned scout's candidates.
+ *
+ * `callerClubId` is derived from the session by the caller and is mandatory:
+ * without it any authenticated user could pass someone else's scoutId and
+ * charge that club for a player it never asked for.
+ *
+ * The scout row doubles as the idempotency token — it is flipped to "claimed"
+ * with a conditional UPDATE *before* anything is bought, so two concurrent
+ * clicks cannot both sign a candidate.
+ */
 export async function claimScoutPlayer(
+  callerClubId: string,
   scoutId: string,
   candidateIndex: number,
 ): Promise<{ ok: true; playerId: string } | { ok: false; error: string }> {
   const s = (await db.select().from(scouts).where(eq(scouts.id, scoutId)).limit(1))[0];
-  if (!s || s.status !== "returned") return { ok: false, error: "Geçersiz kaşif" };
+  if (!s) return { ok: false, error: "Geçersiz kaşif" };
+  if (s.clubId !== callerClubId) {
+    return { ok: false, error: "Bu kaşif senin değil." };
+  }
+  if (s.status !== "returned") return { ok: false, error: "Geçersiz kaşif" };
   if (!s.resultsJson) return { ok: false, error: "Aday yok" };
-  const candidates = JSON.parse(s.resultsJson) as ScoutCandidate[];
+  let candidates: ScoutCandidate[] = [];
+  try {
+    const parsed = JSON.parse(s.resultsJson) as ScoutCandidate[];
+    if (Array.isArray(parsed)) candidates = parsed;
+  } catch {
+    return { ok: false, error: "Kaşif raporu okunamadı." };
+  }
+  if (!Number.isInteger(candidateIndex)) {
+    return { ok: false, error: "Aday bulunamadı" };
+  }
   const c = candidates[candidateIndex];
   if (!c) return { ok: false, error: "Aday bulunamadı" };
 
-  // Debit club
-  const club = (
-    await db.select().from(clubs).where(eq(clubs.id, s.clubId)).limit(1)
-  )[0];
-  if (!club) return { ok: false, error: "Kulüp bulunamadı" };
-  if (club.balanceCents < c.marketValueCents) {
+  // Claim the scout first — losing this race means someone already signed.
+  const claimed = await db
+    .update(scouts)
+    .set({ status: "claimed" })
+    .where(and(eq(scouts.id, scoutId), eq(scouts.status, "returned")))
+    .returning();
+  if (claimed.length === 0) {
+    return { ok: false, error: "Bu kaşif raporu zaten kullanıldı." };
+  }
+
+  // Atomic, overdraft-proof debit. On refusal, hand the scout back so the
+  // user can try again once they can afford the fee.
+  const paid = await debitClub(s.clubId, c.marketValueCents);
+  if (!paid) {
+    await db
+      .update(scouts)
+      .set({ status: "returned" })
+      .where(eq(scouts.id, scoutId));
     return { ok: false, error: "Bütçe yetersiz" };
   }
 
@@ -323,13 +362,8 @@ export async function claimScoutPlayer(
     .returning();
 
   await db
-    .update(clubs)
-    .set({ balanceCents: club.balanceCents - c.marketValueCents })
-    .where(eq(clubs.id, club.id));
-
-  await db
     .update(scouts)
-    .set({ status: "claimed", claimedPlayerId: p.id })
+    .set({ claimedPlayerId: p.id })
     .where(eq(scouts.id, scoutId));
 
   return { ok: true, playerId: p.id };
