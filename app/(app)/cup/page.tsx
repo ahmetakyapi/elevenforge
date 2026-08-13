@@ -1,3 +1,4 @@
+import { LiveRefresh } from "@/components/dashboard-auto-refresh";
 import { Trophy } from "lucide-react";
 import { requireLeagueContext } from "@/lib/session";
 import { loadCupBracket, type CupTie } from "@/lib/queries/cup";
@@ -25,6 +26,7 @@ export default async function CupPage() {
         padding: "20px 28px",
       }}
     >
+      <LiveRefresh intervalMs={60_000} />
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
         <div
           style={{

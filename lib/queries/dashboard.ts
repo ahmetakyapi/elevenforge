@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   clubs,
@@ -7,6 +7,7 @@ import {
   players,
 } from "@/lib/schema";
 import type { LeagueContext } from "@/lib/session";
+import { sortStandings } from "@/lib/standings";
 import { tickLoginStreak } from "@/lib/actions/login-streak";
 
 export type DashLeagueRow = {
@@ -115,29 +116,37 @@ export async function loadDashboardData(
 ): Promise<DashboardData> {
   const { league, club } = ctx;
 
-  // Standings — ordered by points, then goal difference (GF-GA), then GF.
-  // This matches real football tiebreak hierarchy.
-  const clubRows = await db
+  const unsortedClubs = await db
     .select()
     .from(clubs)
-    .where(eq(clubs.leagueId, league.id))
-    .orderBy(
-      desc(clubs.seasonPoints),
-      desc(sql`${clubs.seasonGoalsFor} - ${clubs.seasonGoalsAgainst}`),
-      desc(clubs.seasonGoalsFor),
-    );
+    .where(eq(clubs.leagueId, league.id));
 
-  // Last 5 finished fixtures per club to compute form
+  // Finished fixtures for THIS season only, and without the commentary/stats
+  // JSON blobs — the previous query pulled every fixture ever played in the
+  // league along with its full minute-by-minute commentary, on every
+  // dashboard load.
   const finished = await db
-    .select()
+    .select({
+      homeClubId: fixtures.homeClubId,
+      awayClubId: fixtures.awayClubId,
+      homeScore: fixtures.homeScore,
+      awayScore: fixtures.awayScore,
+      status: fixtures.status,
+      playedAt: fixtures.playedAt,
+    })
     .from(fixtures)
     .where(
       and(
         eq(fixtures.leagueId, league.id),
+        eq(fixtures.seasonNumber, league.seasonNumber),
         eq(fixtures.status, "finished"),
       ),
     )
     .orderBy(desc(fixtures.playedAt));
+
+  // Sorted in application code so head-to-head can act as a tiebreak; SQL
+  // ordering alone left clubs level on points/GD/GF in arbitrary row order.
+  const clubRows = sortStandings(unsortedClubs, finished);
 
   const formByClub = new Map<string, Array<"W" | "D" | "L">>();
   for (const c of clubRows) formByClub.set(c.id, []);

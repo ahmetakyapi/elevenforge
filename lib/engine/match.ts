@@ -211,8 +211,10 @@ function teamPower(
   const defCore =
     defDef * 0.5 + defPhys * 0.2 + defPace * 0.1 + defOvr * 0.2;
 
-  // GK: goalkeeping is king.
-  const gkPwr = gk ? gk.goalkeeping * 0.75 + gk.overall * 0.25 : 70;
+  // GK: goalkeeping is king. Playing without one is a disaster, not a
+  // league-average performance — the old fallback of 70 meant an empty net
+  // defended better than a poor keeper.
+  const gkPwr = gk ? gk.goalkeeping * 0.75 + gk.overall * 0.25 : EMPTY_LINE;
 
   // Morale 1-5, 3 neutral. ±3 at extremes.
   const avgMorale =
@@ -556,7 +558,7 @@ export function simulateMatch(input: SimInput): MatchResult {
           runningHome,
           runningAway,
           derby: Boolean(sameCityDerby),
-        }),
+        }, rng),
       });
     } else if (e.kind === "card" && e.cardPlayer) {
       events.push({
@@ -565,11 +567,14 @@ export function simulateMatch(input: SimInput): MatchResult {
         type: "card",
         cardPlayerId: e.cardPlayer.id,
         side: e.side,
-        text: buildCommentary.card({
-          player: e.cardPlayer.name,
-          minute: e.minute,
-          kind: e.cardKind ?? "yellow",
-        }),
+        text: buildCommentary.card(
+          {
+            player: e.cardPlayer.name,
+            minute: e.minute,
+            kind: e.cardKind ?? "yellow",
+          },
+          rng,
+        ),
       });
     } else if (e.kind === "sub" && e.subOut && e.subIn) {
       events.push({

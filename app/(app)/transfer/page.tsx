@@ -1,3 +1,4 @@
+import { LiveRefresh } from "@/components/dashboard-auto-refresh";
 import { requireLeagueContext } from "@/lib/session";
 import { loadTransferData } from "@/lib/queries/transfer";
 import { loadOffers } from "@/lib/queries/offers";
@@ -14,6 +15,7 @@ export default async function TransferPage() {
   ]);
   return (
     <div className="space-y-8">
+      <LiveRefresh intervalMs={30000} />
       <OffersPanel offers={offers} />
       <TransferUi data={data} />
     </div>

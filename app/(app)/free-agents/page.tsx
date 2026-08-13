@@ -1,3 +1,4 @@
+import { LiveRefresh } from "@/components/dashboard-auto-refresh";
 import { UserPlus, UserX } from "lucide-react";
 import { requireLeagueContext } from "@/lib/session";
 import { loadFreeAgents } from "@/lib/queries/free-agents";
@@ -13,6 +14,7 @@ export default async function FreeAgentsPage() {
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "20px 28px 60px" }}>
+      <LiveRefresh intervalMs={45000} />
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
         <div
           style={{

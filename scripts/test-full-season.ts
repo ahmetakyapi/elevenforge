@@ -22,6 +22,7 @@ import { runDailyTraining } from "../lib/jobs/training";
 import { runWeeklyNewspaper } from "../lib/jobs/newspaper";
 import { rollSeasonIfDone } from "../lib/jobs/season";
 import { simulateMatch } from "../lib/engine/match";
+import { parseLineup } from "../lib/lineup";
 import { assertLocalDatabase } from "./guard-remote-db";
 
 type Snapshot = {
@@ -345,6 +346,16 @@ async function checkDeterminism(leagueId: string): Promise<number> {
     console.error("  ✗ [det] finished fixture has null rngSeed");
     return 1;
   }
+  let bad = 0;
+
+  // ── A. The engine is a pure function of (squads, tactics, seed) ──────
+  //
+  // The old check re-simulated a finished fixture against the CURRENT squad
+  // rows and compared to the stored score. That could never be a real
+  // property: applyMatchResult mutates fitness, morale and cards the instant
+  // the match is applied, so the replay runs on different inputs by
+  // construction. It passed or failed on luck. What is genuinely true — and
+  // worth protecting — is that identical inputs produce identical output.
   const [home] = await db.select().from(clubs).where(eq(clubs.id, fx.homeClubId));
   const [away] = await db.select().from(clubs).where(eq(clubs.id, fx.awayClubId));
   const homeSquad = await db
@@ -355,7 +366,7 @@ async function checkDeterminism(leagueId: string): Promise<number> {
     .select()
     .from(players)
     .where(eq(players.clubId, away.id));
-  const replay = simulateMatch({
+  const input = {
     homeClubId: home.id,
     awayClubId: away.id,
     homeClubName: home.name,
@@ -376,18 +387,57 @@ async function checkDeterminism(leagueId: string): Promise<number> {
     },
     homeCity: home.city,
     awayCity: away.city,
+    homeLineup: parseLineup(home.lineupJson),
+    awayLineup: parseLineup(away.lineupJson),
     seed: fx.rngSeed,
-  });
-  if (replay.homeScore !== fx.homeScore || replay.awayScore !== fx.awayScore) {
-    console.error(
-      `  ✗ [det] ${home.shortName}-${away.shortName} stored ${fx.homeScore}-${fx.awayScore}, replay ${replay.homeScore}-${replay.awayScore}`,
+  };
+  const runA = simulateMatch(input);
+  const runB = simulateMatch(input);
+  if (JSON.stringify(runA) !== JSON.stringify(runB)) {
+    console.error("  ✗ [det] same seed + same inputs produced different output");
+    bad++;
+  } else {
+    console.log(
+      `  [det] engine is deterministic — ${runA.homeScore}-${runA.awayScore} reproduced exactly ✓`,
     );
-    return 1;
   }
-  console.log(
-    `  [det] ${home.shortName}-${away.shortName} replay matches stored ${fx.homeScore}-${fx.awayScore} ✓`,
-  );
-  return 0;
+
+  // ── B. A finished fixture never re-rolls ─────────────────────────────
+  //
+  // This is the property players actually feel: a cron retry, or two
+  // instances firing at once, must not change a result that already stands
+  // or double-count its points.
+  const beforeHome = (
+    await db.select().from(clubs).where(eq(clubs.id, fx.homeClubId))
+  )[0];
+  const pointsBefore = beforeHome.seasonPoints;
+  await runMatchDay({ leagueId, autoRoll: false });
+  const afterFx = (
+    await db.select().from(fixtures).where(eq(fixtures.id, fx.id))
+  )[0];
+  const afterHome = (
+    await db.select().from(clubs).where(eq(clubs.id, fx.homeClubId))
+  )[0];
+  if (
+    afterFx.homeScore !== fx.homeScore ||
+    afterFx.awayScore !== fx.awayScore
+  ) {
+    console.error(
+      `  ✗ [det] re-running match-day changed a finished result ` +
+        `${fx.homeScore}-${fx.awayScore} → ${afterFx.homeScore}-${afterFx.awayScore}`,
+    );
+    bad++;
+  } else if (afterHome.seasonPoints !== pointsBefore) {
+    console.error(
+      `  ✗ [det] re-running match-day double-counted points ` +
+        `(${pointsBefore} → ${afterHome.seasonPoints})`,
+    );
+    bad++;
+  } else {
+    console.log("  [det] re-running match-day is a no-op on finished fixtures ✓");
+  }
+
+  return bad;
 }
 
 async function main() {

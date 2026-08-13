@@ -1,3 +1,4 @@
+import { LiveRefresh } from "@/components/dashboard-auto-refresh";
 import { ListOrdered } from "lucide-react";
 import { Crest } from "@/components/ui/primitives";
 import { requireLeagueContext } from "@/lib/session";
@@ -17,6 +18,7 @@ export default async function StandingsPage() {
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "20px 28px 60px" }}>
+      <LiveRefresh intervalMs={45000} />
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
         <div
           style={{

@@ -368,6 +368,20 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
   }
   await db.insert(fixtures).values(fixtureRows);
 
+  // Abandon any cup tie from the season just gone that never got played —
+  // a slot whose feeder round never resolved would otherwise sit
+  // 'scheduled' with a past kick-off forever.
+  await db
+    .update(cupFixtures)
+    .set({ status: "finished" })
+    .where(
+      and(
+        eq(cupFixtures.leagueId, leagueId),
+        eq(cupFixtures.seasonNumber, league.seasonNumber),
+        eq(cupFixtures.status, "scheduled"),
+      ),
+    );
+
   // Assign new board goals + generate cup bracket for the new season.
   await assignSeasonGoals(leagueId);
   await generateCupBracket(leagueId, newSeason);

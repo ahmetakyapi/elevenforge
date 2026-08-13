@@ -23,7 +23,7 @@ import { PressWidget } from "./press-widget";
 import { ExpiringContractsCard } from "./expiring-contracts";
 import { AutoPlayBanner } from "./auto-play-banner";
 import { NextMatchCountdown } from "./next-match-countdown";
-import { DashboardAutoRefresh } from "@/components/dashboard-auto-refresh";
+import { LiveRefresh } from "@/components/dashboard-auto-refresh";
 import type { BoardGoal } from "@/lib/jobs/board";
 import { SPONSORS } from "@/lib/sponsors";
 import { loadClubAchievements } from "@/lib/queries/achievements";
@@ -45,7 +45,7 @@ export default async function DashboardPage() {
         margin: "0 auto",
       }}
     >
-      <DashboardAutoRefresh intervalMs={30_000} />
+      <LiveRefresh intervalMs={30_000} />
       <AutoPlayBanner
         matchTime={ctx.league.matchTime}
         manualAdvance={ctx.league.manualAdvanceEnabled}

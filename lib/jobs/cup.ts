@@ -99,12 +99,25 @@ export async function runCupRound(opts: { leagueId: string }): Promise<{
   played: number;
 }> {
   const now = new Date();
+  const [lg] = await db
+    .select()
+    .from(leagues)
+    .where(eq(leagues.id, opts.leagueId))
+    .limit(1);
+  if (!lg) return { played: 0 };
+
+  // Scoped to the CURRENT season. Without this, a tie left unplayed in an
+  // earlier season (a bracket slot whose feeder round never resolved) stayed
+  // 'scheduled' with a date in the past, so the very next cron tick of a
+  // later season played it — awarding cup prize money and adding goals to
+  // players' totals for a competition that had already finished.
   const due = await db
     .select()
     .from(cupFixtures)
     .where(
       and(
         eq(cupFixtures.leagueId, opts.leagueId),
+        eq(cupFixtures.seasonNumber, lg.seasonNumber),
         eq(cupFixtures.status, "scheduled"),
         lte(cupFixtures.scheduledAt, now),
       ),
