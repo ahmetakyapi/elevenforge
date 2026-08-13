@@ -112,15 +112,6 @@ export default function SquadPage({
   const injured = squad.filter((p) => p.status === "injured").length;
   const suspended = squad.filter((p) => p.status === "suspended").length;
   // Training slot summary — 1 per position group, 4 max total.
-  const trainingByPos = {
-    GK: squad.filter((p) => p.status === "training" && p.pos === "GK").length,
-    DEF: squad.filter((p) => p.status === "training" && p.pos === "DEF").length,
-    MID: squad.filter((p) => p.status === "training" && p.pos === "MID").length,
-    FWD: squad.filter((p) => p.status === "training" && p.pos === "FWD").length,
-  };
-  const trainingFilled =
-    trainingByPos.GK + trainingByPos.DEF + trainingByPos.MID + trainingByPos.FWD;
-
   return (
     <div
       style={{ maxWidth: 1400, margin: "0 auto", padding: "20px 28px 60px" }}
@@ -700,6 +691,12 @@ function PlayerCardGrid({
   const tier = tierPalette(p.ovr);
   const keyAttrs = ROLE_KEY_ATTRS[p.role] ?? POS_FALLBACK_ATTRS[p.pos];
   const valueEur = p.val ?? 0;
+  const form = (p.form ?? []).slice(-5);
+  const avg = avgForm(p);
+  const fit = p.fit ?? 0;
+  const mor = p.mor ?? 0;
+  const fitTone =
+    fit >= 90 ? "var(--emerald)" : fit >= 75 ? "var(--cyan)" : "var(--warn)";
 
   return (
     <div
@@ -991,9 +988,143 @@ function PlayerCardGrid({
             );
           })}
         </div>
+
+        {/*
+          Form, condition and headroom.
+
+          The card carried only numbers — rating, age, value, three attributes
+          — while the three things you actually read a squad for were rendered
+          nowhere in this view: how a player is playing, whether he is fit
+          enough to start, and whether he still has room to grow. All three
+          were already loaded (loadSquad returns form/fit/mor) and only the
+          table view ever showed them. A shape you can scan beats a number you
+          have to compare.
+        */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            marginTop: 12,
+            paddingTop: 10,
+            borderTop: "1px solid var(--border)",
+          }}
+        >
+          {/* Last five ratings, oldest → newest. */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-end",
+              gap: 2,
+              height: 18,
+              flex: "0 0 auto",
+            }}
+            title={
+              form.length
+                ? `Son ${form.length} maç: ${form.join(" · ")} (ort. ${avg.toFixed(2)})`
+                : "Henüz maç oynamadı"
+            }
+          >
+            {form.length === 0 ? (
+              <span
+                className="t-mono"
+                style={{ fontSize: 9, color: "var(--muted-2)" }}
+              >
+                MAÇ YOK
+              </span>
+            ) : (
+              form.map((f, j) => (
+                <span
+                  key={`fm-${j}`}
+                  style={{
+                    width: 5,
+                    // Ratings run 0-10; floor the bar so a bad game is still
+                    // a visible mark rather than nothing at all.
+                    height: `${Math.max(22, Math.min(100, (f / 10) * 100))}%`,
+                    borderRadius: 2,
+                    background: formTone(f),
+                    opacity: 0.55 + (j / Math.max(1, form.length - 1)) * 0.45,
+                  }}
+                />
+              ))
+            )}
+          </div>
+
+          {/* Condition — the reason a starter is on the bench. */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "baseline",
+                marginBottom: 3,
+              }}
+            >
+              <span className="t-label" style={{ fontSize: 9, letterSpacing: "0.1em" }}>
+                KONDİSYON
+              </span>
+              <span
+                className="t-mono"
+                style={{ fontSize: 10, fontWeight: 700, color: fitTone }}
+              >
+                {fit}
+              </span>
+            </div>
+            <div
+              style={{
+                height: 3,
+                borderRadius: 3,
+                background: "var(--panel-2)",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  width: `${Math.max(2, Math.min(100, fit))}%`,
+                  height: "100%",
+                  background: fitTone,
+                  transition: "width 400ms var(--ease)",
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Morale, as five pips rather than a number nobody calibrates. */}
+          <div
+            style={{ display: "flex", gap: 2, flex: "0 0 auto" }}
+            title={`Moral ${mor}/5`}
+          >
+            {[1, 2, 3, 4, 5].map((n) => (
+              <span
+                key={`mo-${n}`}
+                style={{
+                  width: 4,
+                  height: 4,
+                  borderRadius: 999,
+                  background:
+                    n <= mor
+                      ? mor >= 4
+                        ? "var(--emerald)"
+                        : mor >= 3
+                          ? "var(--cyan)"
+                          : "var(--warn)"
+                      : "var(--panel-2)",
+                }}
+              />
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
+}
+
+/** Match-rating colour band, shared by the card sparkline. */
+function formTone(rating: number): string {
+  if (rating >= 8) return "var(--gold)";
+  if (rating >= 7) return "var(--emerald)";
+  if (rating >= 6) return "var(--cyan)";
+  return "var(--muted-2)";
 }
 
 const STATUS_STYLE: Record<string, { bg: string; c: string; label: string }> = {

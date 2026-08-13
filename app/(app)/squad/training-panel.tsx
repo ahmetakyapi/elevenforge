@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useTransition } from "react";
-import { Dumbbell, Plus, X, Zap } from "lucide-react";
+import { AlertTriangle, Dumbbell, Plus, X, Zap } from "lucide-react";
 import { OvrChip, PosBadge } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/toast";
 import { posColor } from "@/lib/utils";
@@ -182,6 +182,7 @@ export function TrainingPanel({ squad }: { squad: Player[] }) {
           }
 
           const room = p.pot - p.ovr;
+          const atCeiling = room <= 0;
           const pct = p.pot > 0 ? Math.round((p.ovr / p.pot) * 100) : 100;
           const speed = speedFor(p.age);
           return (
@@ -189,8 +190,12 @@ export function TrainingPanel({ squad }: { squad: Player[] }) {
               key={pos}
               style={{
                 borderRadius: 14,
-                border: `1px solid color-mix(in oklab, ${tint} 40%, var(--border))`,
-                background: `linear-gradient(160deg, color-mix(in oklab, ${tint} 12%, var(--bg-2)), var(--bg-2))`,
+                border: atCeiling
+                  ? "1px solid color-mix(in oklab, var(--warn, #f59e0b) 35%, var(--border))"
+                  : `1px solid color-mix(in oklab, ${tint} 40%, var(--border))`,
+                background: atCeiling
+                  ? "var(--bg-2)"
+                  : `linear-gradient(160deg, color-mix(in oklab, ${tint} 12%, var(--bg-2)), var(--bg-2))`,
                 padding: 14,
                 display: "flex",
                 flexDirection: "column",
@@ -247,7 +252,13 @@ export function TrainingPanel({ squad }: { squad: Player[] }) {
               </div>
 
               {/* Progress toward the ceiling — the number that actually
-                  matters when choosing who to train. */}
+                  matters when choosing who to train.
+
+                  A player already at his ceiling used to render as a solid
+                  full bar over "77 → 77": indistinguishable from a player
+                  making progress, and in a warm position colour it read as an
+                  error. He cannot improve, so the slot is being wasted — say
+                  so, and point at the way out. */}
               <div style={{ marginTop: "auto" }}>
                 <div
                   style={{
@@ -262,7 +273,9 @@ export function TrainingPanel({ squad }: { squad: Player[] }) {
                       width: `${pct}%`,
                       height: "100%",
                       borderRadius: 999,
-                      background: tint,
+                      background: atCeiling
+                        ? "color-mix(in oklab, var(--muted) 55%, transparent)"
+                        : tint,
                       transition: "width var(--t) var(--ease)",
                     }}
                   />
@@ -272,23 +285,40 @@ export function TrainingPanel({ squad }: { squad: Player[] }) {
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 6,
                     fontSize: 10,
                     color: "var(--muted)",
                     marginTop: 5,
                   }}
                 >
-                  <span>
-                    {p.ovr} → {p.pot}
-                    {room > 0 && (
+                  {atCeiling ? (
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        color: "var(--warn, #f59e0b)",
+                        fontWeight: 700,
+                      }}
+                      title={`${p.n} potansiyelinin tavanında (${p.pot}) — bu slot boşa gidiyor.`}
+                    >
+                      <AlertTriangle size={10} strokeWidth={2.2} />
+                      TAVANDA · SLOT BOŞA GİDİYOR
+                    </span>
+                  ) : (
+                    <span>
+                      {p.ovr} → {p.pot}
                       <span style={{ color: tint }}> · +{room} kaldı</span>
-                    )}
-                  </span>
+                    </span>
+                  )}
                   <span
                     style={{
-                      color: speed.tone,
+                      color: atCeiling ? "var(--muted)" : speed.tone,
                       display: "inline-flex",
                       alignItems: "center",
                       gap: 3,
+                      flexShrink: 0,
                     }}
                     title={`${p.age} yaş — gelişim hızı ${speed.mult}`}
                   >
