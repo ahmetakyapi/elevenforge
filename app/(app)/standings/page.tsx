@@ -36,13 +36,14 @@ export default async function StandingsPage() {
         </div>
         <div>
           <span className="t-label" style={{ color: "var(--accent)" }}>
-            PUAN DURUMU
+            PUAN DURUMU · {d.division.name.toUpperCase()}
           </span>
           <div className="t-h1" style={{ marginTop: 4 }}>
             {d.leagueInfo.name}
           </div>
           <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>
-            Sezon {d.leagueInfo.seasonNumber} · Hafta {d.leagueInfo.weekNumber} ·
+            Sezon {d.leagueInfo.seasonNumber} · Hafta {d.leagueInfo.weekNumber} ·{" "}
+            {d.division.name}, {d.division.size} takım ·{" "}
             {d.leagueInfo.memberCount} insan + {d.leagueInfo.botCount} bot
           </div>
         </div>

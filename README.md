@@ -192,7 +192,8 @@ iOS 16.4+ için kullanıcının PWA'yı Ana Ekran'a eklemesi gerekir.
 
 | Komut | İşlev |
 |-------|-------|
-| `npm run dev` | Next dev server (Turbopack) |
+| `npm run dev` | Next dev server — **her zaman yerel DB** |
+| `npm run dev:remote` | Dev server, `.env.local`'daki DB'ye (production) bağlanır |
 | `npm run build` | Prod build |
 | `npm run lint` | ESLint |
 | `npm run db:generate` | Drizzle migration üret (şema değişince) |

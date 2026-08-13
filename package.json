@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "DATABASE_URL= next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -12,7 +12,7 @@
     "db:seed": "tsx scripts/seed.ts",
     "db:reseed-squads": "tsx scripts/reseed-squads.ts",
     "db:reset": "node -e \"require('fs').rmSync('./data/pgdata',{recursive:true,force:true})\" && DATABASE_URL= npm run db:migrate && DATABASE_URL= npm run db:seed",
-    "cron:dev": "tsx scripts/cron-dev.ts",
+    "cron:dev": "DATABASE_URL= tsx scripts/cron-dev.ts",
     "db:status": "tsx scripts/db-status.ts",
     "test:season": "DATABASE_URL= tsx scripts/test-full-season.ts",
     "test:multi": "DATABASE_URL= tsx scripts/test-multiplayer.ts",
@@ -20,7 +20,8 @@
     "test:longevity": "DATABASE_URL= tsx scripts/test-longevity.ts",
     "test:all": "npm run db:reset && npm run test:ai && npm run test:multi && npm run test:exploits && npm run test:longevity",
     "test:exploits": "DATABASE_URL= tsx scripts/test-exploits.ts",
-    "build:squads": "tsx scripts/build-squad-packs.ts"
+    "build:squads": "tsx scripts/build-squad-packs.ts",
+    "dev:remote": "next dev"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.4.4",

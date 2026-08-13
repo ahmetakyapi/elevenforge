@@ -97,6 +97,8 @@ export type DashboardData = {
   };
   nextFixture: DashNextFixture;
   standings: DashLeagueRow[];
+  /** Which tier the manager is in, and what it is called. */
+  division: { number: number; name: string; size: number };
   feed: DashFeedItem[];
   squadStatus: DashSquadStatus;
   crestLookup: CrestLookup;
@@ -333,6 +335,11 @@ export async function loadDashboardData(
   const streak = await tickLoginStreak(ctx.user.id);
 
   return {
+    division: {
+      number: club.division,
+      name: club.division === 1 ? "Süper Lig" : "1. Lig",
+      size: clubRows.length,
+    },
     myClub: {
       id: club.id,
       name: club.name,

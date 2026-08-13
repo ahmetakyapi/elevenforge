@@ -16,6 +16,7 @@
 // Must be first: populates process.env from .env.local before anything
 // reads it at module load time.
 import "./load-env";
+import { assertLocalDatabase } from "./guard-remote-db";
 import {
   runAiManagers,
   syncInactiveManagers,
@@ -57,6 +58,10 @@ async function fire(j: Job) {
 }
 
 async function main() {
+  // This runs match-day, the weekly economy and the AI managers. Pointed at
+  // production it would simulate real users' matches and pay out their
+  // economy on a laptop's timer.
+  assertLocalDatabase("cron:dev");
   console.log("⏰ dev cron runner starting");
   for (const j of JOBS) {
     await fire(j);

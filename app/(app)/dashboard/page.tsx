@@ -388,7 +388,7 @@ export default async function DashboardPage() {
             {d.myClub.points}
           </div>
           <div className="t-small" style={{ color: "var(--muted)" }}>
-            16 takım içinde
+            {d.division.size} takım içinde · {d.division.name}
           </div>
         </GlassCard>
         <GlassCard pad={18} hover={false}>

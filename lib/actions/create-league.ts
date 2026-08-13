@@ -334,7 +334,7 @@ export async function createStarterLeague(input: {
     })
     .returning();
 
-  // 16 clubs — shuffle the mock CLUBS and let user own the first one,
+  // Both tiers — the user owns the first top-flight club,
   // renamed to their chosen team name.
   //
   // One club per Süper Lig pack. User owns pack 0 (Fenerbahçe),

@@ -889,7 +889,7 @@ function CrewSection() {
             }}
           >
             Davet linkiyle ligini kur. Boş kalan slotları bot takımlar doldurur.
-            Her üye farklı şehri yönetir, ligde 16 takım kıyasıya rekabet eder.
+            Her üye farklı şehri yönetir; 18 takımlı Süper Lig ve altındaki 1. Lig kıyasıya rekabet eder.
           </p>
           <div style={{ display: "flex", gap: 18, marginTop: 26 }}>
             {[
@@ -2012,7 +2012,7 @@ function NewspaperCard({
             fontFamily: "var(--font-jetbrains)",
           }}
         >
-          <span>s. 1 / 16</span>
+          <span>s. 1 / 18</span>
           <span>₺ 12.50</span>
         </div>
       </div>
