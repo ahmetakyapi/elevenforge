@@ -4,6 +4,7 @@ import "./load-env";
 import { writeFileSync } from "node:fs";
 import { RAW_CLUBS, RAW_DIVISION_2, type RawClub } from "./squad-source";
 import type { Position } from "../types";
+import { marketValueCents, wageFromValueCents } from "../lib/economy";
 
 /**
  * Generate lib/squad-packs.ts from scripts/squad-source.ts.
@@ -127,7 +128,26 @@ function hash(str: string): number {
 type Built = {
   n: string; pos: Position; role: string; num?: number;
   age: number; ovr: number; pot: number; nat: string;
+  /** Market value in EUR. */ val: number;
+  /** Weekly wage in EUR. */ wage: number;
 };
+
+/**
+ * Price a player from what he is.
+ *
+ * This MUST be emitted. create-league.ts and seed.ts read `p.val` / `p.wage`
+ * with fallbacks of €1M and €100K, so a pack that omits them silently makes
+ * every player in the game worth exactly €1M on identical wages — which
+ * flattens the transfer market, the AI's valuations, free-agent fees and the
+ * listing bands all at once.
+ */
+function priceOf(ovr: number, pot: number, age: number): { val: number; wage: number } {
+  const cents = marketValueCents(ovr, pot, age);
+  return {
+    val: Math.round(cents / 100),
+    wage: Math.round(wageFromValueCents(cents) / 100),
+  };
+}
 
 function buildPlayer(line: string, club: RawClub): Built {
   const [numRaw, name, tmPos, ageRaw, natRaw] = line.split("|");
@@ -151,7 +171,9 @@ function buildPlayer(line: string, club: RawClub): Built {
   const pot = Math.min(94, ovr + (room > 0 ? room - (hash(name + "p") % 3) : 0));
 
   const num = numRaw === "-" ? undefined : Number(numRaw);
-  return { n: name, pos: mapped.pos, role: mapped.role, num, age, ovr, pot: Math.max(pot, ovr), nat };
+  const finalPot = Math.max(pot, ovr);
+  const { val, wage } = priceOf(ovr, finalPot, age);
+  return { n: name, pos: mapped.pos, role: mapped.role, num, age, ovr, pot: finalPot, nat, val, wage };
 }
 
 /**
@@ -278,9 +300,11 @@ function generateSquad(club: RawClub): Built[] {
       const ageAdj = age <= 20 ? -4 : age <= 23 ? -1 : age <= 29 ? 2 : 0;
       const ovr = Math.max(52, Math.min(74, TIER_BASE[club.tier] + ageAdj + Math.floor(rand() * 7) - 3));
       const room = age <= 20 ? 12 : age <= 23 ? 8 : age <= 26 ? 4 : 0;
+      const genPot = Math.min(88, ovr + room);
+      const { val, wage } = priceOf(ovr, genPot, age);
       out.push({
         n: name, pos: slot.pos, role: slot.role, num: shirt++,
-        age, ovr, pot: Math.min(88, ovr + room), nat: "TR",
+        age, ovr, pot: genPot, nat: "TR", val, wage,
       });
     }
   }
@@ -303,7 +327,7 @@ function emitClub(club: RawClub): string {
     for (const p of group) {
       const num = p.num === undefined ? "" : ` num: ${p.num},`;
       lines.push(
-        `    { n: "${esc(p.n)}", pos: "${p.pos}", role: "${p.role}",${num} age: ${p.age}, ovr: ${p.ovr}, pot: ${p.pot}, nat: "${p.nat}" },`,
+        `    { n: "${esc(p.n)}", pos: "${p.pos}", role: "${p.role}",${num} age: ${p.age}, ovr: ${p.ovr}, pot: ${p.pot}, nat: "${p.nat}", val: ${p.val}, wage: ${p.wage} },`,
       );
     }
   }
@@ -355,6 +379,10 @@ type Seed = {
   ovr: number;
   pot: number;
   nat: string;
+  /** Market value in EUR — consumed by create-league/seed as p.val. */
+  val: number;
+  /** Weekly wage in EUR — consumed as p.wage. */
+  wage: number;
   status?: PlayerStatus;
 };
 
@@ -370,6 +398,8 @@ function pack(club: ClubMeta, seeds: Seed[]): SquadPack {
       ovr: s.ovr,
       pot: s.pot,
       nat: s.nat,
+      val: s.val,
+      wage: s.wage,
       status: s.status,
     })),
   };

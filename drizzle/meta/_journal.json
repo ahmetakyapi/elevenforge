@@ -141,6 +141,13 @@
       "when": 1776636346598,
       "tag": "0019_divisions",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1776636347598,
+      "tag": "0020_reprice_players",
+      "breakpoints": true
     }
   ]
 }

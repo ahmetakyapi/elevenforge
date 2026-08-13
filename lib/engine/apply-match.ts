@@ -69,9 +69,23 @@ export async function applyMatchResult(
 
     // 2. Update clubs. Points and money are applied as SQL-level deltas so a
     //    concurrent transfer or sponsor payment can't be clobbered.
-    for (const side of [result.homeUpdate, result.awayUpdate]) {
+    //
+    //    Gate receipts scale with prestige, so both clubs' current standing is
+    //    needed before any money moves. One query, inside the transaction.
+    const sides = [result.homeUpdate, result.awayUpdate];
+    const prestigeRows = await tx
+      .select({ id: clubs.id, prestige: clubs.prestige })
+      .from(clubs)
+      .where(inArray(clubs.id, sides.map((s) => s.clubId)));
+    const prestigeById = new Map(prestigeRows.map((r) => [r.id, r.prestige]));
+
+    for (const side of sides) {
       const isHome = side.clubId === result.homeUpdate.clubId;
-      const income = matchIncomeCents(side.result, isHome);
+      const income = matchIncomeCents(
+        side.result,
+        isHome,
+        prestigeById.get(side.clubId) ?? 50,
+      );
       await tx
         .update(clubs)
         .set({

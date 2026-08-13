@@ -21,7 +21,9 @@
     "test:all": "npm run db:reset && npm run test:ai && npm run test:multi && npm run test:exploits && npm run test:longevity",
     "test:exploits": "DATABASE_URL= tsx scripts/test-exploits.ts",
     "build:squads": "tsx scripts/build-squad-packs.ts",
-    "dev:remote": "next dev"
+    "dev:remote": "next dev",
+    "db:reprice": "tsx scripts/reprice-players.ts",
+    "db:repair-leagues": "tsx scripts/repair-empty-leagues.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.4.4",
@@ -50,6 +52,7 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "playwright": "^1.62.1",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5"

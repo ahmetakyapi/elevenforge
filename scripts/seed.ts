@@ -26,7 +26,11 @@ import {
 } from "../lib/schema";
 import { SQUAD_PACKS, SQUAD_PACKS_D2 } from "../lib/squad-packs";
 import { roundRobin as sharedRoundRobin } from "../lib/jobs/season";
-import { STARTING_BALANCE_CENTS } from "../lib/economy";
+import {
+  marketValueCents,
+  STARTING_BALANCE_CENTS,
+  wageFromValueCents,
+} from "../lib/economy";
 import type { Position } from "../types";
 import { assertLocalDatabase } from "./guard-remote-db";
 
@@ -229,15 +233,8 @@ function generatePlayerForClub(
   const potCap = Math.min(95, ovr + Math.floor(r() * 12));
   // Young players have higher potential upside
   const pot = age <= 21 ? Math.max(ovr + 3, potCap) : Math.max(ovr, potCap);
-  // Market value roughly scales with overall^3
-  const valueEur = Math.max(
-    300_000,
-    Math.round(
-      Math.pow(ovr - 55, 2.6) * 22_000 * (1 + (pot - ovr) * 0.08) *
-        (age <= 24 ? 1.2 : age >= 31 ? 0.7 : 1.0),
-    ),
-  );
-  const wageEur = Math.max(12_000, Math.round(valueEur / 200));
+  const valueCents = marketValueCents(ovr, pot, age);
+  const wageCents = wageFromValueCents(valueCents);
   const attrs = computeAttrsFromOvr(ovr, role, r);
   return {
     leagueId,
@@ -254,8 +251,8 @@ function generatePlayerForClub(
     ...attrs,
     fitness: 85 + Math.floor(r() * 15),
     morale: 3 + Math.floor(r() * 3),
-    wageCents: wageEur * 100,
-    marketValueCents: valueEur * 100,
+    wageCents,
+    marketValueCents: valueCents,
     contractYears: 1 + Math.floor(r() * 5),
     status: "active",
     lastRatings: JSON.stringify(

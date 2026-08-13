@@ -11,6 +11,7 @@ import { db } from "@/lib/db";
 import { debitClub } from "@/lib/money";
 import { feedEvents, players, scouts, clubs } from "@/lib/schema";
 import type { Position } from "@/types";
+import { marketValueCents, wageFromValueCents } from "@/lib/economy";
 
 const CLAIM_WINDOW_MS = 48 * 3600 * 1000;
 
@@ -186,9 +187,7 @@ function genCandidate(
     Math.floor(Math.random() * (ageRange[1] - ageRange[0] + 1));
   const overall = Math.round(68 + Math.random() * 12); // 68-80
   const potential = Math.min(95, overall + Math.floor(Math.random() * 14));
-  const valueEur = Math.round(
-    Math.pow(overall - 55, 2.5) * 25_000 * (1 + (potential - overall) * 0.1),
-  );
+  const valueCents = marketValueCents(overall, potential, age);
   const roleChoices: Record<Position, string[]> = {
     GK: ["GK"],
     DEF: ["CB", "LB", "RB"],
@@ -207,8 +206,8 @@ function genCandidate(
     age,
     overall,
     potential,
-    marketValueCents: valueEur * 100,
-    wageCents: Math.round((valueEur / 200) * 100),
+    marketValueCents: valueCents,
+    wageCents: wageFromValueCents(valueCents),
   };
 }
 

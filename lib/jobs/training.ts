@@ -80,7 +80,15 @@ export async function runDailyTraining(opts: { leagueId?: string } = {}) {
 }
 
 /**
- * Weekly wage bill, staff salaries, bank interest and the sponsor tick.
+ * The wage bill, staff salaries, bank interest and the sponsor tick — one
+ * game week's worth.
+ *
+ * RUNS ONCE PER MATCH DAY, not once per calendar week. A round is played every
+ * day, so a match day is this game's football week: it is what the fixture
+ * list, the sponsor's `weeksLeft` and the league's `weekNumber` all count in.
+ * Charging wages on a real calendar week instead meant a club banked seven
+ * match fees against a single wage charge and ran a €23M/week surplus with
+ * nothing to spend it on. Income and costs now share one clock.
  *
  * Idempotent per club. This job sweeps every club in the database, so it is
  * exactly the kind of long-running webhook QStash retries after a timeout —
@@ -99,8 +107,10 @@ export async function runWeeklyEconomy(
     : db.select().from(clubs));
   if (allClubs.length === 0) return { clubs: 0 };
 
-  // A tick may not run twice within this window for the same club.
-  const COOLDOWN_MS = 6 * 24 * 3600 * 1000;
+  // A tick may not run twice within this window for the same club. Sized just
+  // under a day so the daily cron always claims, but a QStash retry minutes
+  // later never double-charges.
+  const COOLDOWN_MS = 20 * 3600 * 1000;
   const now = new Date();
   const cutoff = new Date(now.getTime() - COOLDOWN_MS);
 

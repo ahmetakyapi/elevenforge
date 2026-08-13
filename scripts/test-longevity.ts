@@ -30,11 +30,6 @@ import {
  */
 const SEASONS = 4;
 
-/** One round is played per calendar day; the economy cron runs weekly. */
-const ROUNDS_PER_WEEK = 7;
-
-/** Rounds played across the whole run, so the weekly job fires weekly. */
-let roundsPlayed = 0;
 
 let bad = 0;
 const ok = (cond: boolean, msg: string) => {
@@ -93,15 +88,11 @@ async function playSeason(leagueId: string): Promise<void> {
     await runWeeklyNewspaper({ leagueId });
     await runPriceDecay({ leagueId });
 
-    // The economy job is WEEKLY in production (README: /api/cron/economy,
-    // haftada bir) while a round is played every day. Calling it once per
-    // round charged the wage bill seven times over and made the league look
-    // bankrupt — the mirror image of the gate-receipt bug it was supposed to
-    // be measuring. Model the real cadence instead.
-    roundsPlayed++;
-    if (roundsPlayed % ROUNDS_PER_WEEK === 0) {
-      await runWeeklyEconomy({ leagueId, force: true });
-    }
+    // The economy job runs once per MATCH DAY in production, because a match
+    // day is this game's football week — see the note on runWeeklyEconomy.
+    // Income and the wage bill therefore share one clock, and this loop must
+    // model that or it measures an economy that does not exist.
+    await runWeeklyEconomy({ leagueId, force: true });
 
     const [now] = await db
       .select()

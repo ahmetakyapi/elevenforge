@@ -9,7 +9,7 @@
  *  - training:      every 12 hours
  *  - match-day:     every 5 minutes (picks up any due fixtures)
  *  - newspaper:     every 10 minutes (generates missing papers)
- *  - economy:       every 6 hours
+ *  - economy:       every 6 hours (claim-gated to one tick per match day)
  *  - ai-managers:   every 15 minutes (bots pick line-ups, trade, negotiate)
  *  - inactivity:    every 30 minutes (hands dormant clubs to the AI)
  */

@@ -4,21 +4,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ArrowLeftRight,
-  BarChart2,
-  Bell,
   Home,
   ListOrdered,
   MessageSquare,
   Newspaper,
   Play,
   LogOut,
-  Settings,
   Target,
   Trophy,
-  User2,
   Users,
-  UserPlus,
-  Users2,
   type LucideIcon,
 } from "lucide-react";
 import { Crest } from "@/components/ui/primitives";
@@ -27,6 +21,7 @@ import { LeagueSwitcher, type OwnedLeague } from "@/app/(app)/league-switcher";
 import { PushSubscribeButton } from "@/components/push-subscribe";
 import { MobileDrawer } from "./mobile-drawer";
 import { signOutAction } from "@/app/(app)/session-actions";
+import { NavOverflow } from "./nav-overflow";
 
 type NavItem = {
   href: string;
@@ -106,7 +101,17 @@ export function TopNav({
 
         <nav
           className="desktop-only"
-          style={{ display: "flex", gap: 2, flex: 1, marginLeft: 20, overflowX: "auto" }}
+          style={{
+            display: "flex",
+            gap: 2,
+            flex: 1,
+            marginLeft: 20,
+            // No overflowX: the secondary links moved into NavOverflow, so the
+            // primary row fits. A horizontal scrollbar on top-level navigation
+            // hides where you are going.
+            flexWrap: "nowrap",
+            minWidth: 0,
+          }}
         >
           {NAV_MAIN.map(({ href, label, Icon }) => {
             const active = pathname === href || pathname.startsWith(`${href}/`);
@@ -145,57 +150,7 @@ export function TopNav({
         </nav>
 
         <div data-topnav-right style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <Link
-            href="/crew"
-            className="btn btn-ghost btn-sm desktop-only"
-            title="Crew · sohbet ve etkinlik akışı"
-            style={{ textDecoration: "none" }}
-          >
-            <Bell size={14} strokeWidth={1.6} />
-          </Link>
-          <Link
-            href="/stats"
-            className="btn btn-ghost btn-sm desktop-only"
-            style={{ textDecoration: "none" }}
-            title="İstatistikler"
-          >
-            <BarChart2 size={14} strokeWidth={1.6} />
-          </Link>
-          <Link
-            href="/free-agents"
-            className="btn btn-ghost btn-sm desktop-only"
-            style={{ textDecoration: "none" }}
-            title="Serbest oyuncular"
-          >
-            <UserPlus size={14} strokeWidth={1.6} />
-          </Link>
-          <Link
-            href="/profile"
-            className="btn btn-ghost btn-sm desktop-only"
-            style={{ textDecoration: "none" }}
-            title="Menajer profili"
-          >
-            <User2 size={14} strokeWidth={1.6} />
-          </Link>
-          <Link
-            href="/league-settings"
-            className="btn btn-ghost btn-sm desktop-only"
-            style={{ textDecoration: "none" }}
-            title="Lig ayarları"
-          >
-            <Settings size={14} strokeWidth={1.6} />
-          </Link>
-          {/* Nothing linked to /lobby anywhere in the app, so a manager who
-              wanted to join a friend's league with an invite code — or start
-              a second one — simply could not get there. */}
-          <Link
-            href="/lobby"
-            className="btn btn-ghost btn-sm desktop-only"
-            style={{ textDecoration: "none" }}
-            title="Lige katıl veya yeni lig kur"
-          >
-            <Users2 size={14} strokeWidth={1.6} />
-          </Link>
+          <NavOverflow />
           <PushSubscribeButton />
           <MobileDrawer />
           <div className="v-divider desktop-only" style={{ height: 22 }} />

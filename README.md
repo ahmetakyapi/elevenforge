@@ -160,7 +160,7 @@ npm run dev
 | `POST /api/cron/scout-returns` | 15 dk'da bir |
 | `POST /api/cron/training` | günde bir |
 | `POST /api/cron/newspaper` | match-day'den hemen sonra |
-| `POST /api/cron/economy` | haftada bir |
+| `POST /api/cron/economy` | günde bir (maç günü = oyun haftası) |
 | `POST /api/cron/ai-managers` | 15 dk'da bir |
 
 Maç saati artık ligin **saat dilimine** göre yorumlanıyor (`leagues.time_zone`,

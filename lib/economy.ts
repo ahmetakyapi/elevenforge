@@ -26,29 +26,50 @@
 export const STARTING_BALANCE_CENTS = 25_000_000_000; // €250M
 
 /**
- * Gate receipts per match, in cents.
+ * Match-day revenue, in cents.
  *
- * IMPORTANT: a round is played every calendar day (fixtures are scheduled
- * `matchKickoff(now, r, ...)` for round r), while the wage bill is charged by
- * a WEEKLY cron. So a club banks about seven match fees per wage charge.
+ * ONE CLOCK. A round is played every calendar day, so in this game a match day
+ * *is* a football week — that is the unit the wage bill, the sponsor contract
+ * and the bank interest are all denominated in. The economy tick therefore
+ * runs once per match day (see runWeeklyEconomy), and these figures are per
+ * match, i.e. per game week, against the full weekly wage bill rather than a
+ * seventh of it.
  *
- * The first version of this table was sized as if one match were played per
- * week, which handed every club roughly seven times its intended income —
- * after four simulated seasons the leaders were sitting on over a billion.
- * These figures are sized per match against a per-match share of the wage
- * bill (€6.8M/week ÷ 7 ≈ €0.97M/match):
+ * Getting this wrong is what inflated the economy twice over. The table was
+ * first sized as if a match were played weekly while rounds ran daily, paying
+ * seven times the intended income. That was corrected by shrinking the gate —
+ * but the wage bill was still charged on a real-calendar week, so clubs banked
+ * seven match fees per wage charge and ran €23M/week surpluses. Aligning the
+ * clocks removes the factor of seven at its source.
  *
- *   average gate ≈ €3.7M/match → ≈ €26M/week against €6.8M of wages
- *   → roughly €80M of operating surplus over a 30-match season, i.e. about
- *     one significant signing a year for a well-run club.
+ * BASE RATES are the revenue of an average top-flight club. `prestige` scales
+ * them: a big club sells more tickets, shirts and broadcast rights, and needs
+ * to, because its wage bill is roughly eight times a bottom club's. Flat
+ * revenue against an eight-fold wage spread meant small clubs printed money
+ * they had nothing to spend on while the giants stagnated.
  */
+function prestigeRevenueFactor(prestige: number): number {
+  return 0.35 + (Math.max(0, Math.min(100, prestige)) / 100) * 1.3;
+}
+
 export function matchIncomeCents(
   result: "W" | "D" | "L",
   isHome: boolean,
+  prestige = 50,
 ): number {
-  if (result === "W") return isHome ? 600_000_000 : 350_000_000; // €6.0M / €3.5M
-  if (result === "D") return isHome ? 460_000_000 : 270_000_000; // €4.6M / €2.7M
-  return isHome ? 350_000_000 : 190_000_000; //                    €3.5M / €1.9M
+  const base =
+    result === "W"
+      ? isHome
+        ? 270_000_000 // €2.70M
+        : 158_000_000 // €1.58M
+      : result === "D"
+        ? isHome
+          ? 207_000_000 // €2.07M
+          : 122_000_000 // €1.22M
+        : isHome
+          ? 158_000_000 // €1.58M
+          : 86_000_000; // €0.86M
+  return Math.round(base * prestigeRevenueFactor(prestige));
 }
 
 /**
@@ -62,23 +83,94 @@ export function matchIncomeCents(
  *
  * Mirrors the generation curve in create-league.ts so values stay on one
  * scale across generated, scouted and academy players.
+ *
+ * CALIBRATION. The first curve had two flaws that showed up the moment real
+ * squads were priced with it:
+ *
+ *   - The age factor only recognised three brackets and put the cliff at 31,
+ *     so a 30-year-old was still priced at his peak.
+ *   - The potential bonus (up to +40%) never decayed with age, so a 32-year-old
+ *     carrying potential 95 was valued ABOVE a 23-year-old of the same rating.
+ *     A veteran is not worth more for a ceiling he has run out of time to
+ *     reach. Sakarya Nehir's 32-year-old came out at €200M.
+ *
+ * It was also simply too flat: the exponent over `overall - 55` compressed the
+ * gap between a squad player and a star, so a 70-rated filler was worth €19M
+ * and everyone in the league looked expensive.
+ *
+ * The curve below is anchored on three points, in euros:
+ *
+ *     ovr 92, age 25          → €157M   (ceiling — nobody should exceed this)
+ *     ovr 84, age 26, pot 86  →  €62M   (a league's marquee signing)
+ *     ovr 70, age 25          →   €3.7M (a squad player is affordable)
+ *
+ * a 27× spread between filler and star, against 10× before. That spread is
+ * what makes the transfer market a series of decisions rather than a shopping
+ * list, and it is what "balance the strengths" actually needs: the table below
+ * has to make a 1. Lig squad cheap and a Süper Lig starting XI expensive.
  */
+
+/** Value multiplier by age. Peaks 21-26, falls off a cliff after 30. */
+function ageFactor(age: number): number {
+  if (age <= 18) return 1.0;
+  if (age <= 20) return 1.15;
+  if (age <= 23) return 1.25;
+  if (age <= 26) return 1.2;
+  if (age <= 28) return 1.0;
+  if (age <= 30) return 0.72;
+  if (age <= 32) return 0.42;
+  if (age <= 34) return 0.26;
+  return 0.15;
+}
+
+/**
+ * How much each point of unrealised potential is worth, as a fraction of base.
+ * Decays to nothing: room to grow is only worth paying for while there are
+ * years left to grow into it.
+ */
+function potentialWeight(age: number): number {
+  if (age <= 20) return 0.045;
+  if (age <= 23) return 0.032;
+  if (age <= 26) return 0.018;
+  if (age <= 29) return 0.007;
+  return 0;
+}
+
 export function marketValueCents(
   overall: number,
   potential: number,
   age: number,
 ): number {
-  const ageFactor = age <= 24 ? 1.2 : age >= 31 ? 0.7 : 1.0;
+  const headroom = Math.max(0, potential - overall);
   const valueEur = Math.max(
     300_000,
     Math.round(
-      Math.pow(Math.max(0, overall - 55), 2.6) *
-        22_000 *
-        (1 + Math.max(0, potential - overall) * 0.08) *
-        ageFactor,
+      Math.pow(Math.max(0, overall - 58), 3.6) *
+        400 *
+        ageFactor(age) *
+        (1 + headroom * potentialWeight(age)),
     ),
   );
   return valueEur * 100;
+}
+
+/**
+ * Weekly wage implied by a valuation.
+ *
+ * One divisor, used by the squad-pack generator, the academy, the scouts and
+ * the repricing script, so a player's wage always tracks what he is worth.
+ * €100M of value costs €500K/week, which is about €26M a year — the right
+ * order of magnitude, and it keeps a top club's bill near the €6.8M/week that
+ * `matchIncomeCents` above is sized against.
+ */
+export const WAGE_DIVISOR = 200;
+export const MIN_WEEKLY_WAGE_CENTS = 1_200_000; // €12K/week
+
+export function wageFromValueCents(valueCents: number): number {
+  return Math.max(
+    MIN_WEEKLY_WAGE_CENTS,
+    Math.round(valueCents / WAGE_DIVISOR / 100) * 100,
+  );
 }
 
 /**
@@ -108,14 +200,21 @@ export const MIN_LISTING_MULTIPLIER = 0.5;
 export const MAX_LISTING_MULTIPLIER = 1.8;
 
 /**
- * Weekly interest on a positive balance.
+ * Interest on a positive balance, per economy tick.
  *
  * At the old 0.5% this compounded to +16% per season, which rewarded sitting
  * on cash more reliably than running a football club. It is now small and
  * capped, so it offsets a little inflation without becoming a strategy.
+ *
+ * A TICK IS A MATCH DAY, roughly 34 per season rather than the ~5 real weeks
+ * a season occupies. The rate is per tick, so it was divided by seven when the
+ * economy moved onto the match-day clock — left alone it would have paid seven
+ * times the intended interest, and the clubs it pays most are the ones already
+ * holding the most cash. The cap matters more than the rate: it stops a club
+ * that has hoarded a billion from out-earning one that is running a team.
  */
-export const WEEKLY_INTEREST_RATE = 0.0015;
-export const WEEKLY_INTEREST_CAP_CENTS = 200_000_000; // €2M
+export const WEEKLY_INTEREST_RATE = 0.0002;
+export const WEEKLY_INTEREST_CAP_CENTS = 30_000_000; // €300K
 
 export function weeklyInterestCents(balanceCents: number): number {
   if (balanceCents <= 0) return 0;

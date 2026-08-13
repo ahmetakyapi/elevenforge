@@ -1,7 +1,8 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   AlertTriangle,
   Calendar,
@@ -18,6 +19,7 @@ import {
 import Link from "next/link";
 import { useToast } from "@/components/ui/toast";
 import { playFriendly, toggleTraining } from "./actions";
+import { TrainingPanel } from "./training-panel";
 import { renewContract } from "./contract-actions";
 import { ComparePanel } from "./compare-panel";
 import {
@@ -65,6 +67,16 @@ export default function SquadPage({
   const [compareMode, setCompareMode] = useState(false);
   const [compareA, setCompareA] = useState<Player | null>(null);
   const [compareB, setCompareB] = useState<Player | null>(null);
+
+  // Freeze the page behind the sheet. Without this the wheel scrolls the
+  // squad list under the dialog, which reads as the modal moving.
+  useEffect(() => {
+    if (!selected) return;
+    document.body.dataset.modalOpen = "true";
+    return () => {
+      delete document.body.dataset.modalOpen;
+    };
+  }, [selected]);
 
   const handlePlayerClick = (p: Player) => {
     if (!compareMode) {
@@ -130,103 +142,7 @@ export default function SquadPage({
           Explains the rule so "2/4" isn't a mystery: each slot is 1 player
           per position group, and trained players pick up +1 overall on the
           daily tick (faster if ≤22 yaş). */}
-      <div
-        data-training-slots
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "center",
-          gap: 12,
-          padding: "12px 14px",
-          marginTop: 10,
-          marginBottom: 12,
-          borderRadius: 10,
-          background: "color-mix(in oklab, var(--panel-2) 60%, transparent)",
-          border: "1px solid var(--border)",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-            minWidth: 200,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              flexWrap: "wrap",
-            }}
-          >
-            <span className="t-label" style={{ fontSize: 11 }}>
-              ANTRENMAN
-            </span>
-            <span
-              className="t-mono"
-              style={{
-                fontSize: 12,
-                padding: "2px 8px",
-                borderRadius: 4,
-                background:
-                  trainingFilled === 4
-                    ? "color-mix(in oklab, var(--emerald) 22%, transparent)"
-                    : "color-mix(in oklab, var(--panel) 80%, transparent)",
-                color: trainingFilled === 4 ? "var(--emerald)" : "var(--muted)",
-                fontWeight: 700,
-              }}
-            >
-              {trainingFilled} / 4 dolu
-            </span>
-          </div>
-          <span
-            className="t-caption"
-            style={{ fontSize: 11, color: "var(--muted)", lineHeight: 1.4 }}
-          >
-            Her pozisyondan 1 oyuncu. Günlük tick +1 OVR şansı verir
-            (≤22 yaş = 3× hız).
-          </span>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            gap: 6,
-            marginLeft: "auto",
-            flexWrap: "wrap",
-          }}
-        >
-          {(["GK", "DEF", "MID", "FWD"] as const).map((pos) => {
-            const filled = trainingByPos[pos] > 0;
-            const label =
-              pos === "GK" ? "Kaleci" : pos === "DEF" ? "Defans" : pos === "MID" ? "Orta" : "Forvet";
-            return (
-              <span
-                key={pos}
-                title={
-                  filled
-                    ? `${label} slotu dolu — kartta 🔥 olan oyuncu antrenmanda`
-                    : `${label} slotu boş — bir oyuncuya Antrenman ekle`
-                }
-                style={{
-                  fontSize: 11,
-                  padding: "4px 9px",
-                  borderRadius: 999,
-                  background: filled
-                    ? "color-mix(in oklab, var(--emerald) 24%, transparent)"
-                    : "color-mix(in oklab, var(--muted) 14%, transparent)",
-                  color: filled ? "var(--emerald)" : "var(--muted)",
-                  fontWeight: 600,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {label} {filled ? "●" : "○"}
-              </span>
-            );
-          })}
-        </div>
-      </div>
+      <TrainingPanel squad={squad} />
 
       {/* Toolbar */}
       <div
@@ -1306,7 +1222,17 @@ function PlayerSheet({
       ["Liderlik", 70],
     ],
   };
-  return (
+  // Rendered into <body>, not in place.
+  //
+  // The (app) layout gives <main> `animation: page-enter ... both`, and a
+  // fill-mode animation leaves a transform on the element permanently. Any
+  // non-none transform makes that element the containing block for its
+  // fixed-position descendants — so `position: fixed; inset: 0` resolved
+  // against <main> instead of the viewport, and the dialog rendered near the
+  // middle of the whole (tall) page rather than the middle of the screen.
+  // That is what looked like the page scrolling down on open.
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <div
       onClick={onClose}
       style={{
@@ -1318,7 +1244,11 @@ function PlayerSheet({
         zIndex: 200,
         display: "flex",
         justifyContent: "center",
-        alignItems: "flex-end",
+        // Centred, not docked to the bottom. As a bottom sheet the panel
+        // opened below the fold on a desktop viewport, so opening a player
+        // appeared to scroll the page away from where you clicked.
+        alignItems: "center",
+        padding: 24,
       }}
     >
       <div
@@ -1327,17 +1257,17 @@ function PlayerSheet({
         style={{
           maxWidth: 920,
           width: "100%",
-          maxHeight: "92vh",
+          maxHeight: "88vh",
           overflowY: "auto",
-          borderRadius: "24px 24px 0 0",
+          borderRadius: 24,
           border: "1px solid var(--border-strong)",
-          animation: "slide-up 400ms var(--ease)",
+          animation: "modal-in 260ms var(--ease)",
           background: `
             radial-gradient(600px 300px at 10% 0%, color-mix(in oklab, ${posColor(
               p.pos,
             )} 16%, transparent), transparent 60%),
             var(--bg-2)`,
-          boxShadow: "0 -40px 80px -20px rgba(0,0,0,0.5)",
+            boxShadow: "0 30px 90px -20px rgba(0,0,0,0.6)",
         }}
       >
         <div
@@ -1866,7 +1796,8 @@ function PlayerSheet({
           <PlayerSheetActions player={p} onClose={onClose} />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
