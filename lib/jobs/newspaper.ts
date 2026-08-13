@@ -5,7 +5,7 @@
  *  - Builds headline + TOTW + top scorers/assists.
  *  - Emits a feed event linking to the paper.
  */
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   clubs,
@@ -77,45 +77,98 @@ export async function generateNewspaper(opts: {
   const loser = winner.id === heroHome.id ? heroAway : heroHome;
   const headline = HEADLINES[0](winner.shortName, loser.shortName, diff);
 
-  // TOTW — compile performances for every starter who played
+  // TOTW — only players who actually took the field this week.
+  //
+  // This used to walk each club's ENTIRE squad and read the last entry of
+  // `lastRatings`. That array is a rolling buffer of the player's last five
+  // matches, so a player who was injured, suspended, or simply left out
+  // still carried a rating from whenever he last played — and could be
+  // picked for a Team of the Week he had no part in. The fixture's line-up
+  // snapshot is the record of who was really out there.
+  type LineupSnapshot = {
+    home?: Array<{ id: string }>;
+    away?: Array<{ id: string }>;
+  };
   const performances: WeekPerformance[] = [];
+  const playedIds = new Set<string>();
+  const eventsByFixture = new Map<string, MatchEvent[]>();
+  const clubByPlayer = new Map<string, string>();
+
   for (const fx of weekFixtures) {
-    if (!fx.commentaryJson) continue;
     let events: MatchEvent[] = [];
+    if (fx.commentaryJson) {
+      try {
+        const parsed = JSON.parse(fx.commentaryJson);
+        if (Array.isArray(parsed)) events = parsed as MatchEvent[];
+      } catch {
+        /* ignore */
+      }
+    }
+    eventsByFixture.set(fx.id, events);
+
+    let snapshot: LineupSnapshot = {};
+    if (fx.lineupsJson) {
+      try {
+        snapshot = JSON.parse(fx.lineupsJson) as LineupSnapshot;
+      } catch {
+        /* ignore */
+      }
+    }
+    for (const entry of snapshot.home ?? []) {
+      playedIds.add(entry.id);
+      clubByPlayer.set(entry.id, fx.homeClubId);
+    }
+    for (const entry of snapshot.away ?? []) {
+      playedIds.add(entry.id);
+      clubByPlayer.set(entry.id, fx.awayClubId);
+    }
+    // Anyone who scored, assisted or was booked demonstrably played, even if
+    // they came off the bench and so are absent from the starting snapshot.
+    for (const e of events) {
+      const id = e.scorerId ?? e.assisterId ?? e.cardPlayerId;
+      if (!id) continue;
+      playedIds.add(id);
+      if (!clubByPlayer.has(id)) {
+        clubByPlayer.set(id, e.side === "away" ? fx.awayClubId : fx.homeClubId);
+      }
+    }
+  }
+
+  // One query for everyone who played, instead of one per club per fixture.
+  const playedRows =
+    playedIds.size > 0
+      ? await db
+          .select()
+          .from(players)
+          .where(inArray(players.id, [...playedIds]))
+      : [];
+
+  for (const p of playedRows) {
+    let ratings: number[] = [];
     try {
-      events = JSON.parse(fx.commentaryJson) as MatchEvent[];
+      const parsed = JSON.parse(p.lastRatings);
+      if (Array.isArray(parsed)) ratings = parsed;
     } catch {
       /* ignore */
     }
-    // Parse ratings from players' lastRatings (last entry = this match)
-    const clubIds = [fx.homeClubId, fx.awayClubId];
-    for (const cId of clubIds) {
-      const squad = await db
-        .select()
-        .from(players)
-        .where(eq(players.clubId, cId));
-      for (const p of squad) {
-        let ratings: number[] = [];
-        try {
-          ratings = JSON.parse(p.lastRatings);
-        } catch {}
-        const r = ratings[ratings.length - 1];
-        if (typeof r !== "number" || r < 6.5) continue;
-        const goals = events.filter(
-          (e) => e.type === "goal" && e.scorerId === p.id,
-        ).length;
-        const assists = events.filter(
-          (e) => e.type === "goal" && e.assisterId === p.id,
-        ).length;
-        performances.push({
-          player: p,
-          rating: r,
-          goals,
-          assists,
-          clubId: cId,
-        });
+    const r = ratings[ratings.length - 1];
+    if (typeof r !== "number" || r < 6.5) continue;
+    let goals = 0;
+    let assists = 0;
+    for (const events of eventsByFixture.values()) {
+      for (const e of events) {
+        if (e.type !== "goal") continue;
+        if (e.scorerId === p.id) goals++;
+        if (e.assisterId === p.id) assists++;
       }
     }
+    performances.push({
+      player: p,
+      rating: r,
+      goals,
+      assists,
+      clubId: clubByPlayer.get(p.id) ?? p.clubId ?? "",
+    });
   }
   const totw = buildTOTW(performances);
 

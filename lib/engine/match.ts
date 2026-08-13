@@ -13,7 +13,12 @@
  */
 import type { DBPlayer } from "@/lib/schema";
 import { parseFormation } from "./formation";
-import { EMPTY_LINEUP, resolveLineup, type SavedLineup } from "@/lib/lineup";
+import {
+  EMPTY_LINEUP,
+  isAvailable,
+  resolveLineup,
+  type SavedLineup,
+} from "@/lib/lineup";
 import { buildCommentary } from "./commentary";
 
 // ─── Types ────────────────────────────────────────────────────
@@ -464,6 +469,11 @@ export function simulateMatch(input: SimInput): MatchResult {
       if (sub.minute > minute) break;
       const inP = squad.find((p) => p.id === sub.inId);
       if (!inP) continue;
+      // A sub plan is written days before kick-off. By match day the player
+      // named may have been injured or banned, and the plan would happily
+      // put him on the pitch — where he could score and pick up cards while
+      // formally unavailable.
+      if (!isAvailable(inP)) continue;
       if (pool.some((p) => p.id === inP.id)) continue;
       const idx = pool.findIndex((p) => p.id === sub.outId);
       if (idx < 0) continue;
@@ -514,13 +524,26 @@ export function simulateMatch(input: SimInput): MatchResult {
   }
 
   // Inject sub events into the raw timeline so they show up in commentary.
+  //
+  // Only the swaps that ACTUALLY happened are announced. The previous
+  // version emitted a "X comes on for Y" line for every planned swap, even
+  // ones the engine had rejected — an unavailable player, someone already on
+  // the pitch, or an outgoing player who was never in the eleven. The report
+  // then described a substitution that did not affect the match at all.
   for (const side of ["home", "away"] as const) {
     const plan = side === "home" ? input.homeSubPlan ?? [] : input.awaySubPlan ?? [];
     const squad = side === "home" ? input.homeSquad : input.awaySquad;
-    for (const sub of plan) {
-      const subOut = squad.find((p) => p.id === sub.outId);
+    const original = side === "home" ? homeStarters : awayStarters;
+    const pool = [...original];
+    for (const sub of [...plan].sort((a, b) => a.minute - b.minute)) {
       const subIn = squad.find((p) => p.id === sub.inId);
-      if (!subOut || !subIn) continue;
+      const subOut = squad.find((p) => p.id === sub.outId);
+      if (!subIn || !subOut) continue;
+      if (!isAvailable(subIn)) continue;
+      if (pool.some((p) => p.id === subIn.id)) continue;
+      const idx = pool.findIndex((p) => p.id === sub.outId);
+      if (idx < 0) continue;
+      pool[idx] = subIn;
       raw.push({ minute: sub.minute, side, kind: "sub", subOut, subIn });
     }
   }

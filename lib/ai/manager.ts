@@ -26,7 +26,11 @@
 import { and, eq, gt, inArray, isNull, lt, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { autoLineup, isAvailable } from "@/lib/lineup";
-import { RENEWAL_WAGE_MULTIPLIER, renewalCostCents } from "@/lib/economy";
+import {
+  DISTRESS_SALE_RATE,
+  RENEWAL_WAGE_MULTIPLIER,
+  renewalCostCents,
+} from "@/lib/economy";
 import { creditClub, debitClub } from "@/lib/money";
 import {
   clubs,
@@ -198,6 +202,73 @@ async function listSurplus(
     listed++;
   }
   return listed;
+}
+
+/**
+ * 4b. Emergency sales for a club that has run out of money.
+ *
+ * Without this a club that fell far enough into the red was stuck there
+ * forever: every guarded debit refuses, so it cannot buy, cannot renew, and
+ * cannot recover — it just rots at the bottom of the table with a wage bill
+ * it will never pay. A real club in that position sells someone.
+ *
+ * The buyer is "a club abroad" rather than a league rival, because a
+ * distressed sale has to be able to complete immediately. The distress
+ * discount makes it a genuinely bad outcome to avoid, not a money tap.
+ */
+async function emergencySales(
+  club: Club,
+  squad: DBPlayer[],
+  trait: AiTrait,
+): Promise<number> {
+  const [fresh] = await db.select().from(clubs).where(eq(clubs.id, club.id));
+  if (!fresh || fresh.balanceCents >= 0) return 0;
+
+  // Sell the most valuable players the club can spare, best price first, until
+  // the books balance or the squad hits the floor.
+  const sellable = [...squad]
+    .filter((p) => p.status !== "injured")
+    .sort((a, b) => Number(b.marketValueCents) - Number(a.marketValueCents));
+
+  let deficit = -fresh.balanceCents;
+  let sold = 0;
+  let size = squad.length;
+
+  for (const p of sellable) {
+    if (deficit <= 0) break;
+    if (size <= HARD_MIN_SQUAD) break;
+    const fee = Math.round(Number(p.marketValueCents) * DISTRESS_SALE_RATE);
+    if (fee <= 0) continue;
+
+    const moved = await db
+      .update(players)
+      .set({ clubId: null, status: "active", contractYears: 0 })
+      .where(and(eq(players.id, p.id), eq(players.clubId, club.id)))
+      .returning();
+    if (moved.length === 0) continue;
+
+    await db
+      .update(transferListings)
+      .set({ status: "withdrawn" })
+      .where(
+        and(
+          eq(transferListings.playerId, p.id),
+          eq(transferListings.status, "active"),
+        ),
+      );
+    await creditClub(club.id, fee);
+    await db.insert(feedEvents).values({
+      leagueId: club.leagueId,
+      clubId: club.id,
+      eventType: "transfer",
+      text: `${club.name} mali sıkıntı nedeniyle ${p.name}'i satmak zorunda kaldı (€${(fee / 100 / 1_000_000).toFixed(1)}M).`,
+    });
+    deficit -= fee;
+    size--;
+    sold++;
+  }
+  void trait;
+  return sold;
 }
 
 /** 5a. Sign a free agent when the squad is short. */
@@ -598,6 +669,7 @@ export type AiTickResult = {
   offersSent: number;
   offersHandled: number;
   emergency: number;
+  emergencySales: number;
 };
 
 /**
@@ -629,6 +701,7 @@ export async function runAiManagers(
     offersSent: 0,
     offersHandled: 0,
     emergency: 0,
+    emergencySales: 0,
   };
 
   for (const club of managed) {
@@ -660,6 +733,7 @@ export async function runAiManagers(
 
     result.emergency += await emergencyCover(club, squad);
     result.offersHandled += await respondToOffers(club, squad, trait);
+    result.emergencySales += await emergencySales(club, squad, trait);
     result.renewed += await renewExpiringContracts(club, squad, trait);
     result.listed += await listSurplus(club, squad, trait, rng);
     result.signed += await signFreeAgents(club, squad, trait);

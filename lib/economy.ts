@@ -90,3 +90,10 @@ export const RENEWAL_WAGE_MULTIPLIER = 1.08;
  * stops signing cheques.
  */
 export const OVERDRAFT_FLOOR_CENTS = -5_000_000_000; // −€50M
+
+/**
+ * What a club receives when it is forced to sell to balance the books: 70%
+ * of market value. Steep enough that running out of money genuinely hurts,
+ * but survivable — a club must always have a route back.
+ */
+export const DISTRESS_SALE_RATE = 0.7;
