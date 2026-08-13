@@ -432,8 +432,14 @@ async function main() {
       ...computeAttrsFromOvr(p.ovr, p.role, userR),
       fitness: p.fit ?? 90,
       morale: p.mor ?? 4,
-      wageCents: (p.wage ?? 100_000) * 100,
-      marketValueCents: (p.val ?? 1_000_000) * 100,
+      // Derive from the curve rather than a constant — see the note in
+      // create-league.ts. A flat fallback once priced every player at €1M.
+      wageCents:
+        p.wage != null
+          ? p.wage * 100
+          : wageFromValueCents(marketValueCents(p.ovr, p.pot, p.age)),
+      marketValueCents:
+        p.val != null ? p.val * 100 : marketValueCents(p.ovr, p.pot, p.age),
       contractYears: p.ctr ?? 3,
       status:
         p.status && p.status !== "listed"

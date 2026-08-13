@@ -613,6 +613,8 @@ export async function createStarterLeague(input: {
       const pack = ALL_PACKS[idx].pack;
       for (const p of pack.players) {
         const offsets = ROLE_ATTR_OFFSETS[p.role] ?? ROLE_ATTR_OFFSETS.CM;
+        const packValue =
+          p.val != null ? p.val * 100 : marketValueCents(p.ovr, p.pot, p.age);
         allPlayers.push({
           leagueId: league.id,
           clubId: club.id,
@@ -633,8 +635,14 @@ export async function createStarterLeague(input: {
           goalkeeping: rollAttr(p.ovr, offsets.goalkeeping, r),
           fitness: p.fit ?? 90,
           morale: p.mor ?? 4,
-          wageCents: (p.wage ?? 100_000) * 100,
-          marketValueCents: (p.val ?? 1_000_000) * 100,
+          // Derive rather than fall back to a constant. The pack generator
+          // does emit val/wage, but when it once did not, `?? 1_000_000` gave
+          // every player in the game the same €1M price and the same wage —
+          // silently, because a constant is a perfectly valid number. Falling
+          // back to the curve means a missing field costs accuracy, not the
+          // entire economy.
+          wageCents: p.wage != null ? p.wage * 100 : wageFromValueCents(packValue),
+          marketValueCents: packValue,
           contractYears: p.ctr ?? 3,
           status:
             p.status && p.status !== "listed"

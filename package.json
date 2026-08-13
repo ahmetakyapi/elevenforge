@@ -23,7 +23,8 @@
     "build:squads": "tsx scripts/build-squad-packs.ts",
     "dev:remote": "next dev",
     "db:reprice": "tsx scripts/reprice-players.ts",
-    "db:repair-leagues": "tsx scripts/repair-empty-leagues.ts"
+    "db:repair-leagues": "tsx scripts/repair-empty-leagues.ts",
+    "db:add-d2": "tsx scripts/add-second-division.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.4.4",
