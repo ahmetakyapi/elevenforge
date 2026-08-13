@@ -1,7 +1,6 @@
 import { requireLeagueContext } from "@/lib/session";
 import { loadSquad } from "@/lib/queries/squad";
 import TacticUi from "./tactic-ui";
-import LineupPanel from "./lineup-panel";
 import { parseLineup } from "@/lib/lineup";
 import type { TacticPreset } from "./actions";
 import type { Formation } from "@/types";
@@ -50,12 +49,6 @@ export default async function TacticPage() {
 
   return (
     <div className="space-y-8">
-      <LineupPanel
-        squad={squad}
-        formation={formation}
-        initialXi={xi}
-        initialBench={bench}
-      />
       <TacticUi
         squad={squad}
         initial={{
@@ -66,6 +59,8 @@ export default async function TacticPage() {
         }}
         presets={presets}
         subPlan={subPlan}
+        savedXi={xi}
+        savedBench={bench}
       />
     </div>
   );

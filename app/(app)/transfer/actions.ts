@@ -14,6 +14,10 @@ import {
   transferListings,
 } from "@/lib/schema";
 import { sendScout as jobSendScout } from "@/lib/jobs/scout";
+import {
+  MAX_LISTING_MULTIPLIER,
+  MIN_LISTING_MULTIPLIER,
+} from "@/lib/economy";
 import { euroAmountSchema, uuidSchema, validate } from "@/lib/validation";
 import type { Position } from "@/types";
 
@@ -211,8 +215,8 @@ export async function listPlayer(input: {
 
   // Enforce min/max around market value
   const priceCents = Math.round(parsed.data.priceEur * 100);
-  const minPrice = Math.round(player.marketValueCents * 0.5);
-  const maxPrice = Math.round(player.marketValueCents * 2.5);
+  const minPrice = Math.round(player.marketValueCents * MIN_LISTING_MULTIPLIER);
+  const maxPrice = Math.round(player.marketValueCents * MAX_LISTING_MULTIPLIER);
   if (priceCents < minPrice || priceCents > maxPrice) {
     return {
       ok: false as const,

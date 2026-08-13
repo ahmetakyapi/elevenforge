@@ -30,6 +30,12 @@ import {
  */
 const SEASONS = 4;
 
+/** One round is played per calendar day; the economy cron runs weekly. */
+const ROUNDS_PER_WEEK = 7;
+
+/** Rounds played across the whole run, so the weekly job fires weekly. */
+let roundsPlayed = 0;
+
 let bad = 0;
 const ok = (cond: boolean, msg: string) => {
   if (cond) console.log(`  ✓ ${msg}`);
@@ -86,7 +92,16 @@ async function playSeason(leagueId: string): Promise<void> {
     await runAiManagers({ leagueId, force: true });
     await runWeeklyNewspaper({ leagueId });
     await runPriceDecay({ leagueId });
-    await runWeeklyEconomy({ leagueId });
+
+    // The economy job is WEEKLY in production (README: /api/cron/economy,
+    // haftada bir) while a round is played every day. Calling it once per
+    // round charged the wage bill seven times over and made the league look
+    // bankrupt — the mirror image of the gate-receipt bug it was supposed to
+    // be measuring. Model the real cadence instead.
+    roundsPlayed++;
+    if (roundsPlayed % ROUNDS_PER_WEEK === 0) {
+      await runWeeklyEconomy({ leagueId });
+    }
 
     const [now] = await db
       .select()

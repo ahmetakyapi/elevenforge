@@ -28,18 +28,74 @@ export const STARTING_BALANCE_CENTS = 25_000_000_000; // €250M
 /**
  * Gate receipts per match, in cents.
  *
- * Sized against the measured €6.8M average weekly wage bill: a typical week
- * now returns about €7.3M, so a well-run club edges ahead and an overpaid
- * squad still bleeds.
+ * IMPORTANT: a round is played every calendar day (fixtures are scheduled
+ * `matchKickoff(now, r, ...)` for round r), while the wage bill is charged by
+ * a WEEKLY cron. So a club banks about seven match fees per wage charge.
+ *
+ * The first version of this table was sized as if one match were played per
+ * week, which handed every club roughly seven times its intended income —
+ * after four simulated seasons the leaders were sitting on over a billion.
+ * These figures are sized per match against a per-match share of the wage
+ * bill (€6.8M/week ÷ 7 ≈ €0.97M/match):
+ *
+ *   average gate ≈ €3.7M/match → ≈ €26M/week against €6.8M of wages
+ *   → roughly €80M of operating surplus over a 30-match season, i.e. about
+ *     one significant signing a year for a well-run club.
  */
 export function matchIncomeCents(
   result: "W" | "D" | "L",
   isHome: boolean,
 ): number {
-  if (result === "W") return isHome ? 1_200_000_000 : 700_000_000; // €12M / €7M
-  if (result === "D") return isHome ? 900_000_000 : 500_000_000; //  €9M / €5M
-  return isHome ? 700_000_000 : 400_000_000; //                     €7M / €4M
+  if (result === "W") return isHome ? 600_000_000 : 350_000_000; // €6.0M / €3.5M
+  if (result === "D") return isHome ? 460_000_000 : 270_000_000; // €4.6M / €2.7M
+  return isHome ? 350_000_000 : 190_000_000; //                    €3.5M / €1.9M
 }
+
+/**
+ * Recompute a player's market value from his current attributes.
+ *
+ * Nothing ever updated this after the row was inserted, so every price in the
+ * game — listing bands, offer floors, free-agent fees, the AI's valuations —
+ * was based on what the player was on the day he was generated. A youngster
+ * who trained from 60 to 85 stayed cheap forever, and a 34-year-old whose
+ * rating had decayed still cost his prime fee.
+ *
+ * Mirrors the generation curve in create-league.ts so values stay on one
+ * scale across generated, scouted and academy players.
+ */
+export function marketValueCents(
+  overall: number,
+  potential: number,
+  age: number,
+): number {
+  const ageFactor = age <= 24 ? 1.2 : age >= 31 ? 0.7 : 1.0;
+  const valueEur = Math.max(
+    300_000,
+    Math.round(
+      Math.pow(Math.max(0, overall - 55), 2.6) *
+        22_000 *
+        (1 + Math.max(0, potential - overall) * 0.08) *
+        ageFactor,
+    ),
+  );
+  return valueEur * 100;
+}
+
+/**
+ * The most the AI will pay relative to a player's market value.
+ *
+ * Without a ceiling the market was a money printer: sign a free agent for a
+ * fraction of his value, list him at the top of the allowed band, and let a
+ * price-blind AI buy him at the asking price.
+ */
+export const MAX_AI_PRICE_MULTIPLIER = 1.3;
+
+/** Signing-on fee for a free agent, as a share of market value. */
+export const FREE_AGENT_FEE_RATE = 0.4;
+
+/** Listing price band, relative to market value. */
+export const MIN_LISTING_MULTIPLIER = 0.5;
+export const MAX_LISTING_MULTIPLIER = 1.8;
 
 /**
  * Weekly interest on a positive balance.
@@ -61,10 +117,10 @@ export function weeklyInterestCents(balanceCents: number): number {
 
 /** League prize money, 1st through 4th, scaled to the new balance range. */
 export const SEASON_PRIZES_CENTS = [
-  12_000_000_000, // €120M
-  8_000_000_000, //  €80M
-  4_500_000_000, //  €45M
-  2_500_000_000, //  €25M
+  3_500_000_000, // €35M
+  2_200_000_000, // €22M
+  1_200_000_000, // €12M
+  600_000_000, //   €6M
 ];
 
 /**

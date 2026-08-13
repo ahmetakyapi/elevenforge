@@ -6,7 +6,7 @@
  * Called from the register server action so every new signup lands in a
  * fully populated world (no dead-end on /dashboard).
  */
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   clubs,
@@ -486,7 +486,12 @@ export async function createStarterLeague(input: {
         return {
           leagueId: league.id,
           playerId: p.id,
-          sellerClubId: null,
+          // The owning club, NOT null. A null seller means the sale pays
+          // nobody: the club loses the player and the money vanishes. The
+          // same bug was fixed in lib/jobs/transfer-bots.ts; this path still
+          // had it, so every new league opened with listings that drained
+          // whichever bot owned them.
+          sellerClubId: p.clubId,
           isBotMarket: true,
           priceCents,
           originalPriceCents: priceCents,
@@ -496,6 +501,11 @@ export async function createStarterLeague(input: {
         };
       }),
     );
+    // Keep players.status in step with the listing.
+    await db
+      .update(players)
+      .set({ status: "listed" })
+      .where(inArray(players.id, pickList.map((p) => p.id)));
   }
 
   // Welcome feed event

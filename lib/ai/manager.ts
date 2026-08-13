@@ -28,6 +28,7 @@ import { db } from "@/lib/db";
 import { autoLineup, isAvailable } from "@/lib/lineup";
 import {
   DISTRESS_SALE_RATE,
+  MAX_AI_PRICE_MULTIPLIER,
   RENEWAL_WAGE_MULTIPLIER,
   renewalCostCents,
 } from "@/lib/economy";
@@ -42,6 +43,7 @@ import {
   type Club,
   type DBPlayer,
 } from "@/lib/schema";
+import { syncInactiveManagers } from "./inactivity";
 import { dailyRng, traitForClub, type AiTrait } from "./profile";
 
 /** A squad this size can always field 11 plus cover for injuries. */
@@ -362,6 +364,11 @@ async function buyFromMarket(
         !!c.player &&
         c.player.clubId !== club.id &&
         c.listing.priceCents <= budget &&
+        // Never pay a silly price. A price-blind buyer turns the listing
+        // band into a money printer: sign someone cheap, list at the top of
+        // the band, let the AI buy at the asking price.
+        c.listing.priceCents <=
+          Number(c.player.marketValueCents) * MAX_AI_PRICE_MULTIPLIER &&
         // Only buy someone who actually improves the squad, or fills a hole.
         (c.player.overall > squadAvg - 2 || needs.includes(c.player.position)),
     )
@@ -682,6 +689,12 @@ export async function runAiManagers(
 ): Promise<AiTickResult> {
   const now = new Date();
   const today = dayStamp(now);
+
+  // Hand dormant human clubs to the AI before deciding who to manage.
+  // syncInactiveManagers existed but nothing in production ever called it —
+  // there was no cron route and no other caller, so an abandoned club stayed
+  // abandoned forever no matter how long its manager had been gone.
+  await syncInactiveManagers(opts.leagueId ? { leagueId: opts.leagueId } : {});
 
   const managed = await db
     .select()

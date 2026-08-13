@@ -4,6 +4,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { clubs, feedEvents, players } from "@/lib/schema";
+import { FREE_AGENT_FEE_RATE } from "@/lib/economy";
 import { requireLeagueContext } from "@/lib/session";
 
 /**
@@ -30,7 +31,10 @@ export async function signFreeAgent(input: { playerId: string }) {
     return { ok: false as const, error: "Bu oyuncu serbest değil." };
   }
 
-  const fee = Math.round(Number(p.marketValueCents) / 5);
+  // A signing-on fee, not a bargain bin. At 1/5 of market value a free agent
+  // could be signed and immediately relisted at the top of the allowed band
+  // for several times what he cost.
+  const fee = Math.round(Number(p.marketValueCents) * FREE_AGENT_FEE_RATE);
   if (ctx.club.balanceCents < fee) {
     return {
       ok: false as const,

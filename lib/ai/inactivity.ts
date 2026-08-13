@@ -21,7 +21,13 @@ export const INACTIVITY_DAYS = 5;
 export async function syncInactiveManagers(opts: { leagueId?: string } = {}) {
   const cutoff = new Date(Date.now() - INACTIVITY_DAYS * 24 * 3600 * 1000);
 
-  // Clubs whose owner has gone quiet (or never logged in since signup).
+  // Clubs whose owner has gone quiet.
+  //
+  // `lastLoginAt` is null until the manager's first dashboard load, so
+  // treating null as "inactive" handed a brand-new club to the assistant the
+  // moment it was created — before the owner had a chance to open the game
+  // once. Fall back to the account's creation time instead, so the grace
+  // period is measured from signup.
   const stale = await db
     .select({ clubId: clubs.id, leagueId: clubs.leagueId, clubName: clubs.name })
     .from(clubs)
@@ -31,7 +37,10 @@ export async function syncInactiveManagers(opts: { leagueId?: string } = {}) {
         eq(clubs.aiManaged, false),
         eq(clubs.isBot, false),
         isNotNull(clubs.ownerUserId),
-        or(isNull(users.lastLoginAt), lt(users.lastLoginAt, cutoff)),
+        or(
+          and(isNotNull(users.lastLoginAt), lt(users.lastLoginAt, cutoff)),
+          and(isNull(users.lastLoginAt), lt(users.createdAt, cutoff)),
+        ),
         ...(opts.leagueId ? [eq(clubs.leagueId, opts.leagueId)] : []),
       ),
     );

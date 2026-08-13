@@ -6,7 +6,7 @@
  */
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { SEASON_PRIZES_CENTS } from "@/lib/economy";
+import { marketValueCents, SEASON_PRIZES_CENTS } from "@/lib/economy";
 import { creditClub } from "@/lib/money";
 import {
   clubs,
@@ -296,12 +296,20 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
     // remain in the league pool so scouts can find them.
     const newCtr = p.contractYears - 1;
     const expiring = newCtr <= 0;
+    // Re-price the player against what he has become. Nothing else in the
+    // game ever updated market value after the row was inserted, so a
+    // youngster who trained from 60 to 85 stayed priced as a 60 forever and
+    // a decayed veteran still cost his prime fee.
+    const newValue = marketValueCents(newOvr, newPot, newAge);
     await db
       .update(players)
       .set({
         age: newAge,
         overall: newOvr,
         potential: newPot,
+        marketValueCents: newValue,
+        // Wages track value on the same curve the generator uses.
+        wageCents: Math.max(1_200_000, Math.round(newValue / 200)),
         contractYears: expiring ? 0 : newCtr,
         clubId: expiring ? null : p.clubId,
         status: expiring ? "active" : p.status,

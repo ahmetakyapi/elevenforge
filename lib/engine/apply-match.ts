@@ -24,6 +24,10 @@ import {
   players,
 } from "@/lib/schema";
 import { creditSponsorForMatch } from "@/lib/jobs/sponsor-credit";
+import {
+  applyPlayerUpdates,
+  decrementSuspensions,
+} from "./apply-player-updates";
 import { matchIncomeCents } from "@/lib/economy";
 import type { MatchResult } from "./match";
 
@@ -83,96 +87,14 @@ export async function applyMatchResult(
       await creditSponsorForMatch(side.clubId, side.result === "W", tx);
     }
 
-    // 3. Decrement suspensions for the two squads. Sitting out this fixture
-    //    is what serves the ban.
-    const suspendedRows = await tx
-      .select()
-      .from(players)
-      .where(
-        and(
-          inArray(players.clubId, [
-            result.homeUpdate.clubId,
-            result.awayUpdate.clubId,
-          ]),
-          eq(players.status, "suspended"),
-        ),
-      );
-    for (const sp of suspendedRows) {
-      const left = Math.max(0, sp.suspensionMatchesLeft - 1);
-      await tx
-        .update(players)
-        .set({
-          suspensionMatchesLeft: left,
-          status: left === 0 ? "active" : "suspended",
-        })
-        .where(eq(players.id, sp.id));
-    }
+    // 3. Sitting this fixture out is what serves a ban.
+    await decrementSuspensions(
+      [result.homeUpdate.clubId, result.awayUpdate.clubId],
+      tx,
+    );
 
-    // 4. Update players who took part.
-    const playerIds = result.playerUpdates.map((u) => u.playerId);
-    if (playerIds.length > 0) {
-      const rows = await tx
-        .select()
-        .from(players)
-        .where(inArray(players.id, playerIds));
-      for (const row of rows) {
-        const u = result.playerUpdates.find((x) => x.playerId === row.id);
-        if (!u) continue;
-        let ratings: number[] = [];
-        try {
-          const parsed = JSON.parse(row.lastRatings);
-          if (Array.isArray(parsed)) ratings = parsed;
-        } catch {
-          /* ignore */
-        }
-        ratings = [...ratings, u.rating].slice(-5);
-
-        const newYellowTotal = row.yellowCardsSeason + u.yellow;
-        const isInjured = (u.injuredMinutes ?? 0) > 0;
-        const isRed = u.red > 0;
-        // Real soccer rule: every 5 yellows = 1-match ban. Trigger when the
-        // count crosses a multiple of 5 within this match.
-        const crossesFiveBoundary =
-          Math.floor(newYellowTotal / 5) > Math.floor(row.yellowCardsSeason / 5);
-
-        const updates: Partial<typeof players.$inferInsert> = {
-          goalsSeason: row.goalsSeason + u.goals,
-          assistsSeason: row.assistsSeason + u.assists,
-          yellowCardsSeason: newYellowTotal,
-          redCardsSeason: row.redCardsSeason + u.red,
-          lastRatings: JSON.stringify(ratings),
-          morale: Math.max(
-            1,
-            Math.min(
-              5,
-              row.morale +
-                (u.rating >= 8 ? 1 : u.rating >= 7 ? 0 : u.rating < 6 ? -1 : 0),
-            ),
-          ),
-          fitness: Math.max(60, row.fitness - 10), // starters lose condition
-        };
-
-        // A red card and an injury are not mutually exclusive: a player sent
-        // off who also limps away still owes the two-match ban. Bans are
-        // therefore always recorded, and the *status* reflects the injury
-        // (the longer-lasting condition) when both happened.
-        let banToAdd = 0;
-        if (isRed) banToAdd = 2;
-        else if (crossesFiveBoundary) banToAdd = 1;
-        if (banToAdd > 0) {
-          updates.suspensionMatchesLeft = row.suspensionMatchesLeft + banToAdd;
-        }
-        if (isInjured) {
-          updates.status = "injured";
-          updates.injuryUntil = new Date(
-            now.getTime() + (u.injuredMinutes ?? 0) * 60 * 1000,
-          );
-        } else if (banToAdd > 0) {
-          updates.status = "suspended";
-        }
-        await tx.update(players).set(updates).where(eq(players.id, row.id));
-      }
-    }
+    // 4. Goals, assists, cards, bans, injuries, ratings, morale, fitness.
+    await applyPlayerUpdates(result.playerUpdates, now, tx);
 
     // 5. Feed event — include scorer names so the league feed reads like a
     //    proper match report (not just a scoreline).

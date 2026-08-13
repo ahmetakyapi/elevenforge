@@ -9,10 +9,15 @@
  * roughly one cup round every 4 league rounds), with the final on week 15.
  * Prizes: €15M champion, €5M runner-up, +5/+3 prestige.
  */
-import { and, asc, eq, inArray, lte } from "drizzle-orm";
+import { and, asc, eq, lte } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { clubs, cupFixtures, feedEvents, leagues, players } from "@/lib/schema";
 import { simulateMatch } from "@/lib/engine/match";
+import {
+  applyPlayerUpdates,
+  decrementSuspensions,
+} from "@/lib/engine/apply-player-updates";
+import { parseLineup } from "@/lib/lineup";
 import { matchKickoff } from "@/lib/match-time";
 
 const CUP_WEEK_BY_ROUND: Record<number, number> = {
@@ -156,6 +161,11 @@ export async function runCupRound(opts: { leagueId: string }): Promise<{
       },
       homeCity: home.city,
       awayCity: away.city,
+      // The managers' saved team sheets apply in the cup too. Without these
+      // the engine auto-picked, so arranging a squad mattered in the league
+      // and silently did not in a cup tie.
+      homeLineup: parseLineup(home.lineupJson),
+      awayLineup: parseLineup(away.lineupJson),
       homeStadiumLevel: home.stadiumLevel,
       homePrestige: home.prestige,
       seed,
@@ -186,28 +196,13 @@ export async function runCupRound(opts: { leagueId: string }): Promise<{
       })
       .where(eq(cupFixtures.id, fx.id));
 
-    // Apply per-player goals/assists/cards just like league matches do, so
-    // a striker's 3 cup goals show up in their season tally + TOTW eligibility.
-    const playerIds = result.playerUpdates.map((u) => u.playerId);
-    if (playerIds.length > 0) {
-      const rows = await db
-        .select()
-        .from(players)
-        .where(inArray(players.id, playerIds));
-      for (const row of rows) {
-        const u = result.playerUpdates.find((x) => x.playerId === row.id);
-        if (!u) continue;
-        await db
-          .update(players)
-          .set({
-            goalsSeason: row.goalsSeason + u.goals,
-            assistsSeason: row.assistsSeason + u.assists,
-            yellowCardsSeason: row.yellowCardsSeason + u.yellow,
-            redCardsSeason: row.redCardsSeason + u.red,
-          })
-          .where(eq(players.id, row.id));
-      }
-    }
+    // A cup tie is a real match: bans are served, new bans are triggered,
+    // players get injured and rated. Previously only the raw goal/assist/card
+    // COUNTS were written, so cup yellows inflated a player's tally without
+    // ever producing the five-card ban, and nobody was ever injured in a cup
+    // tie. The league path and the cup path now run identical logic.
+    await decrementSuspensions([home.id, away.id]);
+    await applyPlayerUpdates(result.playerUpdates, now);
 
     // Per-round feed event so users see cup progression in their feed,
     // not just a single line at the final.

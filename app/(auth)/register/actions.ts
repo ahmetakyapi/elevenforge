@@ -1,6 +1,7 @@
 "use server";
 
 import { hash } from "bcryptjs";
+import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { signIn } from "@/auth";
@@ -88,11 +89,21 @@ export async function register(input: {
       resultInviteCode = inviteCode;
       joinedExisting = true;
     } else {
-      const fresh = await createStarterLeague({
-        userId: inserted.id,
-        teamName,
-      });
-      resultInviteCode = fresh.inviteCode;
+      // Do NOT silently fall back to a fresh private league. Someone who
+      // typed a code is trying to join their friends; dropping them into a
+      // league of their own — same UI, their own invite code — looks like it
+      // worked, and they only discover otherwise when nobody else appears.
+      //
+      // Roll the account back so the retry is clean: leaving the user row
+      // behind would make the second attempt fail with "e-posta zaten
+      // kayıtlı" and strand them entirely.
+      await db.delete(users).where(eq(users.id, inserted.id));
+      return {
+        ok: false,
+        error:
+          join.error ??
+          "Davet kodu geçersiz ya da lig dolu. Kodu kontrol edip tekrar dene.",
+      };
     }
   } else {
     const fresh = await createStarterLeague({

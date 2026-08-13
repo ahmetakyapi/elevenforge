@@ -11,6 +11,7 @@ import {
   saveTacticPreset,
   type TacticPreset,
 } from "./actions";
+import { saveLineup } from "./lineup-actions";
 import { SubPlanPanel } from "./sub-plan-panel";
 
 export type TacticUiProps = {
@@ -23,6 +24,9 @@ export type TacticUiProps = {
   };
   presets: Array<TacticPreset | null>;
   subPlan: Array<{ minute: number; outId: string; inId: string }>;
+  /** The manager's persisted team sheet (clubs.lineup_json). */
+  savedXi: string[];
+  savedBench: string[];
 };
 
 // ─── Formations with role tags per slot ─────────────────────────
@@ -177,8 +181,67 @@ function assignStarters(
   return out;
 }
 
+/**
+ * Seed the pitch from the manager's saved XI, in their order, then fill any
+ * remaining slots with the best available fit. A saved sheet can go stale
+ * (players sold, injured), so it is a starting point rather than gospel.
+ */
+function startersFromSaved(
+  squad: Player[],
+  formation: Formation,
+  savedXi: string[],
+): Array<Player | null> {
+  const slots = FORMATIONS[formation];
+  if (savedXi.length === 0) return assignStarters(squad, formation);
+
+  const byId = new Map(squad.map((p) => [p.id ?? p.n, p]));
+  const out: Array<Player | null> = Array(slots.length).fill(null);
+  const used = new Set<string>();
+
+  savedXi.slice(0, slots.length).forEach((playerId, i) => {
+    const p = byId.get(playerId);
+    if (!p || used.has(playerId)) return;
+    out[i] = p;
+    used.add(playerId);
+  });
+
+  // Fill the gaps by slot fit from whoever is left.
+  const available = squad.filter(
+    (p) =>
+      p.status !== "injured" &&
+      p.status !== "suspended" &&
+      !used.has(p.id ?? p.n),
+  );
+  for (let i = 0; i < out.length; i++) {
+    if (out[i]) continue;
+    let best: Player | null = null;
+    let bestScore = -1;
+    for (const p of available) {
+      const keyId = p.id ?? p.n;
+      if (used.has(keyId)) continue;
+      const score = slotScore(p, slots[i].r) * 100 + p.ovr;
+      if (score > bestScore) {
+        bestScore = score;
+        best = p;
+      }
+    }
+    if (best) {
+      out[i] = best;
+      used.add(best.id ?? best.n);
+    }
+  }
+  return out;
+}
+
 // ─── Main ───────────────────────────────────────────────────────
-export default function TacticPage({ squad, initial, presets, subPlan }: TacticUiProps) {
+export default function TacticPage({
+  squad,
+  initial,
+  presets,
+  subPlan,
+  savedXi,
+  savedBench,
+}: TacticUiProps) {
   const [formation, setFormation] = useState<Formation>(initial.formation);
   const [mentality, setMentality] = useState(initial.mentality);
   const [pressing, setPressing] = useState(initial.pressing);
@@ -186,9 +249,14 @@ export default function TacticPage({ squad, initial, presets, subPlan }: TacticU
   const [preset, setPreset] = useState(0);
   const [presetState, setPresetState] =
     useState<Array<TacticPreset | null>>(presets);
+  // Start from the manager's SAVED team sheet, not a fresh auto-pick.
+  // The pitch below is fully interactive but its state was never persisted:
+  // you could arrange an eleven, watch it render, navigate away and lose it,
+  // and the match engine never saw it.
   const [starters, setStarters] = useState<Array<Player | null>>(() =>
-    assignStarters(squad, initial.formation),
+    startersFromSaved(squad, initial.formation, savedXi),
   );
+  const [dirty, setDirty] = useState(false);
   const [selected, setSelected] = useState<
     | { type: "pitch"; slot: number }
     | { type: "bench"; id: string }
@@ -201,6 +269,7 @@ export default function TacticPage({ squad, initial, presets, subPlan }: TacticU
   useEffect(() => {
     setStarters(assignStarters(squad, formation));
     setSelected(null);
+    setDirty(true);
   }, [formation, squad]);
 
   const bench = useMemo(() => {
@@ -212,8 +281,17 @@ export default function TacticPage({ squad, initial, presets, subPlan }: TacticU
     return squad
       .filter((p) => p.status !== "injured" && p.status !== "suspended")
       .filter((p) => !starterIds.has(p.id ?? p.n))
-      .sort((a, b) => b.ovr - a.ovr);
-  }, [squad, starters]);
+      .sort((a, b) => {
+        // Respect the manager's saved bench order; anyone not on it falls
+        // back to rating.
+        const ai = savedBench.indexOf(a.id ?? a.n);
+        const bi = savedBench.indexOf(b.id ?? b.n);
+        if (ai !== -1 && bi !== -1) return ai - bi;
+        if (ai !== -1) return -1;
+        if (bi !== -1) return 1;
+        return b.ovr - a.ovr;
+      });
+  }, [squad, starters, savedBench]);
 
   const slots = FORMATIONS[formation];
 
@@ -230,6 +308,7 @@ export default function TacticPage({ squad, initial, presets, subPlan }: TacticU
         return next;
       });
       setSelected(null);
+      setDirty(true);
     } else if (selected?.type === "pitch" && selected.slot !== slotIdx) {
       // Swap two pitch slots
       setStarters((prev) => {
@@ -240,6 +319,7 @@ export default function TacticPage({ squad, initial, presets, subPlan }: TacticU
         return next;
       });
       setSelected(null);
+      setDirty(true);
     } else {
       setSelected({ type: "pitch", slot: slotIdx });
     }
@@ -255,6 +335,7 @@ export default function TacticPage({ squad, initial, presets, subPlan }: TacticU
         return next;
       });
       setSelected(null);
+      setDirty(true);
     } else if (selected?.type === "bench" && selected.id === id) {
       setSelected(null);
     } else {
@@ -363,6 +444,26 @@ export default function TacticPage({ squad, initial, presets, subPlan }: TacticU
                   pressing,
                   tempo,
                 });
+                // Persist the arranged eleven too. This pitch was purely
+                // decorative before: the engine re-picked by rating and threw
+                // the arrangement away.
+                const xi = starters
+                  .filter((p): p is Player => !!p)
+                  .map((p) => p.id ?? p.n);
+                const lineupRes = await saveLineup({
+                  xi,
+                  bench: bench.map((p) => p.id ?? p.n).slice(0, 9),
+                });
+                if (!lineupRes.ok) {
+                  toast({
+                    icon: "!",
+                    title: "Kadro kaydedilemedi",
+                    body: lineupRes.error,
+                    accent: "var(--danger)",
+                  });
+                } else {
+                  setDirty(false);
+                }
                 if (res.ok) {
                   setPresetState((prev) => {
                     const next = [...prev];
@@ -386,7 +487,11 @@ export default function TacticPage({ squad, initial, presets, subPlan }: TacticU
               });
             }}
           >
-            {pending ? "Kaydediliyor…" : "Kaydet"}
+            {pending
+              ? "Kaydediliyor…"
+              : dirty
+                ? "Kadroyu ve Taktiği Kaydet •"
+                : "Kaydet"}
           </button>
         </div>
       </div>

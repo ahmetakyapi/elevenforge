@@ -449,7 +449,9 @@ async function main() {
     await db.insert(transferListings).values({
       leagueId: league.id,
       playerId: p.id,
-      sellerClubId: null, // bot market
+      // The owning club, NOT null. A null seller means the sale pays nobody:
+      // the club loses the player and the money leaves the economy.
+      sellerClubId: p.clubId,
       isBotMarket: true,
       priceCents,
       originalPriceCents: priceCents,
@@ -457,18 +459,23 @@ async function main() {
       lastDecayAt: new Date(now - hoursOn * 3600 * 1000),
       expiresAt: new Date(now + 24 * 3600 * 1000),
     });
+    // Keep players.status consistent with the listing, or the partial unique
+    // index and the AI's `status !== 'listed'` filter disagree with reality.
+    await db
+      .update(players)
+      .set({ status: "listed" })
+      .where(eq(players.id, p.id));
   }
   console.log(`  ✓ ${listCandidates.length} transfer listings`);
 
   // Fixtures — 15-round single round-robin, 1 round/day at the league's matchTime
   const clubIds = clubRows.map((c) => c.id);
   const rounds = roundRobin(clubIds);
-  const { applyMatchTime } = await import("../lib/match-time");
-  const today = applyMatchTime(new Date(), league.matchTime);
+  const { matchKickoff } = await import("../lib/match-time");
+  const seedNow = new Date();
   let fixCount = 0;
   for (let r = 0; r < rounds.length; r++) {
-    const scheduled = new Date(today);
-    scheduled.setDate(today.getDate() + r);
+    const scheduled = matchKickoff(seedNow, r, league.matchTime, league.timeZone);
     for (const m of rounds[r]) {
       const home = clubRows.find((c) => c.id === m.home);
       if (!home) continue;
