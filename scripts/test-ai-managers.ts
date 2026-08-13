@@ -113,6 +113,41 @@ async function main() {
   ok(sheetsOk === before.length, `${sheetsOk}/${before.length} clubs saved a full XI`);
   ok(shapeOk === before.length, `${shapeOk}/${before.length} XIs match their formation`);
 
+  // ── Club development ────────────────────────────────────────
+  //
+  // Humans have four compounding levers off the pitch. A bot that uses none
+  // of them falls permanently behind, which is what made most of the league
+  // irrelevant after a season or two.
+  console.log("\n=== Club development ===");
+  ok(r1.trained > 0, `AI clubs put ${r1.trained} youngsters into training`);
+  ok(r1.sponsored > 0, `AI clubs signed ${r1.sponsored} sponsor deals`);
+  ok(r1.hired > 0, `AI clubs hired ${r1.hired} staff`);
+
+  const devClubs = await db
+    .select()
+    .from(clubs)
+    .where(and(eq(clubs.leagueId, leagueId), eq(clubs.aiManaged, true)));
+  const withSponsor = devClubs.filter((c) => c.activeSponsorJson).length;
+  const withStaff = devClubs.filter((c) => {
+    if (!c.staffJson) return false;
+    try {
+      return Object.values(JSON.parse(c.staffJson)).some(Boolean);
+    } catch {
+      return false;
+    }
+  }).length;
+  ok(
+    withSponsor === devClubs.length,
+    `every AI club has a sponsor (${withSponsor}/${devClubs.length})`,
+  );
+  ok(withStaff > 0, `${withStaff}/${devClubs.length} AI clubs employ staff`);
+
+  const trainees = await db
+    .select({ id: players.id })
+    .from(players)
+    .where(and(eq(players.leagueId, leagueId), eq(players.status, "training")));
+  ok(trainees.length > 0, `${trainees.length} players are in training`);
+
   // ── Selling ─────────────────────────────────────────────────
   console.log("\n=== Market behaviour ===");
   const aiListings = await db

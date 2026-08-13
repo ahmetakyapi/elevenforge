@@ -33,7 +33,7 @@ import {
   RENEWAL_WAGE_MULTIPLIER,
   renewalCostCents,
 } from "@/lib/economy";
-import { creditClub, debitClub } from "@/lib/money";
+import { creditClub, debitClub, purchaseFacilityLevel } from "@/lib/money";
 import {
   clubs,
   feedEvents,
@@ -44,6 +44,8 @@ import {
   type Club,
   type DBPlayer,
 } from "@/lib/schema";
+import { SPONSORS } from "@/lib/sponsors";
+import { STAFF } from "@/lib/staff";
 import { syncInactiveManagers } from "./inactivity";
 import { dailyRng, traitForClub, type AiTrait } from "./profile";
 
@@ -51,6 +53,8 @@ import { dailyRng, traitForClub, type AiTrait } from "./profile";
 const HARD_MIN_SQUAD = 16;
 const MAX_SQUAD = 26;
 const OFFER_TTL_MS = 3 * 24 * 3600 * 1000;
+/** Mirrors upgradeCostCents in app/(app)/dashboard/upgrade-actions.ts. */
+const FACILITY_BASE_COST_CENTS = 500_000_000;
 
 function dayStamp(now: Date): number {
   return Math.floor(now.getTime() / (24 * 3600 * 1000));
@@ -61,6 +65,28 @@ function valueToClub(p: DBPlayer, trait: AiTrait): number {
   const youth = p.age <= 22 ? trait.youthBias * 12 : p.age >= 31 ? -10 : 0;
   const ceiling = (p.potential - p.overall) * 0.8;
   return p.overall + youth + ceiling;
+}
+
+/**
+ * The minimum a club must keep in each position, whatever else it does.
+ *
+ * Without this the AI would happily sell its last goalkeeper: listSurplus
+ * offloads the least valuable players (a backup keeper rates low) and
+ * emergencySales offloads the most valuable (the first-choice keeper rates
+ * high), so across a few seasons a club could end up with none at all and
+ * field an outfielder in goal for the rest of its life.
+ */
+const POSITION_FLOOR: Record<DBPlayer["position"], number> = {
+  GK: 2,
+  DEF: 4,
+  MID: 4,
+  FWD: 2,
+};
+
+/** Can this player be sold without breaching the positional floor? */
+function isExpendable(p: DBPlayer, squad: DBPlayer[]): boolean {
+  const inPosition = squad.filter((s) => s.position === p.position).length;
+  return inPosition > POSITION_FLOOR[p.position];
 }
 
 /** Which position is this squad thinnest in? */
@@ -174,8 +200,12 @@ async function listSurplus(
 
   const room = Math.min(3 - alreadyListed.length, squad.length - trait.minSquad);
   let listed = 0;
+  // Track the squad as it shrinks so the floor is checked against reality,
+  // not against the roster as it was at the start of the tick.
+  const remaining = [...squad];
   for (const p of ranked.slice(0, room)) {
     if (rng() > 0.5) continue;
+    if (!isExpendable(p, remaining)) continue;
     // Price around market value, shaded by how keen they are to sell.
     const multiplier = 1.25 - trait.sellWillingness * 0.35;
     const priceCents = Math.max(
@@ -202,6 +232,8 @@ async function listSurplus(
       .update(players)
       .set({ status: "listed" })
       .where(and(eq(players.id, p.id), eq(players.status, "active")));
+    const idx = remaining.findIndex((r) => r.id === p.id);
+    if (idx >= 0) remaining.splice(idx, 1);
     listed++;
   }
   return listed;
@@ -236,10 +268,13 @@ async function emergencySales(
   let deficit = -fresh.balanceCents;
   let sold = 0;
   let size = squad.length;
+  const remaining = [...squad];
 
   for (const p of sellable) {
     if (deficit <= 0) break;
     if (size <= HARD_MIN_SQUAD) break;
+    // Even a fire sale keeps enough bodies in each position to field a team.
+    if (!isExpendable(p, remaining)) continue;
     const fee = Math.round(Number(p.marketValueCents) * DISTRESS_SALE_RATE);
     if (fee <= 0) continue;
 
@@ -266,12 +301,129 @@ async function emergencySales(
       eventType: "transfer",
       text: `${club.name} mali sıkıntı nedeniyle ${p.name}'i satmak zorunda kaldı (€${(fee / 100 / 1_000_000).toFixed(1)}M).`,
     });
+    const idx = remaining.findIndex((r) => r.id === p.id);
+    if (idx >= 0) remaining.splice(idx, 1);
     deficit -= fee;
     size--;
     sold++;
   }
   void trait;
   return sold;
+}
+
+/**
+ * 4c. Run the club off the pitch: training, staff, facilities, sponsors.
+ *
+ * Humans have four compounding levers — put youngsters on the training slot,
+ * hire a physio/coach/scout, upgrade the stadium and training ground, and
+ * sign a sponsor. Bots used none of them, so their squads only ever decayed
+ * while a human's improved. Over a couple of seasons that is not a
+ * difficulty setting, it is a permanent handicap that makes two thirds of
+ * the league irrelevant.
+ */
+async function developClub(
+  club: Club,
+  squad: DBPlayer[],
+  trait: AiTrait,
+  rng: () => number,
+): Promise<{ trained: number; hired: number; upgraded: number; sponsored: number }> {
+  const out = { trained: 0, hired: 0, upgraded: 0, sponsored: 0 };
+
+  // ── Training slots: one per position group, best prospect first ──
+  const currentTrainees = squad.filter((p) => p.status === "training");
+  const groups: Array<DBPlayer["position"]> = ["GK", "DEF", "MID", "FWD"];
+  for (const pos of groups) {
+    if (currentTrainees.some((p) => p.position === pos)) continue;
+    const candidate = squad
+      .filter(
+        (p) =>
+          p.position === pos &&
+          p.status === "active" &&
+          p.overall < p.potential &&
+          p.age <= 24,
+      )
+      .sort(
+        (a, b) => b.potential - b.overall - (a.potential - a.overall),
+      )[0];
+    if (!candidate) continue;
+    await db
+      .update(players)
+      .set({ status: "training" })
+      .where(and(eq(players.id, candidate.id), eq(players.status, "active")));
+    out.trained++;
+  }
+
+  const [fresh] = await db.select().from(clubs).where(eq(clubs.id, club.id));
+  if (!fresh) return out;
+
+  // ── Sponsor: free money, so take the best one prestige allows ──
+  if (!fresh.activeSponsorJson) {
+    const affordable = SPONSORS.filter((sp) => fresh.prestige >= sp.minPrestige).sort(
+      (a, b) => b.payPerMatchCents - a.payPerMatchCents,
+    );
+    const pick = affordable[0];
+    if (pick) {
+      await db
+        .update(clubs)
+        .set({
+          activeSponsorJson: JSON.stringify({
+            id: pick.id,
+            name: pick.name,
+            payPerMatchCents: pick.payPerMatchCents,
+            bonusPerWinCents: pick.bonusPerWinCents,
+            seasonBonusCents: pick.seasonBonusCents,
+            weeksLeft: pick.weeks,
+          }),
+        })
+        .where(and(eq(clubs.id, club.id), isNull(clubs.activeSponsorJson)));
+      out.sponsored++;
+    }
+  }
+
+  // ── Staff: fill empty slots the club can comfortably afford ──
+  let staff: Partial<Record<"headCoach" | "physio" | "scout", { id: string }>> = {};
+  if (fresh.staffJson) {
+    try {
+      staff = JSON.parse(fresh.staffJson);
+    } catch {
+      staff = {};
+    }
+  }
+  // Only spend a slice of the balance on non-playing staff.
+  const staffBudget = Math.round(fresh.balanceCents * 0.08);
+  for (const role of ["physio", "headCoach", "scout"] as const) {
+    if (staff[role]) continue;
+    if (rng() > 0.5) continue;
+    const best = STAFF.filter(
+      (m) => m.role === role && m.hireCostCents <= staffBudget,
+    ).sort((a, b) => b.tier - a.tier)[0];
+    if (!best) continue;
+    const paid = await debitClub(club.id, best.hireCostCents);
+    if (!paid) break;
+    staff = { ...staff, [role]: { id: best.id } };
+    await db
+      .update(clubs)
+      .set({ staffJson: JSON.stringify(staff) })
+      .where(eq(clubs.id, club.id));
+    out.hired++;
+  }
+
+  // ── Facilities: a long-term investment, taken when cash is comfortable ──
+  const [afterStaff] = await db.select().from(clubs).where(eq(clubs.id, club.id));
+  if (afterStaff) {
+    for (const field of ["trainingLevel", "stadiumLevel"] as const) {
+      const level = afterStaff[field];
+      if (level >= 5) continue;
+      const cost = FACILITY_BASE_COST_CENTS * Math.pow(2, level - 1);
+      // Keep a healthy reserve so an upgrade never starves the wage bill.
+      if (afterStaff.balanceCents < cost * 3) continue;
+      if (rng() > 0.3) continue;
+      const done = await purchaseFacilityLevel(club.id, field, level, cost);
+      if (done) out.upgraded++;
+    }
+  }
+
+  return out;
 }
 
 /** 5a. Sign a free agent when the squad is short. */
@@ -682,6 +834,10 @@ export type AiTickResult = {
   offersHandled: number;
   emergency: number;
   emergencySales: number;
+  trained: number;
+  hired: number;
+  upgraded: number;
+  sponsored: number;
 };
 
 /**
@@ -720,6 +876,10 @@ export async function runAiManagers(
     offersHandled: 0,
     emergency: 0,
     emergencySales: 0,
+    trained: 0,
+    hired: 0,
+    upgraded: 0,
+    sponsored: 0,
   };
 
   for (const club of managed) {
@@ -757,6 +917,12 @@ export async function runAiManagers(
     result.signed += await signFreeAgents(club, squad, trait);
     result.bought += await buyFromMarket(club, squad, trait, rng);
     result.offersSent += await sendOffers(club, squad, trait, rng);
+
+    const dev = await developClub(club, squad, trait, rng);
+    result.trained += dev.trained;
+    result.hired += dev.hired;
+    result.upgraded += dev.upgraded;
+    result.sponsored += dev.sponsored;
 
     // Re-read the squad after all the trading so the team sheet reflects it.
     const finalSquad = await db

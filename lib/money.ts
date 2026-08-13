@@ -69,6 +69,44 @@ export async function creditClub(
 }
 
 /**
+ * Buy one level of a facility: charge and increment in a single statement.
+ *
+ * The level guard is what makes it safe against a double submit — the second
+ * request no longer matches `level = expected` and so buys nothing — and the
+ * balance guard does the same for affordability. Both must be in the SAME
+ * statement as the write, which is why this cannot go through debitClub.
+ *
+ * Shared by the human upgrade action and the AI manager so there is one
+ * implementation rather than two subtly different ones.
+ */
+export async function purchaseFacilityLevel(
+  clubId: string,
+  facility: "stadiumLevel" | "trainingLevel",
+  currentLevel: number,
+  costCents: number,
+  exec: Executor = db,
+): Promise<boolean> {
+  const cost = normalizeAmount(costCents);
+  const column =
+    facility === "stadiumLevel" ? clubs.stadiumLevel : clubs.trainingLevel;
+  const rows = await exec
+    .update(clubs)
+    .set({
+      [facility]: currentLevel + 1,
+      balanceCents: sql`${clubs.balanceCents} - ${cost}`,
+    })
+    .where(
+      and(
+        eq(clubs.id, clubId),
+        eq(column, currentLevel),
+        gte(clubs.balanceCents, cost),
+      ),
+    )
+    .returning();
+  return rows.length > 0;
+}
+
+/**
  * Apply a signed delta that is allowed to push the balance negative — used by
  * the weekly economy, where wages must still be charged to a club that cannot
  * pay them (going into the red is a game state, not an error).

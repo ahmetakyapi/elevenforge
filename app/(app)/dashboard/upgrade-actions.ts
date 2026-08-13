@@ -1,9 +1,9 @@
 "use server";
 
-import { and, eq, gte, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { clubs, feedEvents } from "@/lib/schema";
+import { purchaseFacilityLevel } from "@/lib/money";
+import { feedEvents } from "@/lib/schema";
 import { requireLeagueContext } from "@/lib/session";
 
 /**
@@ -17,38 +17,6 @@ function upgradeCostCents(currentLevel: number): number {
   return base * Math.pow(2, currentLevel - 1);
 }
 
-/**
- * Buy one facility level in a single conditional statement.
- *
- * The level guard is what makes a double-click safe: the second request
- * still sees the old level in its session snapshot, but by then the row no
- * longer matches `level = expected`, so it updates nothing and the club is
- * charged once. The balance guard does the same job for affordability.
- */
-async function purchaseLevel(
-  clubId: string,
-  column: typeof clubs.stadiumLevel | typeof clubs.trainingLevel,
-  currentLevel: number,
-  cost: number,
-): Promise<boolean> {
-  const rows = await db
-    .update(clubs)
-    .set({
-      [column.name === "stadium_level" ? "stadiumLevel" : "trainingLevel"]:
-        currentLevel + 1,
-      balanceCents: sql`${clubs.balanceCents} - ${cost}`,
-    })
-    .where(
-      and(
-        eq(clubs.id, clubId),
-        eq(column, currentLevel),
-        gte(clubs.balanceCents, cost),
-      ),
-    )
-    .returning();
-  return rows.length > 0;
-}
-
 export async function upgradeStadium() {
   const ctx = await requireLeagueContext();
   if (ctx.club.stadiumLevel >= 5) {
@@ -56,9 +24,9 @@ export async function upgradeStadium() {
   }
   const cost = upgradeCostCents(ctx.club.stadiumLevel);
   const newLevel = ctx.club.stadiumLevel + 1;
-  const done = await purchaseLevel(
+  const done = await purchaseFacilityLevel(
     ctx.club.id,
-    clubs.stadiumLevel,
+    "stadiumLevel",
     ctx.club.stadiumLevel,
     cost,
   );
@@ -85,9 +53,9 @@ export async function upgradeTraining() {
   }
   const cost = upgradeCostCents(ctx.club.trainingLevel);
   const newLevel = ctx.club.trainingLevel + 1;
-  const done = await purchaseLevel(
+  const done = await purchaseFacilityLevel(
     ctx.club.id,
-    clubs.trainingLevel,
+    "trainingLevel",
     ctx.club.trainingLevel,
     cost,
   );

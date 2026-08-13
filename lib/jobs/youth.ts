@@ -149,6 +149,14 @@ export async function generateYouthIntake(
   return { academy, freeAgents: freeAgentCount };
 }
 
+/** Nobody can play a match without at least this many in each position. */
+const MIN_PER_POSITION: Record<Position, number> = {
+  GK: 2,
+  DEF: 4,
+  MID: 4,
+  FWD: 2,
+};
+
 /**
  * Safety net: make sure every club can field a side. Called after the roll,
  * it tops up any squad that fell below the minimum with academy players
@@ -165,14 +173,29 @@ export async function backfillThinSquads(
       .select({ id: players.id, position: players.position })
       .from(players)
       .where(eq(players.clubId, club.id));
-    if (squad.length >= minSquad) continue;
 
-    const r = rng(hash(`${club.id}:backfill:${squad.length}`));
     const have = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
     for (const p of squad) have[p.position]++;
+
+    // A club with eighteen outfielders and no keeper is still broken, so the
+    // backfill triggers on a missing position as well as on squad size.
+    // Retirement can take the last goalkeeper in a single roll.
+    const missingPosition = (["GK", "DEF", "MID", "FWD"] as const).some(
+      (pos) => have[pos] < MIN_PER_POSITION[pos],
+    );
+    if (squad.length >= minSquad && !missingPosition) continue;
+
+    const r = rng(hash(`${club.id}:backfill:${squad.length}`));
     const want = { GK: 2, DEF: 6, MID: 7, FWD: 5 };
 
     const batch: NewPlayer[] = [];
+    // First make every position viable, then top up to the squad minimum.
+    for (const pos of ["GK", "DEF", "MID", "FWD"] as const) {
+      while (have[pos] < MIN_PER_POSITION[pos]) {
+        have[pos]++;
+        batch.push(makeProspect(leagueId, club.id, pos, r));
+      }
+    }
     while (squad.length + batch.length < minSquad) {
       // Always fill the emptiest line first, so a club never ends up with
       // eleven midfielders and no goalkeeper.
