@@ -17,7 +17,7 @@ import {
   transferListings,
   users,
 } from "@/lib/schema";
-import { SQUAD_PACKS } from "@/lib/squad-packs";
+import { SQUAD_PACKS, SQUAD_PACKS_D2 } from "@/lib/squad-packs";
 import { matchKickoff } from "@/lib/match-time";
 import { roundRobin as sharedRoundRobin } from "@/lib/jobs/season";
 import { assignSeasonGoals } from "@/lib/jobs/board";
@@ -373,11 +373,23 @@ export async function createStarterLeague(input: {
     TIER_TEMPLATE[i] ?? { prestige: 30, balance: 18_000_000_000 };
 
 
+  // Both tiers are created up front: the second division is a real league
+  // that plays its own calendar, not a holding pen. Clubs move between them
+  // at the season roll (lib/jobs/promotion.ts).
+  const ALL_PACKS = [
+    ...SQUAD_PACKS.map((p) => ({ pack: p, division: 1 as const })),
+    ...SQUAD_PACKS_D2.map((p) => ({ pack: p, division: 2 as const })),
+  ];
+
   const clubRows: Array<typeof clubs.$inferSelect> = [];
-  for (let i = 0; i < SQUAD_PACKS.length; i++) {
-    const pack = SQUAD_PACKS[i];
+  for (let i = 0; i < ALL_PACKS.length; i++) {
+    const { pack, division } = ALL_PACKS[i];
     const meta = pack.club;
-    const tier = tierFor(i);
+    // Second-division clubs are poorer and less prestigious across the board.
+    const tier =
+      division === 2
+        ? { prestige: 24, balance: 12_000_000_000 }
+        : tierFor(i);
     const personality =
       i === 0
         ? BOT_PERSONALITIES[0] // user defaults to balanced 4-3-3
@@ -386,6 +398,7 @@ export async function createStarterLeague(input: {
       .insert(clubs)
       .values({
         leagueId: league.id,
+        division,
         ownerUserId: i === 0 ? input.userId : null,
         isBot: i !== 0,
         // Bots are run by the AI manager from day one.
@@ -417,13 +430,14 @@ export async function createStarterLeague(input: {
     .set({ currentLeagueId: league.id })
     .where(eq(users.id, input.userId));
 
-  // Players — every club pulls its real 2025-26 roster straight from
-  // the pack. No procedural generation for initial squads; all 16 clubs
-  // ship with recognisable names in every new league.
+  // Players — every club pulls its squad straight from its pack. Indexed
+  // against ALL_PACKS, not SQUAD_PACKS: clubRows now spans both divisions,
+  // so a top-flight-only lookup ran off the end once the second tier was
+  // added and crashed league creation.
   const allPlayers: Array<typeof players.$inferInsert> = [];
   for (const [idx, club] of clubRows.entries()) {
     const r = rng(club.id.charCodeAt(0) * 997 + idx * 31 + Date.now());
-    const pack = SQUAD_PACKS[idx];
+    const pack = ALL_PACKS[idx].pack;
     for (const p of pack.players) {
       const offsets = ROLE_ATTR_OFFSETS[p.role] ?? ROLE_ATTR_OFFSETS.CM;
       allPlayers.push({
@@ -459,28 +473,32 @@ export async function createStarterLeague(input: {
   }
   await db.insert(players).values(allPlayers);
 
-  // Fixtures — 15 round single round-robin, scheduled at the league's
-  // chosen matchTime ("HH:MM") rather than the previous hardcoded 21:00.
-  const clubIds = clubRows.map((c) => c.id);
-  const rounds = roundRobin(clubIds);
+  // Fixtures — a double round-robin PER DIVISION, both playing on the same
+  // match days at the league's local kick-off time.
   const now = new Date();
   const fixtureRows: Array<typeof fixtures.$inferInsert> = [];
-  for (let r = 0; r < rounds.length; r++) {
-    // Round r kicks off r days from today at the league's local match time.
-    const scheduled = matchKickoff(now, r, league.matchTime, league.timeZone);
-    for (const m of rounds[r]) {
-      const home = clubRows.find((c) => c.id === m.home);
-      if (!home) continue;
-      fixtureRows.push({
-        leagueId: league.id,
-        seasonNumber: 1,
-        weekNumber: r + 1,
-        homeClubId: m.home,
-        awayClubId: m.away,
-        venue: `${home.city} Arena`,
-        scheduledAt: scheduled,
-        status: "scheduled",
-      });
+  for (const division of [1, 2] as const) {
+    const divisionIds = clubRows.filter((c) => c.division === division).map((c) => c.id);
+    if (divisionIds.length < 2) continue;
+    const rounds = roundRobin(divisionIds);
+    for (let r = 0; r < rounds.length; r++) {
+      // Round r kicks off r days from today at the league's local match time.
+      const scheduled = matchKickoff(now, r, league.matchTime, league.timeZone);
+      for (const m of rounds[r]) {
+        const home = clubRows.find((c) => c.id === m.home);
+        if (!home) continue;
+        fixtureRows.push({
+          leagueId: league.id,
+          seasonNumber: 1,
+          division,
+          weekNumber: r + 1,
+          homeClubId: m.home,
+          awayClubId: m.away,
+          venue: `${home.city} Arena`,
+          scheduledAt: scheduled,
+          status: "scheduled",
+        });
+      }
     }
   }
   await db.insert(fixtures).values(fixtureRows);

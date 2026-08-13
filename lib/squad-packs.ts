@@ -705,7 +705,637 @@ const ERZ_PACK = pack(
   ],
 );
 
-/** Every Süper Lig club, in rough order of strength. */
+const BRS_PACK = pack(
+  { id: "brs", name: "Bursaspor", short: "BRS", city: "Bursa", color: "#16a34a", color2: "#ffffff" },
+  [
+    // GK
+    { n: "Çağlar Şanlı", pos: "GK", role: "GK", num: 1, age: 31, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Eren Şahin", pos: "GK", role: "GK", num: 2, age: 34, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Barış Bulut", pos: "GK", role: "GK", num: 3, age: 28, ovr: 63, pot: 63, nat: "TR" },
+    // DEF
+    { n: "Efe Ünal", pos: "DEF", role: "CB", num: 4, age: 29, ovr: 68, pot: 68, nat: "TR" },
+    { n: "Görkem Çelik", pos: "DEF", role: "CB", num: 5, age: 34, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Umut Duman", pos: "DEF", role: "CB", num: 6, age: 20, ovr: 62, pot: 74, nat: "TR" },
+    { n: "Semih Başaran", pos: "DEF", role: "CB", num: 7, age: 30, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Sinan Yalçın", pos: "DEF", role: "LB", num: 8, age: 33, ovr: 61, pot: 61, nat: "TR" },
+    { n: "Furkan Şahin", pos: "DEF", role: "LB", num: 9, age: 23, ovr: 59, pot: 67, nat: "TR" },
+    { n: "Mert Aydın", pos: "DEF", role: "RB", num: 10, age: 27, ovr: 62, pot: 62, nat: "TR" },
+    { n: "Volkan Çolak", pos: "DEF", role: "RB", num: 11, age: 32, ovr: 61, pot: 61, nat: "TR" },
+    // MID
+    { n: "Burak Taş", pos: "MID", role: "CDM", num: 12, age: 18, ovr: 61, pot: 73, nat: "TR" },
+    { n: "Sinan Çelik", pos: "MID", role: "CDM", num: 13, age: 20, ovr: 62, pot: 74, nat: "TR" },
+    { n: "Eren Aydın", pos: "MID", role: "CM", num: 14, age: 29, ovr: 68, pot: 68, nat: "TR" },
+    { n: "Batuhan Yılmaz", pos: "MID", role: "CM", num: 15, age: 32, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Yiğit Erdoğan", pos: "MID", role: "CM", num: 16, age: 23, ovr: 63, pot: 71, nat: "TR" },
+    { n: "Yusuf Ünal", pos: "MID", role: "AM", num: 17, age: 31, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Semih Güneş", pos: "MID", role: "AM", num: 18, age: 34, ovr: 63, pot: 63, nat: "TR" },
+    // FWD
+    { n: "Hakan Yılmaz", pos: "FWD", role: "LW", num: 19, age: 33, ovr: 60, pot: 60, nat: "TR" },
+    { n: "Eren Demir", pos: "FWD", role: "LW", num: 20, age: 32, ovr: 61, pot: 61, nat: "TR" },
+    { n: "Semih Aslan", pos: "FWD", role: "RW", num: 21, age: 32, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Tolga Korkmaz", pos: "FWD", role: "RW", num: 22, age: 31, ovr: 61, pot: 61, nat: "TR" },
+    { n: "Yunus Polat", pos: "FWD", role: "ST", num: 23, age: 21, ovr: 61, pot: 69, nat: "TR" },
+    { n: "Volkan Kılıç", pos: "FWD", role: "ST", num: 24, age: 18, ovr: 56, pot: 68, nat: "TR" },
+    { n: "Koray Yılmaz", pos: "FWD", role: "ST", num: 25, age: 34, ovr: 66, pot: 66, nat: "TR" },
+  ],
+);
+
+const KAY_PACK = pack(
+  { id: "kay", name: "Kayserispor", short: "KAY", city: "Kayseri", color: "#facc15", color2: "#dc2626" },
+  [
+    // GK
+    { n: "Yusuf Çolak", pos: "GK", role: "GK", num: 1, age: 25, ovr: 64, pot: 68, nat: "TR" },
+    { n: "Doğan Çakır", pos: "GK", role: "GK", num: 2, age: 30, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Kuzey Erdoğan", pos: "GK", role: "GK", num: 3, age: 21, ovr: 65, pot: 73, nat: "TR" },
+    // DEF
+    { n: "Ferdi Şanlı", pos: "DEF", role: "CB", num: 4, age: 32, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Kuzey Yıldız", pos: "DEF", role: "CB", num: 5, age: 24, ovr: 67, pot: 71, nat: "TR" },
+    { n: "Doğan Taş", pos: "DEF", role: "CB", num: 6, age: 25, ovr: 66, pot: 70, nat: "TR" },
+    { n: "Koray Doğan", pos: "DEF", role: "CB", num: 7, age: 33, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Efe Başaran", pos: "DEF", role: "LB", num: 8, age: 27, ovr: 67, pot: 67, nat: "TR" },
+    { n: "Yiğit Kılıç", pos: "DEF", role: "LB", num: 9, age: 23, ovr: 59, pot: 67, nat: "TR" },
+    { n: "Emre Şanlı", pos: "DEF", role: "RB", num: 10, age: 26, ovr: 66, pot: 70, nat: "TR" },
+    { n: "Kaan Başaran", pos: "DEF", role: "RB", num: 11, age: 28, ovr: 64, pot: 64, nat: "TR" },
+    // MID
+    { n: "Yunus Taş", pos: "MID", role: "CDM", num: 12, age: 28, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Doğan Aslan", pos: "MID", role: "CDM", num: 13, age: 30, ovr: 61, pot: 61, nat: "TR" },
+    { n: "Enes Yıldız", pos: "MID", role: "CM", num: 14, age: 20, ovr: 56, pot: 68, nat: "TR" },
+    { n: "Ahmet Ünal", pos: "MID", role: "CM", num: 15, age: 32, ovr: 61, pot: 61, nat: "TR" },
+    { n: "Berke Sezer", pos: "MID", role: "CM", num: 16, age: 20, ovr: 60, pot: 72, nat: "TR" },
+    { n: "Hakan Bulut", pos: "MID", role: "AM", num: 17, age: 32, ovr: 61, pot: 61, nat: "TR" },
+    { n: "Mert Taş", pos: "MID", role: "AM", num: 18, age: 23, ovr: 64, pot: 72, nat: "TR" },
+    // FWD
+    { n: "Kaan Akın", pos: "FWD", role: "LW", num: 19, age: 30, ovr: 61, pot: 61, nat: "TR" },
+    { n: "Efe Koç", pos: "FWD", role: "LW", num: 20, age: 21, ovr: 64, pot: 72, nat: "TR" },
+    { n: "Cenk Erdoğan", pos: "FWD", role: "RW", num: 21, age: 23, ovr: 61, pot: 69, nat: "TR" },
+    { n: "Ahmet Taş", pos: "FWD", role: "RW", num: 22, age: 27, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Semih Korkmaz", pos: "FWD", role: "ST", num: 23, age: 20, ovr: 56, pot: 68, nat: "TR" },
+    { n: "Kerem Yalçın", pos: "FWD", role: "ST", num: 24, age: 28, ovr: 67, pot: 67, nat: "TR" },
+    { n: "Ferdi Akgün", pos: "FWD", role: "ST", num: 25, age: 30, ovr: 64, pot: 64, nat: "TR" },
+  ],
+);
+
+const ANT_PACK = pack(
+  { id: "ant", name: "Antalyaspor", short: "ANT", city: "Antalya", color: "#dc2626", color2: "#ffffff" },
+  [
+    // GK
+    { n: "Furkan Öztürk", pos: "GK", role: "GK", num: 1, age: 27, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Volkan Türk", pos: "GK", role: "GK", num: 2, age: 28, ovr: 68, pot: 68, nat: "TR" },
+    { n: "Berke Bulut", pos: "GK", role: "GK", num: 3, age: 33, ovr: 66, pot: 66, nat: "TR" },
+    // DEF
+    { n: "Görkem Sezer", pos: "DEF", role: "CB", num: 4, age: 29, ovr: 68, pot: 68, nat: "TR" },
+    { n: "Eren Özkan", pos: "DEF", role: "CB", num: 5, age: 26, ovr: 67, pot: 71, nat: "TR" },
+    { n: "Cenk Şahin", pos: "DEF", role: "CB", num: 6, age: 33, ovr: 60, pot: 60, nat: "TR" },
+    { n: "Semih Taş", pos: "DEF", role: "CB", num: 7, age: 23, ovr: 64, pot: 72, nat: "TR" },
+    { n: "Doğan Arslan", pos: "DEF", role: "LB", num: 8, age: 19, ovr: 59, pot: 71, nat: "TR" },
+    { n: "Burak Türk", pos: "DEF", role: "LB", num: 9, age: 22, ovr: 63, pot: 71, nat: "TR" },
+    { n: "Umut Bulut", pos: "DEF", role: "RB", num: 10, age: 25, ovr: 63, pot: 67, nat: "TR" },
+    { n: "Emre Arslan", pos: "DEF", role: "RB", num: 11, age: 21, ovr: 60, pot: 68, nat: "TR" },
+    // MID
+    { n: "Tolga Türk", pos: "MID", role: "CDM", num: 12, age: 33, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Mert Sezer", pos: "MID", role: "CDM", num: 13, age: 30, ovr: 62, pot: 62, nat: "TR" },
+    { n: "Görkem Akın", pos: "MID", role: "CM", num: 14, age: 19, ovr: 58, pot: 70, nat: "TR" },
+    { n: "Ozan Çelik", pos: "MID", role: "CM", num: 15, age: 24, ovr: 66, pot: 70, nat: "TR" },
+    { n: "Semih Akın", pos: "MID", role: "CM", num: 16, age: 31, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Bora Duman", pos: "MID", role: "AM", num: 17, age: 28, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Kerem Çelik", pos: "MID", role: "AM", num: 18, age: 27, ovr: 63, pot: 63, nat: "TR" },
+    // FWD
+    { n: "Kerem Demir", pos: "FWD", role: "LW", num: 19, age: 20, ovr: 60, pot: 72, nat: "TR" },
+    { n: "Ahmet Koç", pos: "FWD", role: "LW", num: 20, age: 29, ovr: 62, pot: 62, nat: "TR" },
+    { n: "Yusuf Yılmaz", pos: "FWD", role: "RW", num: 21, age: 33, ovr: 60, pot: 60, nat: "TR" },
+    { n: "Semih Yıldız", pos: "FWD", role: "RW", num: 22, age: 19, ovr: 60, pot: 72, nat: "TR" },
+    { n: "Semih Duman", pos: "FWD", role: "ST", num: 23, age: 27, ovr: 68, pot: 68, nat: "TR" },
+    { n: "Serkan Yılmaz", pos: "FWD", role: "ST", num: 24, age: 28, ovr: 68, pot: 68, nat: "TR" },
+    { n: "Efe Başaran", pos: "FWD", role: "ST", num: 25, age: 28, ovr: 68, pot: 68, nat: "TR" },
+  ],
+);
+
+const SVS_PACK = pack(
+  { id: "svs", name: "Sivasspor", short: "SVS", city: "Sivas", color: "#dc2626", color2: "#ffffff" },
+  [
+    // GK
+    { n: "Eren Erdoğan", pos: "GK", role: "GK", num: 1, age: 30, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Doğan Sezer", pos: "GK", role: "GK", num: 2, age: 20, ovr: 62, pot: 74, nat: "TR" },
+    { n: "Burak Taş", pos: "GK", role: "GK", num: 3, age: 29, ovr: 64, pot: 64, nat: "TR" },
+    // DEF
+    { n: "Yusuf Başaran", pos: "DEF", role: "CB", num: 4, age: 31, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Efe Kaya", pos: "DEF", role: "CB", num: 5, age: 33, ovr: 62, pot: 62, nat: "TR" },
+    { n: "Taner Taş", pos: "DEF", role: "CB", num: 6, age: 30, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Görkem Başaran", pos: "DEF", role: "CB", num: 7, age: 18, ovr: 57, pot: 69, nat: "TR" },
+    { n: "Volkan Yıldız", pos: "DEF", role: "LB", num: 8, age: 19, ovr: 62, pot: 74, nat: "TR" },
+    { n: "Semih Aydın", pos: "DEF", role: "LB", num: 9, age: 34, ovr: 60, pot: 60, nat: "TR" },
+    { n: "Yusuf Demir", pos: "DEF", role: "RB", num: 10, age: 21, ovr: 64, pot: 72, nat: "TR" },
+    { n: "Arda Çolak", pos: "DEF", role: "RB", num: 11, age: 32, ovr: 65, pot: 65, nat: "TR" },
+    // MID
+    { n: "Enes Erdoğan", pos: "MID", role: "CDM", num: 12, age: 19, ovr: 56, pot: 68, nat: "TR" },
+    { n: "Ahmet Ünal", pos: "MID", role: "CDM", num: 13, age: 32, ovr: 61, pot: 61, nat: "TR" },
+    { n: "Onur Yalçın", pos: "MID", role: "CM", num: 14, age: 31, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Furkan Yıldız", pos: "MID", role: "CM", num: 15, age: 22, ovr: 62, pot: 70, nat: "TR" },
+    { n: "Umut Akgün", pos: "MID", role: "CM", num: 16, age: 24, ovr: 64, pot: 68, nat: "TR" },
+    { n: "Görkem Arslan", pos: "MID", role: "AM", num: 17, age: 33, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Bora Erdoğan", pos: "MID", role: "AM", num: 18, age: 32, ovr: 61, pot: 61, nat: "TR" },
+    // FWD
+    { n: "Koray Demir", pos: "FWD", role: "LW", num: 19, age: 22, ovr: 64, pot: 72, nat: "TR" },
+    { n: "Furkan Ünal", pos: "FWD", role: "LW", num: 20, age: 34, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Cenk Aslan", pos: "FWD", role: "RW", num: 21, age: 23, ovr: 59, pot: 67, nat: "TR" },
+    { n: "Ferdi Öztürk", pos: "FWD", role: "RW", num: 22, age: 27, ovr: 68, pot: 68, nat: "TR" },
+    { n: "Batuhan Ünal", pos: "FWD", role: "ST", num: 23, age: 19, ovr: 62, pot: 74, nat: "TR" },
+    { n: "Tolga Güler", pos: "FWD", role: "ST", num: 24, age: 20, ovr: 62, pot: 74, nat: "TR" },
+    { n: "Arda Kaya", pos: "FWD", role: "ST", num: 25, age: 22, ovr: 64, pot: 72, nat: "TR" },
+  ],
+);
+
+const BDR_PACK = pack(
+  { id: "bdr", name: "Bodrum FK", short: "BDR", city: "Bodrum", color: "#16a34a", color2: "#ffffff" },
+  [
+    // GK
+    { n: "Ahmet Taş", pos: "GK", role: "GK", num: 1, age: 28, ovr: 62, pot: 62, nat: "TR" },
+    { n: "Yunus Şanlı", pos: "GK", role: "GK", num: 2, age: 33, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Tolga Şahin", pos: "GK", role: "GK", num: 3, age: 22, ovr: 63, pot: 71, nat: "TR" },
+    // DEF
+    { n: "Efe Yılmaz", pos: "DEF", role: "CB", num: 4, age: 30, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Batuhan Bulut", pos: "DEF", role: "CB", num: 5, age: 26, ovr: 62, pot: 66, nat: "TR" },
+    { n: "Cenk Ünal", pos: "DEF", role: "CB", num: 6, age: 33, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Efe Şanlı", pos: "DEF", role: "CB", num: 7, age: 29, ovr: 67, pot: 67, nat: "TR" },
+    { n: "Onur Yıldız", pos: "DEF", role: "LB", num: 8, age: 18, ovr: 58, pot: 70, nat: "TR" },
+    { n: "Volkan Başaran", pos: "DEF", role: "LB", num: 9, age: 34, ovr: 60, pot: 60, nat: "TR" },
+    { n: "Görkem Polat", pos: "DEF", role: "RB", num: 10, age: 21, ovr: 62, pot: 70, nat: "TR" },
+    { n: "Deniz Öztürk", pos: "DEF", role: "RB", num: 11, age: 26, ovr: 68, pot: 72, nat: "TR" },
+    // MID
+    { n: "Yusuf Akın", pos: "MID", role: "CDM", num: 12, age: 23, ovr: 63, pot: 71, nat: "TR" },
+    { n: "Ege Güneş", pos: "MID", role: "CDM", num: 13, age: 30, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Eren Koç", pos: "MID", role: "CM", num: 14, age: 34, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Mehmet Yıldız", pos: "MID", role: "CM", num: 15, age: 24, ovr: 66, pot: 70, nat: "TR" },
+    { n: "Arda Akın", pos: "MID", role: "CM", num: 16, age: 29, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Emre Öztürk", pos: "MID", role: "AM", num: 17, age: 24, ovr: 67, pot: 71, nat: "TR" },
+    { n: "Taner Akın", pos: "MID", role: "AM", num: 18, age: 28, ovr: 67, pot: 67, nat: "TR" },
+    // FWD
+    { n: "Cenk Öztürk", pos: "FWD", role: "LW", num: 19, age: 25, ovr: 62, pot: 66, nat: "TR" },
+    { n: "Koray Erdoğan", pos: "FWD", role: "LW", num: 20, age: 19, ovr: 58, pot: 70, nat: "TR" },
+    { n: "Yusuf Ünal", pos: "FWD", role: "RW", num: 21, age: 28, ovr: 68, pot: 68, nat: "TR" },
+    { n: "Kerem Özkan", pos: "FWD", role: "RW", num: 22, age: 32, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Furkan Aydın", pos: "FWD", role: "ST", num: 23, age: 27, ovr: 62, pot: 62, nat: "TR" },
+    { n: "Burak Çolak", pos: "FWD", role: "ST", num: 24, age: 25, ovr: 66, pot: 70, nat: "TR" },
+    { n: "Halil Başaran", pos: "FWD", role: "ST", num: 25, age: 30, ovr: 61, pot: 61, nat: "TR" },
+  ],
+);
+
+const FKG_PACK = pack(
+  { id: "fkg", name: "Fatih Karagümrük", short: "FKG", city: "İstanbul", color: "#dc2626", color2: "#111114" },
+  [
+    // GK
+    { n: "Tolga Aydın", pos: "GK", role: "GK", num: 1, age: 21, ovr: 60, pot: 68, nat: "TR" },
+    { n: "Doğan Yalçın", pos: "GK", role: "GK", num: 2, age: 26, ovr: 64, pot: 68, nat: "TR" },
+    { n: "Enes Kılıç", pos: "GK", role: "GK", num: 3, age: 26, ovr: 64, pot: 68, nat: "TR" },
+    // DEF
+    { n: "Kaan Kaya", pos: "DEF", role: "CB", num: 4, age: 22, ovr: 65, pot: 73, nat: "TR" },
+    { n: "Halil Çakır", pos: "DEF", role: "CB", num: 5, age: 26, ovr: 64, pot: 68, nat: "TR" },
+    { n: "Efe Öztürk", pos: "DEF", role: "CB", num: 6, age: 20, ovr: 57, pot: 69, nat: "TR" },
+    { n: "Taner Türk", pos: "DEF", role: "CB", num: 7, age: 22, ovr: 60, pot: 68, nat: "TR" },
+    { n: "Onur Öztürk", pos: "DEF", role: "LB", num: 8, age: 21, ovr: 61, pot: 69, nat: "TR" },
+    { n: "Furkan Öztürk", pos: "DEF", role: "LB", num: 9, age: 23, ovr: 59, pot: 67, nat: "TR" },
+    { n: "Ahmet Çolak", pos: "DEF", role: "RB", num: 10, age: 30, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Sinan Güneş", pos: "DEF", role: "RB", num: 11, age: 27, ovr: 66, pot: 66, nat: "TR" },
+    // MID
+    { n: "Yunus Korkmaz", pos: "MID", role: "CDM", num: 12, age: 30, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Serkan Başaran", pos: "MID", role: "CDM", num: 13, age: 20, ovr: 61, pot: 73, nat: "TR" },
+    { n: "Umut Kaya", pos: "MID", role: "CM", num: 14, age: 20, ovr: 58, pot: 70, nat: "TR" },
+    { n: "Emre Demir", pos: "MID", role: "CM", num: 15, age: 19, ovr: 56, pot: 68, nat: "TR" },
+    { n: "Barış Özkan", pos: "MID", role: "CM", num: 16, age: 32, ovr: 60, pot: 60, nat: "TR" },
+    { n: "Arda Şahin", pos: "MID", role: "AM", num: 17, age: 18, ovr: 58, pot: 70, nat: "TR" },
+    { n: "Ozan Aslan", pos: "MID", role: "AM", num: 18, age: 29, ovr: 62, pot: 62, nat: "TR" },
+    // FWD
+    { n: "Bora Doğan", pos: "FWD", role: "LW", num: 19, age: 18, ovr: 59, pot: 71, nat: "TR" },
+    { n: "Barış Çelik", pos: "FWD", role: "LW", num: 20, age: 34, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Burak Şahin", pos: "FWD", role: "RW", num: 21, age: 21, ovr: 65, pot: 73, nat: "TR" },
+    { n: "Barış Çolak", pos: "FWD", role: "RW", num: 22, age: 22, ovr: 63, pot: 71, nat: "TR" },
+    { n: "Cenk Kaya", pos: "FWD", role: "ST", num: 23, age: 21, ovr: 60, pot: 68, nat: "TR" },
+    { n: "Alperen Erdoğan", pos: "FWD", role: "ST", num: 24, age: 25, ovr: 62, pot: 66, nat: "TR" },
+    { n: "Berke Ünal", pos: "FWD", role: "ST", num: 25, age: 21, ovr: 63, pot: 71, nat: "TR" },
+  ],
+);
+
+const PND_PACK = pack(
+  { id: "pnd", name: "Pendikspor", short: "PND", city: "İstanbul", color: "#1d4ed8", color2: "#ffffff" },
+  [
+    // GK
+    { n: "Çağlar Şanlı", pos: "GK", role: "GK", num: 1, age: 22, ovr: 59, pot: 67, nat: "TR" },
+    { n: "Ferdi Korkmaz", pos: "GK", role: "GK", num: 2, age: 25, ovr: 67, pot: 71, nat: "TR" },
+    { n: "Kaan Öztürk", pos: "GK", role: "GK", num: 3, age: 25, ovr: 62, pot: 66, nat: "TR" },
+    // DEF
+    { n: "Kaan Özkan", pos: "DEF", role: "CB", num: 4, age: 19, ovr: 62, pot: 74, nat: "TR" },
+    { n: "Kaan Aslan", pos: "DEF", role: "CB", num: 5, age: 29, ovr: 67, pot: 67, nat: "TR" },
+    { n: "Deniz Taş", pos: "DEF", role: "CB", num: 6, age: 22, ovr: 59, pot: 67, nat: "TR" },
+    { n: "Eren Yıldız", pos: "DEF", role: "CB", num: 7, age: 20, ovr: 59, pot: 71, nat: "TR" },
+    { n: "Eren Çakır", pos: "DEF", role: "LB", num: 8, age: 28, ovr: 67, pot: 67, nat: "TR" },
+    { n: "Tolga Güler", pos: "DEF", role: "LB", num: 9, age: 23, ovr: 63, pot: 71, nat: "TR" },
+    { n: "Mehmet Aydın", pos: "DEF", role: "RB", num: 10, age: 31, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Emre Güler", pos: "DEF", role: "RB", num: 11, age: 33, ovr: 65, pot: 65, nat: "TR" },
+    // MID
+    { n: "Mert Yılmaz", pos: "MID", role: "CDM", num: 12, age: 30, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Eren Türk", pos: "MID", role: "CDM", num: 13, age: 22, ovr: 65, pot: 73, nat: "TR" },
+    { n: "Serkan Yıldız", pos: "MID", role: "CM", num: 14, age: 32, ovr: 60, pot: 60, nat: "TR" },
+    { n: "Ahmet Aslan", pos: "MID", role: "CM", num: 15, age: 31, ovr: 60, pot: 60, nat: "TR" },
+    { n: "Yiğit Arslan", pos: "MID", role: "CM", num: 16, age: 22, ovr: 60, pot: 68, nat: "TR" },
+    { n: "Berke Güler", pos: "MID", role: "AM", num: 17, age: 20, ovr: 60, pot: 72, nat: "TR" },
+    { n: "Kuzey Sezer", pos: "MID", role: "AM", num: 18, age: 22, ovr: 60, pot: 68, nat: "TR" },
+    // FWD
+    { n: "Hakan Güneş", pos: "FWD", role: "LW", num: 19, age: 23, ovr: 63, pot: 71, nat: "TR" },
+    { n: "Yusuf Çelik", pos: "FWD", role: "LW", num: 20, age: 25, ovr: 67, pot: 71, nat: "TR" },
+    { n: "Ahmet Bulut", pos: "FWD", role: "RW", num: 21, age: 21, ovr: 62, pot: 70, nat: "TR" },
+    { n: "Kuzey Taş", pos: "FWD", role: "RW", num: 22, age: 29, ovr: 68, pot: 68, nat: "TR" },
+    { n: "Koray Akın", pos: "FWD", role: "ST", num: 23, age: 25, ovr: 63, pot: 67, nat: "TR" },
+    { n: "Sinan Çakır", pos: "FWD", role: "ST", num: 24, age: 31, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Furkan Çolak", pos: "FWD", role: "ST", num: 25, age: 32, ovr: 66, pot: 66, nat: "TR" },
+  ],
+);
+
+const BOL_PACK = pack(
+  { id: "bol", name: "Boluspor", short: "BOL", city: "Bolu", color: "#dc2626", color2: "#ffffff" },
+  [
+    // GK
+    { n: "Volkan Bulut", pos: "GK", role: "GK", num: 1, age: 28, ovr: 68, pot: 68, nat: "TR" },
+    { n: "Mert Çolak", pos: "GK", role: "GK", num: 2, age: 27, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Deniz Akın", pos: "GK", role: "GK", num: 3, age: 32, ovr: 60, pot: 60, nat: "TR" },
+    // DEF
+    { n: "Onur Akın", pos: "DEF", role: "CB", num: 4, age: 20, ovr: 62, pot: 74, nat: "TR" },
+    { n: "Yusuf Yalçın", pos: "DEF", role: "CB", num: 5, age: 27, ovr: 68, pot: 68, nat: "TR" },
+    { n: "Burak Erdoğan", pos: "DEF", role: "CB", num: 6, age: 23, ovr: 60, pot: 68, nat: "TR" },
+    { n: "Emre Akgün", pos: "DEF", role: "CB", num: 7, age: 29, ovr: 67, pot: 67, nat: "TR" },
+    { n: "Efe Çakır", pos: "DEF", role: "LB", num: 8, age: 21, ovr: 59, pot: 67, nat: "TR" },
+    { n: "Berke Başaran", pos: "DEF", role: "LB", num: 9, age: 18, ovr: 58, pot: 70, nat: "TR" },
+    { n: "Kaan Demir", pos: "DEF", role: "RB", num: 10, age: 27, ovr: 68, pot: 68, nat: "TR" },
+    { n: "Semih Özkan", pos: "DEF", role: "RB", num: 11, age: 30, ovr: 60, pot: 60, nat: "TR" },
+    // MID
+    { n: "Semih Polat", pos: "MID", role: "CDM", num: 12, age: 25, ovr: 64, pot: 68, nat: "TR" },
+    { n: "Ege Aslan", pos: "MID", role: "CDM", num: 13, age: 28, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Çağlar Yılmaz", pos: "MID", role: "CM", num: 14, age: 31, ovr: 60, pot: 60, nat: "TR" },
+    { n: "Enes Akgün", pos: "MID", role: "CM", num: 15, age: 30, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Kerem Korkmaz", pos: "MID", role: "CM", num: 16, age: 25, ovr: 62, pot: 66, nat: "TR" },
+    { n: "Kaan Korkmaz", pos: "MID", role: "AM", num: 17, age: 34, ovr: 62, pot: 62, nat: "TR" },
+    { n: "Kaan Doğan", pos: "MID", role: "AM", num: 18, age: 32, ovr: 65, pot: 65, nat: "TR" },
+    // FWD
+    { n: "Burak Öztürk", pos: "FWD", role: "LW", num: 19, age: 33, ovr: 60, pot: 60, nat: "TR" },
+    { n: "Volkan Koç", pos: "FWD", role: "LW", num: 20, age: 20, ovr: 59, pot: 71, nat: "TR" },
+    { n: "Eren Koç", pos: "FWD", role: "RW", num: 21, age: 21, ovr: 65, pot: 73, nat: "TR" },
+    { n: "Hakan Demir", pos: "FWD", role: "RW", num: 22, age: 18, ovr: 57, pot: 69, nat: "TR" },
+    { n: "Kerem Akgün", pos: "FWD", role: "ST", num: 23, age: 28, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Yiğit Erdoğan", pos: "FWD", role: "ST", num: 24, age: 33, ovr: 61, pot: 61, nat: "TR" },
+    { n: "Umut Kaya", pos: "FWD", role: "ST", num: 25, age: 31, ovr: 66, pot: 66, nat: "TR" },
+  ],
+);
+
+const MR_PACK = pack(
+  { id: "umr", name: "Ümraniyespor", short: "ÜMR", city: "İstanbul", color: "#dc2626", color2: "#facc15" },
+  [
+    // GK
+    { n: "Eren Türk", pos: "GK", role: "GK", num: 1, age: 28, ovr: 68, pot: 68, nat: "TR" },
+    { n: "Yiğit Başaran", pos: "GK", role: "GK", num: 2, age: 23, ovr: 59, pot: 67, nat: "TR" },
+    { n: "Tolga Taş", pos: "GK", role: "GK", num: 3, age: 34, ovr: 60, pot: 60, nat: "TR" },
+    // DEF
+    { n: "Furkan Kılıç", pos: "DEF", role: "CB", num: 4, age: 20, ovr: 62, pot: 74, nat: "TR" },
+    { n: "Yusuf Aydın", pos: "DEF", role: "CB", num: 5, age: 21, ovr: 60, pot: 68, nat: "TR" },
+    { n: "Tolga Bulut", pos: "DEF", role: "CB", num: 6, age: 28, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Hakan Sezer", pos: "DEF", role: "CB", num: 7, age: 24, ovr: 66, pot: 70, nat: "TR" },
+    { n: "Bora Demir", pos: "DEF", role: "LB", num: 8, age: 27, ovr: 67, pot: 67, nat: "TR" },
+    { n: "Burak Özkan", pos: "DEF", role: "LB", num: 9, age: 31, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Mehmet Akgün", pos: "DEF", role: "RB", num: 10, age: 21, ovr: 62, pot: 70, nat: "TR" },
+    { n: "Ahmet Yılmaz", pos: "DEF", role: "RB", num: 11, age: 18, ovr: 58, pot: 70, nat: "TR" },
+    // MID
+    { n: "Mehmet Arslan", pos: "MID", role: "CDM", num: 12, age: 19, ovr: 57, pot: 69, nat: "TR" },
+    { n: "Eren Güneş", pos: "MID", role: "CDM", num: 13, age: 27, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Halil Doğan", pos: "MID", role: "CM", num: 14, age: 22, ovr: 60, pot: 68, nat: "TR" },
+    { n: "Sinan Güneş", pos: "MID", role: "CM", num: 15, age: 31, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Halil Korkmaz", pos: "MID", role: "CM", num: 16, age: 33, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Bora Özkan", pos: "MID", role: "AM", num: 17, age: 29, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Serkan Türk", pos: "MID", role: "AM", num: 18, age: 20, ovr: 58, pot: 70, nat: "TR" },
+    // FWD
+    { n: "Deniz Kaya", pos: "FWD", role: "LW", num: 19, age: 25, ovr: 63, pot: 67, nat: "TR" },
+    { n: "Ege Erdoğan", pos: "FWD", role: "LW", num: 20, age: 21, ovr: 64, pot: 72, nat: "TR" },
+    { n: "Bora Aydın", pos: "FWD", role: "RW", num: 21, age: 24, ovr: 65, pot: 69, nat: "TR" },
+    { n: "Doğan Arslan", pos: "FWD", role: "RW", num: 22, age: 31, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Batuhan Aslan", pos: "FWD", role: "ST", num: 23, age: 34, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Onur Aslan", pos: "FWD", role: "ST", num: 24, age: 34, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Doğan Güneş", pos: "FWD", role: "ST", num: 25, age: 23, ovr: 65, pot: 73, nat: "TR" },
+  ],
+);
+
+const ST_PACK = pack(
+  { id: "ist", name: "İstanbulspor", short: "İST", city: "İstanbul", color: "#facc15", color2: "#111114" },
+  [
+    // GK
+    { n: "Çağlar Erdoğan", pos: "GK", role: "GK", num: 1, age: 21, ovr: 61, pot: 69, nat: "TR" },
+    { n: "Serkan Şanlı", pos: "GK", role: "GK", num: 2, age: 19, ovr: 59, pot: 71, nat: "TR" },
+    { n: "Koray Başaran", pos: "GK", role: "GK", num: 3, age: 25, ovr: 66, pot: 70, nat: "TR" },
+    // DEF
+    { n: "Furkan Polat", pos: "DEF", role: "CB", num: 4, age: 30, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Doğan Yılmaz", pos: "DEF", role: "CB", num: 5, age: 34, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Burak Türk", pos: "DEF", role: "CB", num: 6, age: 29, ovr: 67, pot: 67, nat: "TR" },
+    { n: "Furkan Çakır", pos: "DEF", role: "CB", num: 7, age: 25, ovr: 67, pot: 71, nat: "TR" },
+    { n: "Furkan Türk", pos: "DEF", role: "LB", num: 8, age: 19, ovr: 62, pot: 74, nat: "TR" },
+    { n: "Ozan Sezer", pos: "DEF", role: "LB", num: 9, age: 24, ovr: 66, pot: 70, nat: "TR" },
+    { n: "Koray Çelik", pos: "DEF", role: "RB", num: 10, age: 31, ovr: 61, pot: 61, nat: "TR" },
+    { n: "Bora Yalçın", pos: "DEF", role: "RB", num: 11, age: 25, ovr: 65, pot: 69, nat: "TR" },
+    // MID
+    { n: "Emre Ünal", pos: "MID", role: "CDM", num: 12, age: 26, ovr: 67, pot: 71, nat: "TR" },
+    { n: "Yusuf Aslan", pos: "MID", role: "CDM", num: 13, age: 32, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Halil Çelik", pos: "MID", role: "CM", num: 14, age: 34, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Deniz Yılmaz", pos: "MID", role: "CM", num: 15, age: 22, ovr: 61, pot: 69, nat: "TR" },
+    { n: "Cenk Güneş", pos: "MID", role: "CM", num: 16, age: 19, ovr: 60, pot: 72, nat: "TR" },
+    { n: "Berke Güneş", pos: "MID", role: "AM", num: 17, age: 30, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Ege Şanlı", pos: "MID", role: "AM", num: 18, age: 24, ovr: 65, pot: 69, nat: "TR" },
+    // FWD
+    { n: "Furkan Güneş", pos: "FWD", role: "LW", num: 19, age: 22, ovr: 62, pot: 70, nat: "TR" },
+    { n: "Yunus Doğan", pos: "FWD", role: "LW", num: 20, age: 32, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Furkan Aslan", pos: "FWD", role: "RW", num: 21, age: 27, ovr: 68, pot: 68, nat: "TR" },
+    { n: "Yusuf Erdoğan", pos: "FWD", role: "RW", num: 22, age: 19, ovr: 56, pot: 68, nat: "TR" },
+    { n: "Hakan Öztürk", pos: "FWD", role: "ST", num: 23, age: 32, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Doğan Aydın", pos: "FWD", role: "ST", num: 24, age: 30, ovr: 62, pot: 62, nat: "TR" },
+    { n: "Bora Türk", pos: "FWD", role: "ST", num: 25, age: 25, ovr: 65, pot: 69, nat: "TR" },
+  ],
+);
+
+const SAR_PACK = pack(
+  { id: "sar", name: "Sarıyer", short: "SAR", city: "İstanbul", color: "#1d4ed8", color2: "#ffffff" },
+  [
+    // GK
+    { n: "Doğan Ünal", pos: "GK", role: "GK", num: 1, age: 24, ovr: 67, pot: 71, nat: "TR" },
+    { n: "Berke Korkmaz", pos: "GK", role: "GK", num: 2, age: 19, ovr: 60, pot: 72, nat: "TR" },
+    { n: "Arda Bulut", pos: "GK", role: "GK", num: 3, age: 21, ovr: 65, pot: 73, nat: "TR" },
+    // DEF
+    { n: "Efe Şahin", pos: "DEF", role: "CB", num: 4, age: 25, ovr: 62, pot: 66, nat: "TR" },
+    { n: "Halil Çelik", pos: "DEF", role: "CB", num: 5, age: 28, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Hakan Özkan", pos: "DEF", role: "CB", num: 6, age: 33, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Sinan Şanlı", pos: "DEF", role: "CB", num: 7, age: 34, ovr: 60, pot: 60, nat: "TR" },
+    { n: "Onur Güneş", pos: "DEF", role: "LB", num: 8, age: 19, ovr: 60, pot: 72, nat: "TR" },
+    { n: "Ferdi Güneş", pos: "DEF", role: "LB", num: 9, age: 21, ovr: 65, pot: 73, nat: "TR" },
+    { n: "Taner Türk", pos: "DEF", role: "RB", num: 10, age: 18, ovr: 62, pot: 74, nat: "TR" },
+    { n: "Semih Akgün", pos: "DEF", role: "RB", num: 11, age: 18, ovr: 62, pot: 74, nat: "TR" },
+    // MID
+    { n: "Umut Güler", pos: "MID", role: "CDM", num: 12, age: 20, ovr: 58, pot: 70, nat: "TR" },
+    { n: "Alperen Çolak", pos: "MID", role: "CDM", num: 13, age: 21, ovr: 64, pot: 72, nat: "TR" },
+    { n: "Arda Özkan", pos: "MID", role: "CM", num: 14, age: 21, ovr: 60, pot: 68, nat: "TR" },
+    { n: "Ozan Yıldız", pos: "MID", role: "CM", num: 15, age: 23, ovr: 64, pot: 72, nat: "TR" },
+    { n: "Volkan Yalçın", pos: "MID", role: "CM", num: 16, age: 29, ovr: 68, pot: 68, nat: "TR" },
+    { n: "Çağlar Erdoğan", pos: "MID", role: "AM", num: 17, age: 33, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Batuhan Sezer", pos: "MID", role: "AM", num: 18, age: 25, ovr: 68, pot: 72, nat: "TR" },
+    // FWD
+    { n: "Deniz Yıldız", pos: "FWD", role: "LW", num: 19, age: 26, ovr: 64, pot: 68, nat: "TR" },
+    { n: "Ferdi Türk", pos: "FWD", role: "LW", num: 20, age: 33, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Volkan Akın", pos: "FWD", role: "RW", num: 21, age: 29, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Furkan Arslan", pos: "FWD", role: "RW", num: 22, age: 34, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Cenk Sezer", pos: "FWD", role: "ST", num: 23, age: 27, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Çağlar Çelik", pos: "FWD", role: "ST", num: 24, age: 18, ovr: 58, pot: 70, nat: "TR" },
+    { n: "Mert Kaya", pos: "FWD", role: "ST", num: 25, age: 28, ovr: 68, pot: 68, nat: "TR" },
+  ],
+);
+
+const MAN_PACK = pack(
+  { id: "man", name: "Manisa FK", short: "MAN", city: "Manisa", color: "#111114", color2: "#facc15" },
+  [
+    // GK
+    { n: "Koray Başaran", pos: "GK", role: "GK", num: 1, age: 33, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Onur Aslan", pos: "GK", role: "GK", num: 2, age: 34, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Halil Şahin", pos: "GK", role: "GK", num: 3, age: 28, ovr: 63, pot: 63, nat: "TR" },
+    // DEF
+    { n: "Halil Güneş", pos: "DEF", role: "CB", num: 4, age: 19, ovr: 61, pot: 73, nat: "TR" },
+    { n: "Tolga Güneş", pos: "DEF", role: "CB", num: 5, age: 24, ovr: 64, pot: 68, nat: "TR" },
+    { n: "Deniz Arslan", pos: "DEF", role: "CB", num: 6, age: 29, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Barış Yılmaz", pos: "DEF", role: "CB", num: 7, age: 19, ovr: 56, pot: 68, nat: "TR" },
+    { n: "Cenk Polat", pos: "DEF", role: "LB", num: 8, age: 27, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Mert Çelik", pos: "DEF", role: "LB", num: 9, age: 27, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Kerem Koç", pos: "DEF", role: "RB", num: 10, age: 24, ovr: 67, pot: 71, nat: "TR" },
+    { n: "Halil Güler", pos: "DEF", role: "RB", num: 11, age: 31, ovr: 66, pot: 66, nat: "TR" },
+    // MID
+    { n: "Ege Yılmaz", pos: "MID", role: "CDM", num: 12, age: 21, ovr: 60, pot: 68, nat: "TR" },
+    { n: "Ahmet Erdoğan", pos: "MID", role: "CDM", num: 13, age: 22, ovr: 59, pot: 67, nat: "TR" },
+    { n: "Yusuf Kılıç", pos: "MID", role: "CM", num: 14, age: 34, ovr: 62, pot: 62, nat: "TR" },
+    { n: "Enes Arslan", pos: "MID", role: "CM", num: 15, age: 24, ovr: 62, pot: 66, nat: "TR" },
+    { n: "Çağlar Aydın", pos: "MID", role: "CM", num: 16, age: 18, ovr: 61, pot: 73, nat: "TR" },
+    { n: "Çağlar Kaya", pos: "MID", role: "AM", num: 17, age: 29, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Serkan Güneş", pos: "MID", role: "AM", num: 18, age: 34, ovr: 64, pot: 64, nat: "TR" },
+    // FWD
+    { n: "Efe Güler", pos: "FWD", role: "LW", num: 19, age: 33, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Kerem Ünal", pos: "FWD", role: "LW", num: 20, age: 29, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Arda Şanlı", pos: "FWD", role: "RW", num: 21, age: 29, ovr: 68, pot: 68, nat: "TR" },
+    { n: "Eren Ünal", pos: "FWD", role: "RW", num: 22, age: 34, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Yunus Yalçın", pos: "FWD", role: "ST", num: 23, age: 22, ovr: 65, pot: 73, nat: "TR" },
+    { n: "Berke Türk", pos: "FWD", role: "ST", num: 24, age: 24, ovr: 64, pot: 68, nat: "TR" },
+    { n: "Deniz Sezer", pos: "FWD", role: "ST", num: 25, age: 33, ovr: 66, pot: 66, nat: "TR" },
+  ],
+);
+
+const BND_PACK = pack(
+  { id: "bnd", name: "Bandırmaspor", short: "BND", city: "Bandırma", color: "#dc2626", color2: "#111114" },
+  [
+    // GK
+    { n: "Mert Sezer", pos: "GK", role: "GK", num: 1, age: 27, ovr: 68, pot: 68, nat: "TR" },
+    { n: "Efe Çolak", pos: "GK", role: "GK", num: 2, age: 33, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Kaan Akın", pos: "GK", role: "GK", num: 3, age: 18, ovr: 62, pot: 74, nat: "TR" },
+    // DEF
+    { n: "Furkan Yılmaz", pos: "DEF", role: "CB", num: 4, age: 26, ovr: 64, pot: 68, nat: "TR" },
+    { n: "Yusuf Polat", pos: "DEF", role: "CB", num: 5, age: 20, ovr: 56, pot: 68, nat: "TR" },
+    { n: "Hakan Şahin", pos: "DEF", role: "CB", num: 6, age: 29, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Berke Başaran", pos: "DEF", role: "CB", num: 7, age: 31, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Doğan Yıldız", pos: "DEF", role: "LB", num: 8, age: 18, ovr: 59, pot: 71, nat: "TR" },
+    { n: "Emre Ünal", pos: "DEF", role: "LB", num: 9, age: 27, ovr: 67, pot: 67, nat: "TR" },
+    { n: "Umut Güneş", pos: "DEF", role: "RB", num: 10, age: 33, ovr: 60, pot: 60, nat: "TR" },
+    { n: "Mehmet Çolak", pos: "DEF", role: "RB", num: 11, age: 29, ovr: 66, pot: 66, nat: "TR" },
+    // MID
+    { n: "Kerem Polat", pos: "MID", role: "CDM", num: 12, age: 27, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Koray Çolak", pos: "MID", role: "CDM", num: 13, age: 28, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Çağlar Aslan", pos: "MID", role: "CM", num: 14, age: 18, ovr: 61, pot: 73, nat: "TR" },
+    { n: "Halil Başaran", pos: "MID", role: "CM", num: 15, age: 34, ovr: 62, pot: 62, nat: "TR" },
+    { n: "Yusuf Ünal", pos: "MID", role: "CM", num: 16, age: 34, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Emre Türk", pos: "MID", role: "AM", num: 17, age: 19, ovr: 57, pot: 69, nat: "TR" },
+    { n: "Serkan Türk", pos: "MID", role: "AM", num: 18, age: 33, ovr: 66, pot: 66, nat: "TR" },
+    // FWD
+    { n: "Yusuf Öztürk", pos: "FWD", role: "LW", num: 19, age: 20, ovr: 60, pot: 72, nat: "TR" },
+    { n: "Ege Koç", pos: "FWD", role: "LW", num: 20, age: 32, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Serkan Koç", pos: "FWD", role: "RW", num: 21, age: 23, ovr: 60, pot: 68, nat: "TR" },
+    { n: "Semih Duman", pos: "FWD", role: "RW", num: 22, age: 30, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Görkem Özkan", pos: "FWD", role: "ST", num: 23, age: 25, ovr: 62, pot: 66, nat: "TR" },
+    { n: "Çağlar Şahin", pos: "FWD", role: "ST", num: 24, age: 30, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Yusuf Aslan", pos: "FWD", role: "ST", num: 25, age: 21, ovr: 61, pot: 69, nat: "TR" },
+  ],
+);
+
+const ESR_PACK = pack(
+  { id: "esr", name: "Esenler Erokspor", short: "ESR", city: "İstanbul", color: "#7c3aed", color2: "#ffffff" },
+  [
+    // GK
+    { n: "Doğan Bulut", pos: "GK", role: "GK", num: 1, age: 21, ovr: 63, pot: 71, nat: "TR" },
+    { n: "Semih Çelik", pos: "GK", role: "GK", num: 2, age: 34, ovr: 62, pot: 62, nat: "TR" },
+    { n: "Arda Çakır", pos: "GK", role: "GK", num: 3, age: 20, ovr: 62, pot: 74, nat: "TR" },
+    // DEF
+    { n: "Halil Yılmaz", pos: "DEF", role: "CB", num: 4, age: 24, ovr: 68, pot: 72, nat: "TR" },
+    { n: "Sinan Arslan", pos: "DEF", role: "CB", num: 5, age: 31, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Koray Koç", pos: "DEF", role: "CB", num: 6, age: 23, ovr: 59, pot: 67, nat: "TR" },
+    { n: "Cenk Akın", pos: "DEF", role: "CB", num: 7, age: 23, ovr: 60, pot: 68, nat: "TR" },
+    { n: "Burak Korkmaz", pos: "DEF", role: "LB", num: 8, age: 33, ovr: 62, pot: 62, nat: "TR" },
+    { n: "Hakan Çelik", pos: "DEF", role: "LB", num: 9, age: 25, ovr: 67, pot: 71, nat: "TR" },
+    { n: "Taner Çolak", pos: "DEF", role: "RB", num: 10, age: 19, ovr: 56, pot: 68, nat: "TR" },
+    { n: "Kaan Koç", pos: "DEF", role: "RB", num: 11, age: 25, ovr: 65, pot: 69, nat: "TR" },
+    // MID
+    { n: "Arda Ünal", pos: "MID", role: "CDM", num: 12, age: 30, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Deniz Akın", pos: "MID", role: "CDM", num: 13, age: 34, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Koray Polat", pos: "MID", role: "CM", num: 14, age: 30, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Yunus Çelik", pos: "MID", role: "CM", num: 15, age: 28, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Berke Özkan", pos: "MID", role: "CM", num: 16, age: 30, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Tolga Çolak", pos: "MID", role: "AM", num: 17, age: 25, ovr: 66, pot: 70, nat: "TR" },
+    { n: "Burak Bulut", pos: "MID", role: "AM", num: 18, age: 25, ovr: 67, pot: 71, nat: "TR" },
+    // FWD
+    { n: "Yiğit Aydın", pos: "FWD", role: "LW", num: 19, age: 32, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Onur Başaran", pos: "FWD", role: "LW", num: 20, age: 22, ovr: 59, pot: 67, nat: "TR" },
+    { n: "Çağlar Koç", pos: "FWD", role: "RW", num: 21, age: 19, ovr: 60, pot: 72, nat: "TR" },
+    { n: "Görkem Türk", pos: "FWD", role: "RW", num: 22, age: 23, ovr: 62, pot: 70, nat: "TR" },
+    { n: "Ahmet Duman", pos: "FWD", role: "ST", num: 23, age: 28, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Enes Çakır", pos: "FWD", role: "ST", num: 24, age: 27, ovr: 68, pot: 68, nat: "TR" },
+    { n: "Cenk Çakır", pos: "FWD", role: "ST", num: 25, age: 19, ovr: 60, pot: 72, nat: "TR" },
+  ],
+);
+
+const KE_PACK = pack(
+  { id: "kec", name: "Keçiörengücü", short: "KEÇ", city: "Ankara", color: "#1d4ed8", color2: "#facc15" },
+  [
+    // GK
+    { n: "Efe Yalçın", pos: "GK", role: "GK", num: 1, age: 30, ovr: 62, pot: 62, nat: "TR" },
+    { n: "Burak Öztürk", pos: "GK", role: "GK", num: 2, age: 34, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Burak Duman", pos: "GK", role: "GK", num: 3, age: 22, ovr: 60, pot: 68, nat: "TR" },
+    // DEF
+    { n: "Ferdi Korkmaz", pos: "DEF", role: "CB", num: 4, age: 33, ovr: 60, pot: 60, nat: "TR" },
+    { n: "Koray Arslan", pos: "DEF", role: "CB", num: 5, age: 21, ovr: 63, pot: 71, nat: "TR" },
+    { n: "Barış Güneş", pos: "DEF", role: "CB", num: 6, age: 34, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Onur Bulut", pos: "DEF", role: "CB", num: 7, age: 31, ovr: 62, pot: 62, nat: "TR" },
+    { n: "Yusuf Akın", pos: "DEF", role: "LB", num: 8, age: 22, ovr: 65, pot: 73, nat: "TR" },
+    { n: "Deniz Yılmaz", pos: "DEF", role: "LB", num: 9, age: 20, ovr: 56, pot: 68, nat: "TR" },
+    { n: "Onur Sezer", pos: "DEF", role: "RB", num: 10, age: 26, ovr: 64, pot: 68, nat: "TR" },
+    { n: "Volkan Yılmaz", pos: "DEF", role: "RB", num: 11, age: 29, ovr: 68, pot: 68, nat: "TR" },
+    // MID
+    { n: "Onur Şanlı", pos: "MID", role: "CDM", num: 12, age: 18, ovr: 58, pot: 70, nat: "TR" },
+    { n: "Mehmet Doğan", pos: "MID", role: "CDM", num: 13, age: 33, ovr: 62, pot: 62, nat: "TR" },
+    { n: "Ege Şahin", pos: "MID", role: "CM", num: 14, age: 27, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Halil Sezer", pos: "MID", role: "CM", num: 15, age: 18, ovr: 61, pot: 73, nat: "TR" },
+    { n: "Eren Türk", pos: "MID", role: "CM", num: 16, age: 26, ovr: 63, pot: 67, nat: "TR" },
+    { n: "Serkan Erdoğan", pos: "MID", role: "AM", num: 17, age: 29, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Görkem Çolak", pos: "MID", role: "AM", num: 18, age: 25, ovr: 66, pot: 70, nat: "TR" },
+    // FWD
+    { n: "Hakan Demir", pos: "FWD", role: "LW", num: 19, age: 31, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Ozan Erdoğan", pos: "FWD", role: "LW", num: 20, age: 31, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Doğan Yalçın", pos: "FWD", role: "RW", num: 21, age: 27, ovr: 68, pot: 68, nat: "TR" },
+    { n: "Halil Çolak", pos: "FWD", role: "RW", num: 22, age: 28, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Ahmet Güneş", pos: "FWD", role: "ST", num: 23, age: 18, ovr: 58, pot: 70, nat: "TR" },
+    { n: "Burak Yalçın", pos: "FWD", role: "ST", num: 24, age: 33, ovr: 61, pot: 61, nat: "TR" },
+    { n: "Kaan Şahin", pos: "FWD", role: "ST", num: 25, age: 27, ovr: 63, pot: 63, nat: "TR" },
+  ],
+);
+
+const VAN_PACK = pack(
+  { id: "van", name: "Van Spor FK", short: "VAN", city: "Van", color: "#dc2626", color2: "#ffffff" },
+  [
+    // GK
+    { n: "Halil Koç", pos: "GK", role: "GK", num: 1, age: 33, ovr: 60, pot: 60, nat: "TR" },
+    { n: "Umut Ünal", pos: "GK", role: "GK", num: 2, age: 19, ovr: 57, pot: 69, nat: "TR" },
+    { n: "Mert Kılıç", pos: "GK", role: "GK", num: 3, age: 22, ovr: 64, pot: 72, nat: "TR" },
+    // DEF
+    { n: "Alperen Taş", pos: "DEF", role: "CB", num: 4, age: 29, ovr: 67, pot: 67, nat: "TR" },
+    { n: "Görkem Arslan", pos: "DEF", role: "CB", num: 5, age: 26, ovr: 62, pot: 66, nat: "TR" },
+    { n: "Volkan Kaya", pos: "DEF", role: "CB", num: 6, age: 21, ovr: 61, pot: 69, nat: "TR" },
+    { n: "Yusuf Sezer", pos: "DEF", role: "CB", num: 7, age: 32, ovr: 62, pot: 62, nat: "TR" },
+    { n: "Yunus Şahin", pos: "DEF", role: "LB", num: 8, age: 18, ovr: 56, pot: 68, nat: "TR" },
+    { n: "Serkan Akgün", pos: "DEF", role: "LB", num: 9, age: 30, ovr: 62, pot: 62, nat: "TR" },
+    { n: "Bora Şahin", pos: "DEF", role: "RB", num: 10, age: 32, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Arda Taş", pos: "DEF", role: "RB", num: 11, age: 24, ovr: 67, pot: 71, nat: "TR" },
+    // MID
+    { n: "Ferdi Türk", pos: "MID", role: "CDM", num: 12, age: 21, ovr: 59, pot: 67, nat: "TR" },
+    { n: "Sinan Doğan", pos: "MID", role: "CDM", num: 13, age: 33, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Halil Türk", pos: "MID", role: "CM", num: 14, age: 28, ovr: 62, pot: 62, nat: "TR" },
+    { n: "Çağlar Yılmaz", pos: "MID", role: "CM", num: 15, age: 19, ovr: 57, pot: 69, nat: "TR" },
+    { n: "Taner Arslan", pos: "MID", role: "CM", num: 16, age: 30, ovr: 62, pot: 62, nat: "TR" },
+    { n: "Berke Arslan", pos: "MID", role: "AM", num: 17, age: 33, ovr: 61, pot: 61, nat: "TR" },
+    { n: "Kerem Şahin", pos: "MID", role: "AM", num: 18, age: 32, ovr: 60, pot: 60, nat: "TR" },
+    // FWD
+    { n: "Kaan Doğan", pos: "FWD", role: "LW", num: 19, age: 18, ovr: 56, pot: 68, nat: "TR" },
+    { n: "Ferdi Yıldız", pos: "FWD", role: "LW", num: 20, age: 22, ovr: 60, pot: 68, nat: "TR" },
+    { n: "Mert Demir", pos: "FWD", role: "RW", num: 21, age: 29, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Taner Korkmaz", pos: "FWD", role: "RW", num: 22, age: 28, ovr: 62, pot: 62, nat: "TR" },
+    { n: "Kaan Kılıç", pos: "FWD", role: "ST", num: 23, age: 20, ovr: 59, pot: 71, nat: "TR" },
+    { n: "Yiğit Öztürk", pos: "FWD", role: "ST", num: 24, age: 29, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Halil Doğan", pos: "FWD", role: "ST", num: 25, age: 31, ovr: 64, pot: 64, nat: "TR" },
+  ],
+);
+
+const ID_PACK = pack(
+  { id: "igd", name: "Iğdır FK", short: "IĞD", city: "Iğdır", color: "#16a34a", color2: "#dc2626" },
+  [
+    // GK
+    { n: "Burak Yılmaz", pos: "GK", role: "GK", num: 1, age: 28, ovr: 67, pot: 67, nat: "TR" },
+    { n: "Kerem Çelik", pos: "GK", role: "GK", num: 2, age: 32, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Ferdi Sezer", pos: "GK", role: "GK", num: 3, age: 33, ovr: 60, pot: 60, nat: "TR" },
+    // DEF
+    { n: "Cenk Akgün", pos: "DEF", role: "CB", num: 4, age: 28, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Yiğit Korkmaz", pos: "DEF", role: "CB", num: 5, age: 22, ovr: 60, pot: 68, nat: "TR" },
+    { n: "Koray Kılıç", pos: "DEF", role: "CB", num: 6, age: 24, ovr: 64, pot: 68, nat: "TR" },
+    { n: "Kerem Yalçın", pos: "DEF", role: "CB", num: 7, age: 31, ovr: 65, pot: 65, nat: "TR" },
+    { n: "Burak Güneş", pos: "DEF", role: "LB", num: 8, age: 22, ovr: 60, pot: 68, nat: "TR" },
+    { n: "Koray Yılmaz", pos: "DEF", role: "LB", num: 9, age: 21, ovr: 62, pot: 70, nat: "TR" },
+    { n: "Batuhan Çelik", pos: "DEF", role: "RB", num: 10, age: 22, ovr: 65, pot: 73, nat: "TR" },
+    { n: "Alperen Çolak", pos: "DEF", role: "RB", num: 11, age: 32, ovr: 61, pot: 61, nat: "TR" },
+    // MID
+    { n: "Yiğit Güler", pos: "MID", role: "CDM", num: 12, age: 32, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Halil Bulut", pos: "MID", role: "CDM", num: 13, age: 31, ovr: 61, pot: 61, nat: "TR" },
+    { n: "Doğan Sezer", pos: "MID", role: "CM", num: 14, age: 22, ovr: 63, pot: 71, nat: "TR" },
+    { n: "Ege Akın", pos: "MID", role: "CM", num: 15, age: 30, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Furkan Türk", pos: "MID", role: "CM", num: 16, age: 30, ovr: 60, pot: 60, nat: "TR" },
+    { n: "Görkem Doğan", pos: "MID", role: "AM", num: 17, age: 26, ovr: 66, pot: 70, nat: "TR" },
+    { n: "Kerem Demir", pos: "MID", role: "AM", num: 18, age: 33, ovr: 61, pot: 61, nat: "TR" },
+    // FWD
+    { n: "Tolga Özkan", pos: "FWD", role: "LW", num: 19, age: 25, ovr: 63, pot: 67, nat: "TR" },
+    { n: "Ferdi Ünal", pos: "FWD", role: "LW", num: 20, age: 34, ovr: 62, pot: 62, nat: "TR" },
+    { n: "Kaan Polat", pos: "FWD", role: "RW", num: 21, age: 34, ovr: 62, pot: 62, nat: "TR" },
+    { n: "Ferdi Türk", pos: "FWD", role: "RW", num: 22, age: 20, ovr: 59, pot: 71, nat: "TR" },
+    { n: "Ahmet Doğan", pos: "FWD", role: "ST", num: 23, age: 23, ovr: 61, pot: 69, nat: "TR" },
+    { n: "Sinan Çolak", pos: "FWD", role: "ST", num: 24, age: 25, ovr: 64, pot: 68, nat: "TR" },
+    { n: "Enes Güler", pos: "FWD", role: "ST", num: 25, age: 28, ovr: 67, pot: 67, nat: "TR" },
+  ],
+);
+
+const MU_PACK = pack(
+  { id: "mug", name: "Muğlaspor", short: "MUĞ", city: "Muğla", color: "#16a34a", color2: "#ffffff" },
+  [
+    // GK
+    { n: "Burak Bulut", pos: "GK", role: "GK", num: 1, age: 22, ovr: 62, pot: 70, nat: "TR" },
+    { n: "Enes Bulut", pos: "GK", role: "GK", num: 2, age: 33, ovr: 62, pot: 62, nat: "TR" },
+    { n: "Ferdi Taş", pos: "GK", role: "GK", num: 3, age: 32, ovr: 62, pot: 62, nat: "TR" },
+    // DEF
+    { n: "Ahmet Yılmaz", pos: "DEF", role: "CB", num: 4, age: 21, ovr: 62, pot: 70, nat: "TR" },
+    { n: "Arda Çelik", pos: "DEF", role: "CB", num: 5, age: 23, ovr: 64, pot: 72, nat: "TR" },
+    { n: "Onur Çolak", pos: "DEF", role: "CB", num: 6, age: 22, ovr: 63, pot: 71, nat: "TR" },
+    { n: "Enes Kılıç", pos: "DEF", role: "CB", num: 7, age: 25, ovr: 62, pot: 66, nat: "TR" },
+    { n: "Barış Taş", pos: "DEF", role: "LB", num: 8, age: 21, ovr: 62, pot: 70, nat: "TR" },
+    { n: "Ferdi Çelik", pos: "DEF", role: "LB", num: 9, age: 22, ovr: 60, pot: 68, nat: "TR" },
+    { n: "Sinan Duman", pos: "DEF", role: "RB", num: 10, age: 24, ovr: 63, pot: 67, nat: "TR" },
+    { n: "Efe Taş", pos: "DEF", role: "RB", num: 11, age: 21, ovr: 63, pot: 71, nat: "TR" },
+    // MID
+    { n: "Hakan Arslan", pos: "MID", role: "CDM", num: 12, age: 28, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Bora Aydın", pos: "MID", role: "CDM", num: 13, age: 34, ovr: 60, pot: 60, nat: "TR" },
+    { n: "Batuhan Yalçın", pos: "MID", role: "CM", num: 14, age: 33, ovr: 64, pot: 64, nat: "TR" },
+    { n: "Yusuf Yalçın", pos: "MID", role: "CM", num: 15, age: 25, ovr: 67, pot: 71, nat: "TR" },
+    { n: "Mehmet Bulut", pos: "MID", role: "CM", num: 16, age: 33, ovr: 66, pot: 66, nat: "TR" },
+    { n: "Yusuf Başaran", pos: "MID", role: "AM", num: 17, age: 20, ovr: 56, pot: 68, nat: "TR" },
+    { n: "Furkan Aydın", pos: "MID", role: "AM", num: 18, age: 29, ovr: 68, pot: 68, nat: "TR" },
+    // FWD
+    { n: "Enes Öztürk", pos: "FWD", role: "LW", num: 19, age: 18, ovr: 57, pot: 69, nat: "TR" },
+    { n: "Görkem Çakır", pos: "FWD", role: "LW", num: 20, age: 21, ovr: 59, pot: 67, nat: "TR" },
+    { n: "Yusuf Aydın", pos: "FWD", role: "RW", num: 21, age: 34, ovr: 60, pot: 60, nat: "TR" },
+    { n: "Kaan Bulut", pos: "FWD", role: "RW", num: 22, age: 22, ovr: 60, pot: 68, nat: "TR" },
+    { n: "Berke Güneş", pos: "FWD", role: "ST", num: 23, age: 34, ovr: 63, pot: 63, nat: "TR" },
+    { n: "Deniz Arslan", pos: "FWD", role: "ST", num: 24, age: 23, ovr: 64, pot: 72, nat: "TR" },
+    { n: "Berke Kılıç", pos: "FWD", role: "ST", num: 25, age: 28, ovr: 67, pot: 67, nat: "TR" },
+  ],
+);
+
+/** Süper Lig clubs, in rough order of strength. */
 export const SQUAD_PACKS: SquadPack[] = [
   FB_PACK,
   GS_PACK,
@@ -725,6 +1355,28 @@ export const SQUAD_PACKS: SquadPack[] = [
   COR_PACK,
   AMD_PACK,
   ERZ_PACK,
+];
+
+/** 1. Lig — the division below. Promotion and relegation move clubs between them. */
+export const SQUAD_PACKS_D2: SquadPack[] = [
+  BRS_PACK,
+  KAY_PACK,
+  ANT_PACK,
+  SVS_PACK,
+  BDR_PACK,
+  FKG_PACK,
+  PND_PACK,
+  BOL_PACK,
+  MR_PACK,
+  ST_PACK,
+  SAR_PACK,
+  MAN_PACK,
+  BND_PACK,
+  ESR_PACK,
+  KE_PACK,
+  VAN_PACK,
+  ID_PACK,
+  MU_PACK,
 ];
 
 /**

@@ -2,7 +2,7 @@
 // reads it at module load time.
 import "./load-env";
 import { writeFileSync } from "node:fs";
-import { RAW_CLUBS, type RawClub } from "./squad-source";
+import { RAW_CLUBS, RAW_DIVISION_2, type RawClub } from "./squad-source";
 import type { Position } from "../types";
 
 /**
@@ -63,7 +63,12 @@ const NAT: Record<string, string> = {
 };
 
 /** Base overall by club tier. */
-const TIER_BASE: Record<1 | 2 | 3 | 4, number> = { 1: 76, 2: 74, 3: 71, 4: 69 };
+const TIER_BASE: Record<1 | 2 | 3 | 4 | 5, number> = {
+  1: 76, 2: 74, 3: 71, 4: 69,
+  // Second division: clearly weaker, so promotion is a real step up and a
+  // relegated Süper Lig squad still dominates for a season.
+  5: 63,
+};
 
 /**
  * Players whose reputation should outrank their club's baseline.
@@ -214,9 +219,79 @@ function rebalance(players: Built[], clubName: string): Built[] {
 
 const esc = (s: string) => s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
+/** Name pools for generated second-division squads. */
+const GEN_FIRST = [
+  "Ahmet", "Mehmet", "Emre", "Burak", "Yusuf", "Kerem", "Efe", "Arda",
+  "Onur", "Tolga", "Kaan", "Berke", "Hakan", "Ozan", "Barış", "Umut",
+  "Doğan", "Enes", "Halil", "Semih", "Sinan", "Yunus", "Çağlar", "Ferdi",
+  "Alperen", "Bora", "Cenk", "Deniz", "Ege", "Görkem", "Kuzey", "Mert",
+  "Serkan", "Taner", "Volkan", "Yiğit", "Batuhan", "Eren", "Furkan", "Koray",
+];
+const GEN_LAST = [
+  "Yılmaz", "Kaya", "Demir", "Çelik", "Şahin", "Aydın", "Öztürk", "Aslan",
+  "Doğan", "Kılıç", "Arslan", "Yıldız", "Taş", "Koç", "Polat", "Güneş",
+  "Güler", "Çakır", "Akgün", "Şanlı", "Çolak", "Sezer", "Akın", "Bulut",
+  "Erdoğan", "Korkmaz", "Özkan", "Türk", "Ünal", "Yalçın", "Başaran", "Duman",
+];
+
+/**
+ * Build a squad for a club with no transcribed roster.
+ *
+ * Second-division clubs carry real identities but generated players: their
+ * real squads are largely unrecognisable, and inventing a specific real
+ * player-to-club mapping that cannot be verified would be worse than an
+ * honestly generated one. Deterministic from the club id, so regenerating
+ * produces the same squad rather than reshuffling everyone's league.
+ */
+function generateSquad(club: RawClub): Built[] {
+  const seed = hash(club.id);
+  let state = seed >>> 0;
+  const rand = () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state / 0xffffffff;
+  };
+  const shape: Array<{ pos: Position; role: string; count: number }> = [
+    { pos: "GK", role: "GK", count: 3 },
+    { pos: "DEF", role: "CB", count: 4 },
+    { pos: "DEF", role: "LB", count: 2 },
+    { pos: "DEF", role: "RB", count: 2 },
+    { pos: "MID", role: "CDM", count: 2 },
+    { pos: "MID", role: "CM", count: 3 },
+    { pos: "MID", role: "AM", count: 2 },
+    { pos: "FWD", role: "LW", count: 2 },
+    { pos: "FWD", role: "RW", count: 2 },
+    { pos: "FWD", role: "ST", count: 3 },
+  ];
+  const used = new Set<string>();
+  const out: Built[] = [];
+  let shirt = 1;
+  for (const slot of shape) {
+    for (let i = 0; i < slot.count; i++) {
+      let name = "";
+      for (let attempt = 0; attempt < 40; attempt++) {
+        const candidate = `${GEN_FIRST[Math.floor(rand() * GEN_FIRST.length)]} ${GEN_LAST[Math.floor(rand() * GEN_LAST.length)]}`;
+        if (!used.has(candidate)) { name = candidate; break; }
+      }
+      if (!name) continue;
+      used.add(name);
+      const age = 18 + Math.floor(rand() * 17);
+      const ageAdj = age <= 20 ? -4 : age <= 23 ? -1 : age <= 29 ? 2 : 0;
+      const ovr = Math.max(52, Math.min(74, TIER_BASE[club.tier] + ageAdj + Math.floor(rand() * 7) - 3));
+      const room = age <= 20 ? 12 : age <= 23 ? 8 : age <= 26 ? 4 : 0;
+      out.push({
+        n: name, pos: slot.pos, role: slot.role, num: shirt++,
+        age, ovr, pot: Math.min(88, ovr + room), nat: "TR",
+      });
+    }
+  }
+  return out;
+}
+
 function emitClub(club: RawClub): string {
   const built = rebalance(
-    club.players.map((line) => buildPlayer(line, club)),
+    club.players.length > 0
+      ? club.players.map((line) => buildPlayer(line, club))
+      : generateSquad(club),
     club.name,
   );
   const order: Position[] = ["GK", "DEF", "MID", "FWD"];
@@ -302,14 +377,20 @@ function pack(club: ClubMeta, seeds: Seed[]): SquadPack {
 `;
 
 console.log("Building squad packs…");
-const blocks = RAW_CLUBS.map(emitClub);
-const names = RAW_CLUBS.map(
+const ALL = [...RAW_CLUBS, ...RAW_DIVISION_2];
+const blocks = ALL.map(emitClub);
+const names = ALL.map(
   (c) => `${(c.short.replace(/[^A-Za-z]/g, "").toUpperCase() || c.id.toUpperCase())}_PACK`,
 );
 const footer = `
-/** Every Süper Lig club, in rough order of strength. */
+/** Süper Lig clubs, in rough order of strength. */
 export const SQUAD_PACKS: SquadPack[] = [
-${names.map((n) => `  ${n},`).join("\n")}
+${names.slice(0, RAW_CLUBS.length).map((n) => `  ${n},`).join("\n")}
+];
+
+/** 1. Lig — the division below. Promotion and relegation move clubs between them. */
+export const SQUAD_PACKS_D2: SquadPack[] = [
+${names.slice(RAW_CLUBS.length).map((n) => `  ${n},`).join("\n")}
 ];
 
 /**
@@ -320,5 +401,6 @@ export const USER_PACK: SquadPack = SQUAD_PACKS[0];
 `;
 
 writeFileSync("lib/squad-packs.ts", `${header}\n${blocks.join("\n\n")}\n${footer}`);
-const total = RAW_CLUBS.reduce((s, c) => s + c.players.length, 0);
-console.log(`✓ ${RAW_CLUBS.length} clubs, ${total} players → lib/squad-packs.ts`);
+console.log(
+  `✓ ${RAW_CLUBS.length} Süper Lig + ${RAW_DIVISION_2.length} 1. Lig clubs → lib/squad-packs.ts`,
+);

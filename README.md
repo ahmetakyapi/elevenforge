@@ -16,7 +16,9 @@ modern menajerlik oyunlarının kalitesinde animasyon ve UX.
 ## Neler var?
 
 ### 🏟 Lig & Maç
-- **18-takımlı arkadaş ligleri** (2026-27 Süper Lig formatı) — davet kodu ile katıl, bot kalan slotu doldur
+- **İki kademeli lig** — 18 takımlı Süper Lig + 18 takımlı 1. Lig, her sezon
+  sonunda 3 düşer / 3 çıkar. Yönetimin "Küme düşmemek" hedefi artık gerçekten
+  başarısız olunabilir bir hedef — davet kodu ile katıl, bot kalan slotu doldur
 - **Günlük cron-tetiklemeli maç simülasyonu** — lig kuran kişinin seçtiği saatte
 - **Deterministik motor** — fixture id → seed; replay aynı skoru üretir
 - **Hakem kişiliği** (8 isim × strictness 1-5) — kart sıklığı + agresif oyun davranışı

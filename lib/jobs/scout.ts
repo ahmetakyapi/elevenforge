@@ -23,8 +23,13 @@ const CLAIM_WINDOW_MS = 48 * 3600 * 1000;
 // overlap with the Süper Lig pack — it just uses the name + typical
 // nationality so "İspanya'dan RW scout et" returns recognizable names.
 //
-// Keep the list ≤12 per nat — scout candidates are 3-5 per return, so
-// a pool of 12 gives plenty of variety before repetition.
+// Keep the list ≤14 per nat — scout candidates are 3-5 per return, so
+// a pool this size gives plenty of variety before repetition.
+//
+// Names must not collide with anyone already in a Süper Lig squad, or a
+// scout report would offer a player the league already owns. processScoutReturns
+// filters against the league roster as a backstop, but keeping the pools
+// disjoint means the filter rarely has to fire.
 const INTL_NAMES: Record<string, Array<{ name: string; nat: string }>> = {
   // Premier League / La Liga / Serie A / Ligue 1 / Bundesliga / Eredivisie
   // / Primeira Liga çeşitlemesi.
@@ -34,13 +39,16 @@ const INTL_NAMES: Record<string, Array<{ name: string; nat: string }>> = {
     { name: "Gabriel Martinelli", nat: "BR" }, { name: "Lucas Paquetá", nat: "BR" },
     { name: "Éder Militão", nat: "BR" }, { name: "Casemiro", nat: "BR" },
     { name: "Richarlison", nat: "BR" }, { name: "Gabriel Magalhães", nat: "BR" },
+    { name: "Endrick", nat: "BR" }, { name: "Estêvão", nat: "BR" },
+    { name: "Savinho", nat: "BR" }, { name: "João Gomes", nat: "BR" },
   ],
   AR: [
     { name: "Lautaro Martínez", nat: "AR" }, { name: "Julián Álvarez", nat: "AR" },
     { name: "Paulo Dybala", nat: "AR" }, { name: "Alexis Mac Allister", nat: "AR" },
     { name: "Enzo Fernández", nat: "AR" }, { name: "Nicolás Otamendi", nat: "AR" },
     { name: "Cristian Romero", nat: "AR" }, { name: "Leandro Paredes", nat: "AR" },
-    { name: "Ángel Di María", nat: "AR" }, { name: "Nicolás González", nat: "AR" },
+    { name: "Nicolás González", nat: "AR" }, { name: "Valentín Carboni", nat: "AR" },
+    { name: "Alejandro Garnacho", nat: "AR" }, { name: "Franco Mastantuono", nat: "AR" },
   ],
   FR: [
     { name: "Kylian Mbappé", nat: "FR" }, { name: "Ousmane Dembélé", nat: "FR" },
@@ -48,7 +56,8 @@ const INTL_NAMES: Record<string, Array<{ name: string; nat: string }>> = {
     { name: "Antoine Griezmann", nat: "FR" }, { name: "Jules Koundé", nat: "FR" },
     { name: "Dayot Upamecano", nat: "FR" }, { name: "Theo Hernández", nat: "FR" },
     { name: "William Saliba", nat: "FR" }, { name: "Mike Maignan", nat: "FR" },
-    { name: "Désiré Doué", nat: "FR" }, { name: "Bradley Barcola", nat: "FR" },
+    { name: "Michael Olise", nat: "FR" }, { name: "Désiré Doué", nat: "FR" },
+    { name: "Warren Zaïre-Emery", nat: "FR" }, { name: "Bradley Barcola", nat: "FR" },
   ],
   ES: [
     { name: "Pedri", nat: "ES" }, { name: "Gavi", nat: "ES" },
@@ -76,7 +85,7 @@ const INTL_NAMES: Record<string, Array<{ name: string; nat: string }>> = {
     { name: "Tijjani Reijnders", nat: "NL" }, { name: "Xavi Simons", nat: "NL" },
   ],
   BE: [
-    { name: "Kevin De Bruyne", nat: "BE" }, { name: "Romelu Lukaku", nat: "BE" },
+    { name: "Kevin De Bruyne", nat: "BE" }, { name: "Dodi Lukebakio", nat: "BE" },
     { name: "Youri Tielemans", nat: "BE" }, { name: "Jérémy Doku", nat: "BE" },
     { name: "Loïs Openda", nat: "BE" }, { name: "Charles De Ketelaere", nat: "BE" },
   ],
@@ -91,9 +100,9 @@ const INTL_NAMES: Record<string, Array<{ name: string; nat: string }>> = {
     { name: "Sander Berge", nat: "NO" }, { name: "Oscar Bobb", nat: "NO" },
   ],
   HR: [
-    { name: "Luka Modrić", nat: "HR" }, { name: "Mateo Kovačić", nat: "HR" },
+    { name: "Mateo Kovačić", nat: "HR" }, { name: "Petar Sučić", nat: "HR" },
     { name: "Joško Gvardiol", nat: "HR" }, { name: "Luka Sučić", nat: "HR" },
-    { name: "Mario Pašalić", nat: "HR" }, { name: "Ivan Perišić", nat: "HR" },
+    { name: "Mario Pašalić", nat: "HR" }, { name: "Martin Baturina", nat: "HR" },
   ],
   SN: [
     { name: "Sadio Mané", nat: "SN" }, { name: "Kalidou Koulibaly", nat: "SN" },
@@ -102,7 +111,7 @@ const INTL_NAMES: Record<string, Array<{ name: string; nat: string }>> = {
   ],
   MA: [
     { name: "Achraf Hakimi", nat: "MA" }, { name: "Noussair Mazraoui", nat: "MA" },
-    { name: "Hakim Ziyech", nat: "MA" }, { name: "Azzedine Ounahi", nat: "MA" },
+    { name: "Azzedine Ounahi", nat: "MA" }, { name: "Eliesse Ben Seghir", nat: "MA" },
     { name: "Brahim Díaz", nat: "MA" }, { name: "Bilal El Khannouss", nat: "MA" },
   ],
   DK: [
@@ -117,21 +126,39 @@ const INTL_NAMES: Record<string, Array<{ name: string; nat: string }>> = {
   CI: [
     { name: "Sébastien Haller", nat: "CI" }, { name: "Simon Adingra", nat: "CI" },
     { name: "Evan Ndicka", nat: "CI" }, { name: "Amad Diallo", nat: "CI" },
-    { name: "Nicolas Pépé", nat: "CI" },
+    { name: "Karim Konaté", nat: "CI" },
   ],
   GH: [
     { name: "Mohammed Kudus", nat: "GH" }, { name: "Thomas Partey", nat: "GH" },
     { name: "Antoine Semenyo", nat: "GH" }, { name: "Kamaldeen Sulemana", nat: "GH" },
   ],
-  // Local fallback — proceduralTurkish names for TR targets. Generated
-  // each call so the same scout run doesn't produce identical duplicates.
+  EN: [
+    { name: "Jude Bellingham", nat: "EN" }, { name: "Harry Kane", nat: "EN" },
+    { name: "Bukayo Saka", nat: "EN" }, { name: "Phil Foden", nat: "EN" },
+    { name: "Declan Rice", nat: "EN" }, { name: "Cole Palmer", nat: "EN" },
+    { name: "Anthony Gordon", nat: "EN" }, { name: "Marc Guéhi", nat: "EN" },
+    { name: "Morgan Rogers", nat: "EN" }, { name: "Jarrad Branthwaite", nat: "EN" },
+  ],
+  GE: [
+    { name: "Khvicha Kvaratskhelia", nat: "GE" }, { name: "Giorgi Mamardashvili", nat: "GE" },
+    { name: "Giorgi Chakvetadze", nat: "GE" },
+  ],
+  IT: [
+    { name: "Nicolò Barella", nat: "IT" }, { name: "Sandro Tonali", nat: "IT" },
+    { name: "Federico Dimarco", nat: "IT" }, { name: "Alessandro Bastoni", nat: "IT" },
+    { name: "Giacomo Raspadori", nat: "IT" }, { name: "Cesare Casadei", nat: "IT" },
+  ],
+  // Turkish internationals playing ABROAD. A Turkish game whose "scout
+  // Türkiye" button returned invented names while Arda Güler and Kenan
+  // Yıldız existed was a strange gap. Everyone here plays outside the Süper
+  // Lig, so a scout report can never duplicate a player already in a squad.
   TR: [
-    { name: "Efe Yılmaz", nat: "TR" }, { name: "Arda Demir", nat: "TR" },
-    { name: "Kerem Kaya", nat: "TR" }, { name: "Tolga Öztürk", nat: "TR" },
-    { name: "Kaan Çelik", nat: "TR" }, { name: "Ozan Aslan", nat: "TR" },
-    { name: "Emre Koç", nat: "TR" }, { name: "Yusuf Yıldız", nat: "TR" },
-    { name: "Baran Arslan", nat: "TR" }, { name: "Can Polat", nat: "TR" },
-    { name: "Umut Şahin", nat: "TR" }, { name: "Halil Aydın", nat: "TR" },
+    { name: "Arda Güler", nat: "TR" }, { name: "Kenan Yıldız", nat: "TR" },
+    { name: "Ferdi Kadıoğlu", nat: "TR" }, { name: "Zeki Çelik", nat: "TR" },
+    { name: "Altay Bayındır", nat: "TR" }, { name: "Berke Özer", nat: "TR" },
+    { name: "Can Uzun", nat: "TR" }, { name: "Yusuf Sarı", nat: "TR" },
+    { name: "Emirhan Demircan", nat: "TR" }, { name: "Doğukan Sinik", nat: "TR" },
+    { name: "Ahmetcan Kaplan", nat: "TR" }, { name: "Efe Akman", nat: "TR" },
   ],
 };
 
@@ -263,10 +290,33 @@ export async function processScoutReturns(opts: { leagueId?: string } = {}) {
       s.targetPosition === "ANY"
         ? ["GK", "DEF", "MID", "FWD"]
         : [s.targetPosition];
+    // Never offer a player the league already has. The name pools are kept
+    // disjoint from the squad packs, but a squad refresh can bring a pool
+    // name into the league (Lukaku signing for Fenerbahçe is exactly that),
+    // and two scouts running together could otherwise surface the same
+    // prospect twice.
+    const existing = new Set(
+      (
+        await db
+          .select({ name: players.name })
+          .from(players)
+          .where(eq(players.leagueId, s.leagueId))
+      ).map((r) => r.name),
+    );
     const results: ScoutCandidate[] = [];
     for (let i = 0; i < count; i++) {
       const pos = positions[Math.floor(Math.random() * positions.length)];
-      results.push(genCandidate(s.targetNationality, pos, [s.ageMin, s.ageMax]));
+      let candidate: ScoutCandidate | null = null;
+      for (let attempt = 0; attempt < 8; attempt++) {
+        const c = genCandidate(s.targetNationality, pos, [s.ageMin, s.ageMax]);
+        if (!existing.has(c.name)) {
+          candidate = c;
+          break;
+        }
+      }
+      if (!candidate) continue; // pool exhausted for this nationality
+      existing.add(candidate.name);
+      results.push(candidate);
     }
     await db
       .update(scouts)

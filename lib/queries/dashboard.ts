@@ -116,10 +116,13 @@ export async function loadDashboardData(
 ): Promise<DashboardData> {
   const { league, club } = ctx;
 
+  // The table shows the division the manager is actually in. Mixing both
+  // tiers into one list would put a second-division leader above a Süper Lig
+  // side on points and make the standings meaningless.
   const unsortedClubs = await db
     .select()
     .from(clubs)
-    .where(eq(clubs.leagueId, league.id));
+    .where(and(eq(clubs.leagueId, league.id), eq(clubs.division, club.division)));
 
   // Finished fixtures for THIS season only, and without the commentary/stats
   // JSON blobs — the previous query pulled every fixture ever played in the
@@ -139,6 +142,7 @@ export async function loadDashboardData(
       and(
         eq(fixtures.leagueId, league.id),
         eq(fixtures.seasonNumber, league.seasonNumber),
+        eq(fixtures.division, club.division),
         eq(fixtures.status, "finished"),
       ),
     )

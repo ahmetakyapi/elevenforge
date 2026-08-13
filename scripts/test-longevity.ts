@@ -118,6 +118,14 @@ async function main() {
   const leagueId = league.id;
   const startSeason = league.seasonNumber;
 
+  // Snapshot who starts in the top flight so promotion can be detected.
+  const startTop = await db
+    .select({ id: clubs.id })
+    .from(clubs)
+    .where(and(eq(clubs.leagueId, leagueId), eq(clubs.division, 1)));
+  const startD1 = new Set(startTop.map((c) => c.id));
+  const startD1Size = startTop.length;
+
   console.log(`\n=== Simulating ${SEASONS} seasons ===`);
   for (let i = 0; i < SEASONS; i++) {
     await playSeason(leagueId);
@@ -254,7 +262,44 @@ async function main() {
   );
   ok(broke === 0, `no club is worse than -€50M (${broke} bankrupt)`);
 
-  // 10. Free-agent pool refills so the AI always has cover to sign.
+  // 10. Promotion and relegation actually moved clubs between the tiers.
+  //
+  // Without a second division the board goal "Küme düşmemek" was
+  // unfailable — there was nowhere to go down to — so the bottom of the
+  // table had nothing at stake.
+  const d1 = allClubs.filter((c) => c.division === 1);
+  const d2 = allClubs.filter((c) => c.division === 2);
+  ok(d1.length > 0 && d2.length > 0, `both tiers populated (${d1.length} / ${d2.length})`);
+  ok(
+    d1.length === startD1Size,
+    `top flight still holds ${startD1Size} clubs (has ${d1.length})`,
+  );
+  const movedUp = d1.filter((c) => !startD1.has(c.id)).length;
+  const movedDown = d2.filter((c) => startD1.has(c.id)).length;
+  ok(movedUp > 0, `${movedUp} clubs promoted into the top flight over ${SEASONS} seasons`);
+  ok(movedDown > 0, `${movedDown} clubs relegated out of it`);
+  ok(movedUp === movedDown, `promotions match relegations (${movedUp} vs ${movedDown})`);
+
+  const promotedRows = await db
+    .select({ id: seasonHistory.id })
+    .from(seasonHistory)
+    .where(and(eq(seasonHistory.leagueId, leagueId), eq(seasonHistory.promoted, true)));
+  ok(promotedRows.length > 0, `season history records ${promotedRows.length} promotions`);
+
+  // Every division must still have its own complete calendar.
+  const d2Fixtures = await db
+    .select({ id: fixtures.id })
+    .from(fixtures)
+    .where(
+      and(
+        eq(fixtures.leagueId, leagueId),
+        eq(fixtures.seasonNumber, lgFinal.seasonNumber),
+        eq(fixtures.division, 2),
+      ),
+    );
+  ok(d2Fixtures.length > 0, `second division has ${d2Fixtures.length} fixtures next season`);
+
+  // 11. Free-agent pool refills so the AI always has cover to sign.
   const fa = await db
     .select({ id: players.id })
     .from(players)

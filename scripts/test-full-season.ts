@@ -115,7 +115,13 @@ async function snapshot(leagueId: string, season: number): Promise<Snapshot> {
 }
 
 function checkFixtureCoverage(
-  finished: Array<{ id: string; weekNumber: number; homeClubId: string; awayClubId: string }>,
+  finished: Array<{
+    id: string;
+    weekNumber: number;
+    division?: number;
+    homeClubId: string;
+    awayClubId: string;
+  }>,
   expectedTotal: number,
   label: string,
   clubCount: number,
@@ -482,6 +488,7 @@ async function main() {
     .select({
       id: fixtures.id,
       weekNumber: fixtures.weekNumber,
+      division: fixtures.division,
       homeClubId: fixtures.homeClubId,
       awayClubId: fixtures.awayClubId,
     })
@@ -493,9 +500,19 @@ async function main() {
         eq(fixtures.status, "finished"),
       ),
     );
-  const clubCount = s1.clubs.length;
+  // Per DIVISION: the two tiers play separate calendars, so treating all 36
+  // clubs as one league expects 36×35 fixtures instead of 2 × 18×17.
+  const divisionSizes = await db
+    .select({ division: clubs.division, id: clubs.id })
+    .from(clubs)
+    .where(eq(clubs.leagueId, leagueId));
+  const perDivision = new Map<number, number>();
+  for (const c of divisionSizes) {
+    perDivision.set(c.division, (perDivision.get(c.division) ?? 0) + 1);
+  }
+  const clubCount = perDivision.get(1) ?? s1.clubs.length;
   totalBad += checkFixtureCoverage(
-    s1Fix,
+    s1Fix.filter((f) => f.division === 1),
     clubCount * (clubCount - 1),
     "S1 coverage",
     clubCount,
@@ -509,6 +526,7 @@ async function main() {
     .select({
       id: fixtures.id,
       weekNumber: fixtures.weekNumber,
+      division: fixtures.division,
       homeClubId: fixtures.homeClubId,
       awayClubId: fixtures.awayClubId,
     })
@@ -521,7 +539,7 @@ async function main() {
       ),
     );
   totalBad += checkFixtureCoverage(
-    s2Fix,
+    s2Fix.filter((f) => f.division === 1),
     clubCount * (clubCount - 1),
     "S2 coverage",
     clubCount,

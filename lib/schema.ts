@@ -145,6 +145,9 @@ export const clubs = pgTable(
       onDelete: "set null",
     }),
     isBot: boolean("is_bot").notNull().default(false),
+    // 1 = Süper Lig, 2 = 1. Lig. Promotion/relegation moves clubs between
+    // them at the season roll — see lib/jobs/promotion.ts.
+    division: integer("division").notNull().default(1),
     name: text("name").notNull(),
     shortName: text("short_name").notNull(),
     city: text("city").notNull(),
@@ -286,6 +289,8 @@ export const fixtures = pgTable(
       .references(() => leagues.id, { onDelete: "cascade" }),
     seasonNumber: integer("season_number").notNull(),
     weekNumber: integer("week_number").notNull(),
+    // The two tiers play separate calendars on the same match days.
+    division: integer("division").notNull().default(1),
     homeClubId: uuid("home_club_id")
       .notNull()
       .references(() => clubs.id, { onDelete: "cascade" }),
@@ -761,6 +766,9 @@ export const seasonHistory = pgTable(
     goalsFor: integer("goals_for").notNull(),
     goalsAgainst: integer("goals_against").notNull(),
     wonCup: boolean("won_cup").notNull().default(false),
+    division: integer("division").notNull().default(1),
+    promoted: boolean("promoted").notNull().default(false),
+    relegated: boolean("relegated").notNull().default(false),
     topScorerJson: text("top_scorer_json"),
     createdAt: createdAt(),
   },

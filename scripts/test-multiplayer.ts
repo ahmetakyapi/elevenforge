@@ -30,7 +30,7 @@ import {
 import { createStarterLeague } from "../lib/actions/create-league";
 import { joinLeagueByInviteCode } from "../lib/actions/join-league";
 import { assertLocalDatabase } from "./guard-remote-db";
-import { SQUAD_PACKS } from "../lib/squad-packs";
+import { SQUAD_PACKS, SQUAD_PACKS_D2 } from "../lib/squad-packs";
 
 const NUM_USERS = 10;
 
@@ -99,9 +99,11 @@ async function main() {
     console.error(`  ✗ expected ${NUM_USERS} humans, got ${humans}`);
     bad++;
   }
-  if (leagueClubs.length !== SQUAD_PACKS.length) {
+  // A league is BOTH tiers: 18 Süper Lig + 18 1. Lig.
+  const expectedClubs = SQUAD_PACKS.length + SQUAD_PACKS_D2.length;
+  if (leagueClubs.length !== expectedClubs) {
     console.error(
-      `  ✗ expected ${SQUAD_PACKS.length} clubs, got ${leagueClubs.length}`,
+      `  ✗ expected ${expectedClubs} clubs, got ${leagueClubs.length}`,
     );
     bad++;
   }
@@ -224,7 +226,7 @@ async function main() {
   // 7. League has the expected player count. Every club ships with the
   //    real squad from lib/squad-packs; pack sizes vary per club, so we
   //    total them rather than assuming a fixed roster size.
-  const EXPECTED_PLAYERS = SQUAD_PACKS.reduce(
+  const EXPECTED_PLAYERS = [...SQUAD_PACKS, ...SQUAD_PACKS_D2].reduce(
     (n, p) => n + p.players.length,
     0,
   );

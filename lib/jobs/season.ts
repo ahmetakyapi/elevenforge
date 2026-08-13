@@ -22,6 +22,8 @@ import { generateCupBracket } from "./cup";
 import { evaluateSeasonAchievements } from "./achievements";
 import { backfillThinSquads, generateYouthIntake } from "./youth";
 import { matchKickoff } from "@/lib/match-time";
+import { sortStandings } from "@/lib/standings";
+import { applyPromotionRelegation, PROMOTION_SLOTS } from "./promotion";
 
 /**
  * Full double round-robin: every club plays every other club twice, once at
@@ -111,19 +113,39 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
     .returning();
   if (rollClaim.length === 0) return { rolled: false };
 
-  // Award season prize money (top 4) BEFORE resetting stats.
-  const standings = [...clubRows].sort((a, b) => {
-    if (b.seasonPoints !== a.seasonPoints)
-      return b.seasonPoints - a.seasonPoints;
-    const aGd = a.seasonGoalsFor - a.seasonGoalsAgainst;
-    const bGd = b.seasonGoalsFor - b.seasonGoalsAgainst;
-    if (bGd !== aGd) return bGd - aGd;
-    return b.seasonGoalsFor - a.seasonGoalsFor;
-  });
+  // Finished fixtures drive the head-to-head tiebreak, so the table the
+  // board and the relegation rule use is the same one the standings page
+  // shows.
+  const seasonFixtures = await db
+    .select({
+      homeClubId: fixtures.homeClubId,
+      awayClubId: fixtures.awayClubId,
+      homeScore: fixtures.homeScore,
+      awayScore: fixtures.awayScore,
+      status: fixtures.status,
+    })
+    .from(fixtures)
+    .where(
+      and(
+        eq(fixtures.leagueId, leagueId),
+        eq(fixtures.seasonNumber, league.seasonNumber),
+        eq(fixtures.status, "finished"),
+      ),
+    );
+
+  // Each division has its own table: a first place in the second tier is not
+  // the same thing as winning the league.
+  const topFlight = clubRows.filter((c) => c.division === 1);
+  const secondTier = clubRows.filter((c) => c.division === 2);
+  const standings = sortStandings(topFlight, seasonFixtures);
+  const standingsD2 = sortStandings(secondTier, seasonFixtures);
 
   // Board evaluation: update confidence, fire failing managers. Done before
   // stats reset so the rank input is still meaningful.
-  const rankedStandings = standings.map((c, i) => ({ id: c.id, rank: i + 1 }));
+  const rankedStandings = [
+    ...standings.map((c, i) => ({ id: c.id, rank: i + 1 })),
+    ...standingsD2.map((c, i) => ({ id: c.id, rank: i + 1 })),
+  ];
   await evaluateBoardConfidence(leagueId, rankedStandings);
 
   // Season achievements (champion, perfect season, top scorer) — also
@@ -146,9 +168,10 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
   // whole division ended up with an impossible target and the board sacked
   // almost every manager, every season. A two-sided curve keeps the spread
   // stable so board goals stay meaningful.
-  const size = standings.length;
+  for (const table of [standings, standingsD2]) {
+  const size = table.length;
   for (let i = 0; i < size; i++) {
-    const c = standings[i];
+    const c = table[i];
     const rank = i + 1;
     const share = rank / size; // 0 = top of the table, 1 = bottom
     let delta: number;
@@ -166,6 +189,7 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
       .update(clubs)
       .set({ prestige: next })
       .where(eq(clubs.id, c.id));
+  }
   }
   if (standings[0]) {
     await db.insert(feedEvents).values({
@@ -203,11 +227,15 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
     )
     .limit(1);
 
-  const historyRows = standings.map((c, i) => ({
+  const historyRows = [
+    ...standings.map((c, i) => ({ club: c, position: i + 1, division: 1 as const })),
+    ...standingsD2.map((c, i) => ({ club: c, position: i + 1, division: 2 as const })),
+  ].map(({ club: c, position, division }) => ({
     leagueId,
     seasonNumber: league.seasonNumber,
     clubId: c.id,
-    position: i + 1,
+    division,
+    position,
     points: c.seasonPoints,
     wins: c.seasonWins,
     draws: c.seasonDraws,
@@ -215,6 +243,8 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
     goalsFor: c.seasonGoalsFor,
     goalsAgainst: c.seasonGoalsAgainst,
     wonCup: cupWinner?.winnerClubId === c.id,
+    promoted: division === 2 && position <= PROMOTION_SLOTS,
+    relegated: division === 1 && position > standings.length - PROMOTION_SLOTS,
     topScorerJson: JSON.stringify(topScorerByClub.get(c.id) ?? null),
   }));
   if (historyRows.length > 0) {
@@ -349,32 +379,49 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
     });
   }
 
+  // Promotion and relegation, after the season is on record and before the
+  // new calendar is drawn — the new fixture list must reflect who is in
+  // which division.
+  const swap = await applyPromotionRelegation(leagueId, clubRows, seasonFixtures);
+  // Re-read: clubRows still has the pre-swap divisions.
+  const clubRowsAfter = await db
+    .select()
+    .from(clubs)
+    .where(eq(clubs.leagueId, leagueId));
+
   // Generate new fixtures. Schedule starts tomorrow to give users a day to breathe.
   // Time-of-day comes from the league's matchTime ("HH:MM") instead of the
   // previously hardcoded 21:00.
-  const clubIds = clubRows.map((c) => c.id);
-  const rounds = roundRobin(clubIds);
   const now = new Date();
   const fixtureRows: Array<typeof fixtures.$inferInsert> = [];
-  for (let r = 0; r < rounds.length; r++) {
-    // Day 1 is tomorrow, so the new season starts after a rest day.
-    const scheduled = matchKickoff(now, r + 1, league.matchTime, league.timeZone);
-    for (const m of rounds[r]) {
-      const home = clubRows.find((c) => c.id === m.home);
-      if (!home) continue;
-      fixtureRows.push({
-        leagueId,
-        seasonNumber: newSeason,
-        weekNumber: r + 1,
-        homeClubId: m.home,
-        awayClubId: m.away,
-        venue: `${home.city} Arena`,
-        scheduledAt: scheduled,
-        status: "scheduled",
-      });
+  for (const division of [1, 2] as const) {
+    const divisionIds = clubRowsAfter
+      .filter((c) => c.division === division)
+      .map((c) => c.id);
+    if (divisionIds.length < 2) continue;
+    const rounds = roundRobin(divisionIds);
+    for (let r = 0; r < rounds.length; r++) {
+      // Day 1 is tomorrow, so the new season starts after a rest day.
+      const scheduled = matchKickoff(now, r + 1, league.matchTime, league.timeZone);
+      for (const m of rounds[r]) {
+        const home = clubRowsAfter.find((c) => c.id === m.home);
+        if (!home) continue;
+        fixtureRows.push({
+          leagueId,
+          seasonNumber: newSeason,
+          division,
+          weekNumber: r + 1,
+          homeClubId: m.home,
+          awayClubId: m.away,
+          venue: `${home.city} Arena`,
+          scheduledAt: scheduled,
+          status: "scheduled",
+        });
+      }
     }
   }
   await db.insert(fixtures).values(fixtureRows);
+  const weeksInSeason = fixtureRows.reduce((m, f) => Math.max(m, f.weekNumber), 0);
 
   // Abandon any cup tie from the season just gone that never got played —
   // a slot whose feeder round never resolved would otherwise sit
@@ -398,7 +445,11 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
     leagueId,
     clubId: null,
     eventType: "paper",
-    text: `Sezon ${newSeason} başladı — ${rounds.length} hafta, yeni fikstür çekildi.`,
+    text:
+      `Sezon ${newSeason} başladı — ${weeksInSeason} hafta, yeni fikstür çekildi.` +
+      (swap.promoted.length > 0
+        ? ` Süper Lig'e çıkanlar: ${swap.promoted.map((c) => c.name).join(", ")}.`
+        : ""),
   });
 
   return { rolled: true, newSeason };

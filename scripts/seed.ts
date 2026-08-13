@@ -24,7 +24,7 @@ import {
   transferListings,
   users,
 } from "../lib/schema";
-import { SQUAD_PACKS } from "../lib/squad-packs";
+import { SQUAD_PACKS, SQUAD_PACKS_D2 } from "../lib/squad-packs";
 import { roundRobin as sharedRoundRobin } from "../lib/jobs/season";
 import { STARTING_BALANCE_CENTS } from "../lib/economy";
 import type { Position } from "../types";
@@ -345,11 +345,16 @@ async function main() {
     { formation: "4-4-2", mentality: 1, pressing: 1, tempo: 2 },
   ];
 
-  // Clubs — each pack becomes one real Süper Lig club. User owns the
-  // Fenerbahçe slot (pack index 0); the other 15 are AI-controlled
-  // until another user joins.
+  // Clubs — both tiers. The user owns the Fenerbahçe slot (pack index 0);
+  // everything else is AI-controlled until another user joins.
+  const ALL_PACKS = [
+    ...SQUAD_PACKS.map((p) => ({ sp: p, division: 1 as const })),
+    ...SQUAD_PACKS_D2.map((p) => ({ sp: p, division: 2 as const })),
+  ];
   const clubRows: Array<typeof clubs.$inferSelect> = [];
-  for (const [i, sp] of SQUAD_PACKS.entries()) {
+  for (const [i, entry] of ALL_PACKS.entries()) {
+    const sp = entry.sp;
+    const division = entry.division;
     const c = sp.club;
     const personality =
       i === 0
@@ -359,6 +364,7 @@ async function main() {
       .insert(clubs)
       .values({
         leagueId: league.id,
+        division,
         ownerUserId: i === 0 ? user.id : null,
         isBot: i !== 0,
         // Bots are run by the AI manager from day one.
@@ -412,7 +418,7 @@ async function main() {
   // than 20 players that's a data issue to fix in squad-packs.ts.
   let totalPlayers = 0;
   for (const [idx, club] of clubRows.entries()) {
-    const sp = SQUAD_PACKS[idx];
+    const sp = ALL_PACKS[idx].sp;
     const userR = rng(club.id.split("-")[0].length * 911 + idx * 29);
     const rows = sp.players.map((p) => ({
       leagueId: league.id,
@@ -478,31 +484,42 @@ async function main() {
   }
   console.log(`  ✓ ${listCandidates.length} transfer listings`);
 
-  // Fixtures — 15-round single round-robin, 1 round/day at the league's matchTime
-  const clubIds = clubRows.map((c) => c.id);
-  const rounds = roundRobin(clubIds);
+  // Fixtures — a double round-robin per division, one round per day at the
+  // league's local match time. Both tiers play on the same days.
   const { matchKickoff } = await import("../lib/match-time");
   const seedNow = new Date();
   let fixCount = 0;
-  for (let r = 0; r < rounds.length; r++) {
-    const scheduled = matchKickoff(seedNow, r, league.matchTime, league.timeZone);
-    for (const m of rounds[r]) {
-      const home = clubRows.find((c) => c.id === m.home);
-      if (!home) continue;
-      await db.insert(fixtures).values({
-        leagueId: league.id,
-        seasonNumber: 3,
-        weekNumber: r + 1,
-        homeClubId: m.home,
-        awayClubId: m.away,
-        venue: `${home.city} Arena`,
-        scheduledAt: scheduled,
-        status: "scheduled",
-      });
-      fixCount++;
+  let weeks = 0;
+  for (const division of [1, 2] as const) {
+    const divisionIds = clubRows
+      .filter((c) => c.division === division)
+      .map((c) => c.id);
+    if (divisionIds.length < 2) continue;
+    const rounds = roundRobin(divisionIds);
+    for (let r = 0; r < rounds.length; r++) {
+      const scheduled = matchKickoff(seedNow, r, league.matchTime, league.timeZone);
+      for (const m of rounds[r]) {
+        const home = clubRows.find((c) => c.id === m.home);
+        if (!home) continue;
+        await db.insert(fixtures).values({
+          leagueId: league.id,
+          seasonNumber: 3,
+          division,
+          weekNumber: r + 1,
+          homeClubId: m.home,
+          awayClubId: m.away,
+          venue: `${home.city} Arena`,
+          scheduledAt: scheduled,
+          status: "scheduled",
+        });
+        fixCount++;
+      }
     }
+    weeks = Math.max(weeks, rounds.length);
   }
-  console.log(`  ✓ ${fixCount} fixtures across ${rounds.length} rounds`);
+  console.log(
+    `  ✓ ${fixCount} fixtures across ${weeks} rounds (${SQUAD_PACKS.length} Süper Lig + ${SQUAD_PACKS_D2.length} 1. Lig)`,
+  );
 
   // Seed feed events
   await db.insert(feedEvents).values([
