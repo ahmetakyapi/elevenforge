@@ -18,6 +18,11 @@ import {
   decrementSuspensions,
 } from "@/lib/engine/apply-player-updates";
 import { parseLineup } from "@/lib/lineup";
+import { creditClub } from "@/lib/money";
+import {
+  CUP_RUNNER_UP_PRIZE_CENTS,
+  CUP_WINNER_PRIZE_CENTS,
+} from "@/lib/economy";
 import { matchKickoff } from "@/lib/match-time";
 
 const CUP_WEEK_BY_ROUND: Record<number, number> = {
@@ -259,22 +264,21 @@ export async function runCupRound(opts: { leagueId: string }): Promise<{
           code: "cup-winner",
           season: fx.seasonNumber,
         });
+        // Prize money as an SQL delta, not an absolute write computed from a
+        // row read earlier: a transfer completing in between would otherwise
+        // be silently erased by the payout.
+        await creditClub(winner.id, CUP_WINNER_PRIZE_CENTS);
         await db
           .update(clubs)
-          .set({
-            balanceCents: winner.balanceCents + 1_500_000_000, // €15M
-            prestige: Math.min(100, winner.prestige + 5),
-          })
+          .set({ prestige: Math.min(100, winner.prestige + 5) })
           .where(eq(clubs.id, winner.id));
         const runnerUpId = winnerId === home.id ? away.id : home.id;
         const [runnerUp] = await db.select().from(clubs).where(eq(clubs.id, runnerUpId));
         if (runnerUp) {
+          await creditClub(runnerUp.id, CUP_RUNNER_UP_PRIZE_CENTS);
           await db
             .update(clubs)
-            .set({
-              balanceCents: runnerUp.balanceCents + 500_000_000, // €5M
-              prestige: Math.min(100, runnerUp.prestige + 3),
-            })
+            .set({ prestige: Math.min(100, runnerUp.prestige + 3) })
             .where(eq(clubs.id, runnerUp.id));
         }
         await db.insert(feedEvents).values({

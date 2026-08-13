@@ -123,6 +123,10 @@ export const SEASON_PRIZES_CENTS = [
   600_000_000, //   €6M
 ];
 
+/** Cup prize money, scaled alongside the league prizes. */
+export const CUP_WINNER_PRIZE_CENTS = 1_500_000_000; // €15M
+export const CUP_RUNNER_UP_PRIZE_CENTS = 500_000_000; // €5M
+
 /**
  * Cost to extend a contract: a signing bonus of ~12 weeks' wages per year.
  *

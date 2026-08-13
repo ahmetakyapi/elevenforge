@@ -1,9 +1,10 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { clubs, feedEvents } from "@/lib/schema";
+import { debitClub } from "@/lib/money";
 import { requireLeagueContext } from "@/lib/session";
 import { parseStaffJson, staffById, type StaffRole } from "@/lib/staff";
 
@@ -16,7 +17,11 @@ export async function hireStaff(input: { staffId: string }) {
   const ctx = await requireLeagueContext();
   const member = staffById(input.staffId);
   if (!member) return { ok: false as const, error: "Personel bulunamadı." };
-  if (ctx.club.balanceCents < member.hireCostCents) {
+  // Guarded debit rather than a check against the request-start snapshot:
+  // hiring into three different slots in parallel all passed the old check
+  // and all debited.
+  const paid = await debitClub(ctx.club.id, member.hireCostCents);
+  if (!paid) {
     return {
       ok: false as const,
       error: `Bütçe yetersiz (€${(member.hireCostCents / 100 / 1_000_000).toFixed(1)}M gerek).`,
@@ -34,10 +39,7 @@ export async function hireStaff(input: { staffId: string }) {
 
   await db
     .update(clubs)
-    .set({
-      staffJson: JSON.stringify(next),
-      balanceCents: sql`${clubs.balanceCents} - ${member.hireCostCents}`,
-    })
+    .set({ staffJson: JSON.stringify(next) })
     .where(eq(clubs.id, ctx.club.id));
 
   await db.insert(feedEvents).values({
