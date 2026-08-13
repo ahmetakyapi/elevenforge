@@ -1,5 +1,6 @@
 import { and, desc, eq, or } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { formatInZone } from "@/lib/match-time";
 import { clubs, fixtures } from "@/lib/schema";
 import type { LeagueContext } from "@/lib/session";
 import type { MatchEvent, MatchStats } from "@/lib/engine/match";
@@ -21,6 +22,8 @@ export type MatchReplayData = {
   weekNumber: number;
   seasonNumber: number;
   playedAt: Date;
+  /** Pre-formatted in the league timezone — see formatInZone. */
+  playedAtLabel: string;
   events: MatchEvent[];
   stats: MatchStats;
 } | null;
@@ -115,6 +118,7 @@ export async function loadLatestMatch(
     weekNumber: fixture.weekNumber,
     seasonNumber: fixture.seasonNumber,
     playedAt: new Date(fixture.playedAt!),
+    playedAtLabel: formatInZone(new Date(fixture.playedAt!), ctx.league.timeZone),
     events,
     stats,
   };

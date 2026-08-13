@@ -16,7 +16,7 @@ modern menajerlik oyunlarının kalitesinde animasyon ve UX.
 ## Neler var?
 
 ### 🏟 Lig & Maç
-- **16-takımlı arkadaş ligleri** — davet kodu ile katıl, bot kalan slotu doldur
+- **18-takımlı arkadaş ligleri** (2026-27 Süper Lig formatı) — davet kodu ile katıl, bot kalan slotu doldur
 - **Günlük cron-tetiklemeli maç simülasyonu** — lig kuran kişinin seçtiği saatte
 - **Deterministik motor** — fixture id → seed; replay aynı skoru üretir
 - **Hakem kişiliği** (8 isim × strictness 1-5) — kart sıklığı + agresif oyun davranışı
@@ -202,6 +202,7 @@ iOS 16.4+ için kullanıcının PWA'yı Ana Ekran'a eklemesi gerekir.
 | `npm run test:longevity` | 4 sezonluk dayanıklılık testi |
 | `npm run test:all` | reset + üç testi sırayla koşar |
 | `npm run db:status` | Hedef DB'nin salt-okunur özeti (prod'a karşı güvenli) |
+| `npm run build:squads` | `scripts/squad-source.ts` → `lib/squad-packs.ts` üretir |
 | `npx tsx scripts/test-full-season.ts` | E2E sezon testi (invariants + determinism) |
 | `npx tsx scripts/test-multiplayer.ts` | 10-kullanıcı concurrent multiplayer testi |
 

@@ -1,5 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { formatInZone } from "@/lib/match-time";
 import { clubs, newspapers } from "@/lib/schema";
 import type { LeagueContext } from "@/lib/session";
 import type { TotwEntry } from "@/lib/engine/totw";
@@ -29,6 +30,8 @@ export type NewspaperData = {
   assists: Array<{ name: string; clubId: string; a: number }>;
   funFact: string;
   publishedAt: Date;
+  /** Pre-formatted in the league timezone — see formatInZone. */
+  publishedAtLabel: string;
   crestLookup: CrestLookup;
 } | null;
 
@@ -107,6 +110,11 @@ export async function loadLatestNewspaper(
     assists,
     funFact: paper.funFact,
     publishedAt: new Date(paper.publishedAt),
+    publishedAtLabel: formatInZone(
+      new Date(paper.publishedAt),
+      ctx.league.timeZone,
+      { day: "numeric", month: "long", year: "numeric" },
+    ),
     crestLookup,
   };
 }

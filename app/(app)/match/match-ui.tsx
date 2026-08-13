@@ -149,12 +149,12 @@ export default function MatchUi({ match }: { match: MatchReplayData }) {
                   )}
                 </div>
                 <div className="t-caption" style={{ fontSize: 11 }}>
-                  {match.playedAt.toLocaleDateString("tr-TR", {
-                    day: "numeric",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {/* Formatted on the server in the league's timezone. A
+                      bare toLocaleDateString here produced one string during
+                      SSR (Vercel runs at UTC) and a different one on
+                      hydration — a guaranteed mismatch, and three hours wrong
+                      for Turkish players. */}
+                  {match.playedAtLabel}
                 </div>
               </div>
               <div

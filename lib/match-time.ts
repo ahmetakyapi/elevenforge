@@ -140,3 +140,31 @@ export function applyMatchTime(date: Date, matchTime: string): Date {
   date.setHours(hour, minute, 0, 0);
   return date;
 }
+
+/**
+ * Format an instant for display in a league's timezone.
+ *
+ * Every `toLocaleDateString`/`toLocaleString` call without an explicit
+ * `timeZone` resolves against whatever zone the process happens to be in.
+ * In a client component that means the initial server-rendered HTML (Vercel
+ * runs at UTC) and the browser's hydration pass produce different strings —
+ * a guaranteed hydration mismatch, and a kick-off time shown three hours
+ * wrong to Turkish players. Formatting through here, with the league's own
+ * zone, makes both sides agree and shows the time the match actually starts.
+ */
+export function formatInZone(
+  instant: Date | number,
+  timeZone: string,
+  options: Intl.DateTimeFormatOptions = {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  },
+  locale = "tr-TR",
+): string {
+  return new Intl.DateTimeFormat(locale, {
+    ...options,
+    timeZone: isValidTimeZone(timeZone) ? timeZone : DEFAULT_TIME_ZONE,
+  }).format(instant);
+}

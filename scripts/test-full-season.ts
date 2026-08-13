@@ -198,9 +198,12 @@ function checkSnapshotInvariants(snap: Snapshot, label: string): number {
       bad++;
     }
     const games = c.w + c.d + c.l;
-    if (games > 30) {
+    // Derived from the club count, not hardcoded: a double round-robin is
+    // 2 × (N − 1) games, and the league grew from 16 clubs to 18 in 2026-27.
+    const maxGames = (snap.clubs.length - 1) * 2;
+    if (games > maxGames) {
       console.error(
-        `  ✗ [${label}] ${c.short}: ${games} games (max 30 in 16-team round-robin)`,
+        `  ✗ [${label}] ${c.short}: ${games} games (max ${maxGames} in a ${snap.clubs.length}-club double round-robin)`,
       );
       bad++;
     }

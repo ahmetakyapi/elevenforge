@@ -37,8 +37,13 @@ const LEAGUE_NAME = "Akyapı Crew";
 const INVITE_CODE = "AKYAPI";
 
 // ─── Name pools for bot-squad generation ─────────────────────
-/** A league is 16 clubs; the fixture list is a double round-robin. */
-const CLUB_COUNT = 16;
+/**
+ * A league mirrors the real Süper Lig, which is 18 clubs from 2026-27 (it was
+ * 16 through 2025-26). The fixture list is a double round-robin, so the
+ * season is 2 × (18 − 1) = 34 rounds. The cup stays a 16-team knockout and
+ * draws 16 of the 18, which is how a real cup with a qualifying round works.
+ */
+const CLUB_COUNT = 18;
 
 const TR_FIRST = [
   "Ahmet", "Mehmet", "Mustafa", "Emre", "Burak", "Ali", "Yusuf", "Kerem",

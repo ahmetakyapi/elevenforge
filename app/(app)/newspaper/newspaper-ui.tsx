@@ -126,7 +126,7 @@ function CoverPage({ paper }: { paper: NonNullable<NewspaperData> }) {
             textTransform: "uppercase",
           }}
         >
-          {paper.publishedAt.toLocaleDateString("tr-TR")}
+          {paper.publishedAtLabel}
         </span>
       </div>
       <div

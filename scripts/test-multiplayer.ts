@@ -5,7 +5,9 @@
  *  1. The first user creates a league via createStarterLeague.
  *  2. The next 9 join via joinLeagueByInviteCode and each claim a unique
  *     bot club. Concurrent joins do not double-claim the same slot.
- *  3. After joins, the league has exactly 10 human owners + 6 bots = 16 clubs.
+ *  3. After joins, every club is accounted for: 10 human owners plus bots
+ *     filling the rest. The club count comes from SQUAD_PACKS rather than a
+ *     literal, so growing the league (16 → 18 in 2026-27) does not break it.
  *  4. Concurrent buyListing calls on the same listing only succeed once
  *     (optimistic lock).
  *  5. The commissioner can advance the season; non-commissioners cannot.
@@ -28,6 +30,7 @@ import {
 import { createStarterLeague } from "../lib/actions/create-league";
 import { joinLeagueByInviteCode } from "../lib/actions/join-league";
 import { assertLocalDatabase } from "./guard-remote-db";
+import { SQUAD_PACKS } from "../lib/squad-packs";
 
 const NUM_USERS = 10;
 
@@ -96,8 +99,10 @@ async function main() {
     console.error(`  ✗ expected ${NUM_USERS} humans, got ${humans}`);
     bad++;
   }
-  if (leagueClubs.length !== 16) {
-    console.error(`  ✗ expected 16 clubs, got ${leagueClubs.length}`);
+  if (leagueClubs.length !== SQUAD_PACKS.length) {
+    console.error(
+      `  ✗ expected ${SQUAD_PACKS.length} clubs, got ${leagueClubs.length}`,
+    );
     bad++;
   }
 
@@ -217,9 +222,8 @@ async function main() {
   }
 
   // 7. League has the expected player count. Every club ships with the
-  //    real 2025-26 squad from lib/squad-packs; pack sizes vary (21-26
-  //    each, sourced from Wikipedia), so we total them dynamically.
-  const { SQUAD_PACKS } = await import("../lib/squad-packs");
+  //    real squad from lib/squad-packs; pack sizes vary per club, so we
+  //    total them rather than assuming a fixed roster size.
   const EXPECTED_PLAYERS = SQUAD_PACKS.reduce(
     (n, p) => n + p.players.length,
     0,
@@ -266,7 +270,9 @@ async function main() {
     );
     bad++;
   } else {
-    console.log(`  ✓ ${sigs.size} unique tactic personalities across 16 clubs`);
+    console.log(
+      `  ✓ ${sigs.size} unique tactic personalities across ${leagueClubs.length} clubs`,
+    );
   }
 
   console.log(

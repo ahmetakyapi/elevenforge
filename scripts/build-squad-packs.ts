@@ -1,0 +1,324 @@
+// Must be first: populates process.env from .env.local before anything
+// reads it at module load time.
+import "./load-env";
+import { writeFileSync } from "node:fs";
+import { RAW_CLUBS, type RawClub } from "./squad-source";
+import type { Position } from "../types";
+
+/**
+ * Generate lib/squad-packs.ts from scripts/squad-source.ts.
+ *
+ *   npm run build:squads
+ *
+ * Why a generator rather than a hand-written file: the squad list is ~550
+ * players across 18 clubs and changes every transfer window. Editing literals
+ * by hand is how the old file drifted into a Beşiktaş squad with 17 players
+ * and 2 forwards. Here the roster data is plain lines, and everything the
+ * game needs — position family, role, rating, potential, balance checks — is
+ * derived deterministically.
+ *
+ * ovr/pot are NOT sourced. Transfermarkt publishes no single overall rating,
+ * so they come from club tier + age + the STAR table below, which is a
+ * hand-maintained list of players whose reputation should outrank their
+ * club's baseline. They are game-balance numbers, not claims about real
+ * ability.
+ */
+
+/** Transfermarkt position → game position family + role. */
+const POSITION_MAP: Record<string, { pos: Position; role: string }> = {
+  Goalkeeper: { pos: "GK", role: "GK" },
+  "Centre-Back": { pos: "DEF", role: "CB" },
+  "Left-Back": { pos: "DEF", role: "LB" },
+  "Right-Back": { pos: "DEF", role: "RB" },
+  "Defensive Midfield": { pos: "MID", role: "CDM" },
+  "Central Midfield": { pos: "MID", role: "CM" },
+  "Attacking Midfield": { pos: "MID", role: "AM" },
+  "Left Midfield": { pos: "MID", role: "LW" },
+  "Right Midfield": { pos: "MID", role: "RW" },
+  "Left Winger": { pos: "FWD", role: "LW" },
+  "Right Winger": { pos: "FWD", role: "RW" },
+  "Centre-Forward": { pos: "FWD", role: "ST" },
+  "Second Striker": { pos: "FWD", role: "CF" },
+  Striker: { pos: "FWD", role: "ST" },
+};
+
+/** Country name → the 2-letter code the UI renders as a flag. */
+const NAT: Record<string, string> = {
+  Turkey: "TR", Türkiye: "TR", Brazil: "BR", Portugal: "PT", Spain: "ES",
+  France: "FR", Germany: "DE", England: "EN", Scotland: "SC", Ireland: "IE",
+  Netherlands: "NL", Belgium: "BE", Italy: "IT", Croatia: "HR", Serbia: "RS",
+  Slovenia: "SI", Slovakia: "SK", Poland: "PL", Romania: "RO", Greece: "GR",
+  Denmark: "DK", Sweden: "SE", Norway: "NO", Iceland: "IS", Austria: "AT",
+  Switzerland: "CH", Hungary: "HU", Ukraine: "UA", "Czech Republic": "CZ",
+  "Bosnia-Herzegovina": "BA", Kosovo: "XK", Albania: "AL", Montenegro: "ME",
+  "North Macedonia": "MK", Georgia: "GE", Azerbaijan: "AZ", Uzbekistan: "UZ",
+  Nigeria: "NG", Ghana: "GH", Senegal: "SN", Mali: "ML", "Côte d'Ivoire": "CI",
+  Cameroon: "CM", Congo: "CG", "DR Congo": "CD", Angola: "AO", "The Gambia": "GM",
+  Guinea: "GN", "Guinea-Bissau": "GW", Morocco: "MA", Tunisia: "TN", Egypt: "EG",
+  Libya: "LY", Madagascar: "MG", Tanzania: "TZ", Chad: "TD", "Cape Verde": "CV",
+  Suriname: "SR", Curaçao: "CW", Jamaica: "JM", Honduras: "HN", Venezuela: "VE",
+  Chile: "CL", Argentina: "AR", Colombia: "CO", Uruguay: "UY", Gabon: "GA",
+  "South Korea": "KR", Japan: "JP", Israel: "IL", Syria: "SY", Iraq: "IQ",
+  Comoros: "KM", Benin: "BJ", Jordan: "JO",
+};
+
+/** Base overall by club tier. */
+const TIER_BASE: Record<1 | 2 | 3 | 4, number> = { 1: 76, 2: 74, 3: 71, 4: 69 };
+
+/**
+ * Players whose reputation should outrank their club's baseline.
+ * Hand-maintained; anyone absent falls back to tier + age.
+ */
+const STAR: Record<string, number> = {
+  // Fenerbahçe
+  Ederson: 85, "N'Golo Kanté": 82, "Marco Asensio": 83, Talisca: 82,
+  "Romelu Lukaku": 84, "Mason Greenwood": 84, "Milan Škriniar": 83,
+  "Nathan Aké": 83, "Mattéo Guendouzi": 82, "Kerem Aktürkoğlu": 82,
+  "Nélson Semedo": 79, Fred: 79, "Vedat Muriqi": 79, "Çağlar Söyüncü": 78,
+  "Jayden Oosterwolde": 78, "Cengiz Ünder": 78, "İrfan Can Kahveci": 77,
+  "Rodrigo Becão": 77, "Mert Müldür": 76, "Archie Brown": 76,
+  "Dorgeles Nene": 76, "Mert Günok": 76, "İsmail Yüksek": 76,
+  // Galatasaray
+  "Victor Osimhen": 87, "Leroy Sané": 85, "İlkay Gündoğan": 83,
+  "Uğurcan Çakır": 82, "Lucas Torreira": 81, "Wilfried Singo": 81,
+  "Davinson Sánchez": 80, "Barış Alper Yılmaz": 80, "Gabriel Sara": 80,
+  "Mario Lemina": 79, "Roland Sallai": 78, "Victor Nelsson": 78,
+  "Abdülkerim Bardakcı": 78, "Yunus Akgün": 78, "Lesley Ugochukwu": 77,
+  "Kaan Ayhan": 77, "Ismail Jakobs": 77, "Eren Elmalı": 76,
+  // Beşiktaş
+  "Dušan Vlahović": 84, "Leandro Trossard": 84, "Alexander Nübel": 82,
+  "Orkun Kökçü": 82, "Wilfred Ndidi": 81, "Emmanuel Agbadou": 79,
+  "João Mário": 78, "Vaclav Cerny": 78, "Milot Rashica": 77,
+  "Tiago Djaló": 77, "Felix Uduokhai": 77, "Amir Murillo": 77,
+  "Salih Özcan": 77, "Moatasem Al-Musrati": 77, "Oh Hyeon-gyu": 76,
+  "Rıdvan Yılmaz": 75, "Amir Hadziahmetovic": 75, "Semih Kılıçsoy": 74,
+  // Trabzonspor
+  "Mohamed Salah": 87, "André Onana": 81, "Ruslan Malinovskyi": 79,
+  "Paul Onuachu": 78, "Ernest Muci": 77, "Stefan Savic": 76,
+  "Okay Yokuşlu": 76, "John Lundstram": 76, "Batista Mendy": 76,
+  "Denis Drăguș": 76, "Benjamin Bouchouari": 75, "Samet Akaydin": 75,
+  // Elsewhere
+  "Edin Visca": 76, "Eldor Shomurodov": 76, "Andreas Skov Olsen": 76,
+  "Ianis Hagi": 76, "Kerem Demirbay": 76, "Enis Bardhi": 75,
+  "Arthur Masuaku": 75, "Alban Lafont": 77, "Adama Traoré": 76,
+  "Gift Orban": 76, "Mbaye Diagne": 74, "Valentin Mihăilă": 75,
+  "Bruno Petkovic": 75, "Horațiu Moldovan": 75, "Abdelhamid Sabiri": 75,
+  "Jawad El Yamiq": 74, "Diogo Gonçalves": 74, "Chidozie Awaziem": 74,
+  "Sékou Koïta": 74, "Dimitrios Goutas": 74, "Peter Etebo": 74,
+  "Festy Ebosele": 73, "Gyrano Kerk": 73, "Ylber Ramadani": 74,
+  "Mohamed Diomandé": 74, "Alexandru Maxim": 73, "Juninho Bacuna": 73,
+};
+
+/** Deterministic jitter so a club's squad is not a flat wall of one number. */
+function hash(str: string): number {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h >>> 0;
+}
+
+type Built = {
+  n: string; pos: Position; role: string; num?: number;
+  age: number; ovr: number; pot: number; nat: string;
+};
+
+function buildPlayer(line: string, club: RawClub): Built {
+  const [numRaw, name, tmPos, ageRaw, natRaw] = line.split("|");
+  const mapped = POSITION_MAP[tmPos];
+  if (!mapped) throw new Error(`${club.name}: unknown position "${tmPos}" for ${name}`);
+  const age = Number(ageRaw);
+  const nat = NAT[natRaw] ?? "TR";
+
+  const base = TIER_BASE[club.tier];
+  // Peak years earn a little; teenagers and veterans give some back.
+  const ageAdj =
+    age <= 18 ? -7 : age <= 20 ? -5 : age <= 22 ? -2 :
+    age <= 24 ? 0 : age <= 29 ? 2 : age <= 32 ? 1 : -1;
+  const jitter = (hash(name) % 5) - 2;
+  const ovr = STAR[name] ?? Math.max(58, Math.min(88, base + ageAdj + jitter));
+
+  // Potential headroom: wide for teenagers, none once past the peak.
+  const room =
+    age <= 18 ? 14 : age <= 20 ? 11 : age <= 22 ? 8 :
+    age <= 24 ? 5 : age <= 27 ? 2 : 0;
+  const pot = Math.min(94, ovr + (room > 0 ? room - (hash(name + "p") % 3) : 0));
+
+  const num = numRaw === "-" ? undefined : Number(numRaw);
+  return { n: name, pos: mapped.pos, role: mapped.role, num, age, ovr, pot: Math.max(pot, ovr), nat };
+}
+
+/**
+ * The audit requires ≥2 GK, ≥6 DEF, ≥6 MID, ≥3 FWD and ≥18 players. Wingers
+ * are the swing position — they are attackers by role but sit comfortably in
+ * midfield — so if a squad is short of MID, wide players are reclassified
+ * rather than inventing anybody.
+ */
+function rebalance(players: Built[], clubName: string): Built[] {
+  const count = (p: Position) => players.filter((x) => x.pos === p).length;
+  for (const wide of players) {
+    if (count("MID") >= 6) break;
+    if (wide.pos === "FWD" && (wide.role === "LW" || wide.role === "RW")) {
+      wide.pos = "MID";
+    }
+  }
+  for (const wide of players) {
+    if (count("FWD") >= 3) break;
+    if (wide.pos === "MID" && (wide.role === "LW" || wide.role === "RW")) {
+      wide.pos = "FWD";
+    }
+  }
+  // Every club needs at least one of each full-back. Some Transfermarkt
+  // pages list a squad with no natural LB/RB at all (Göztepe here), which
+  // would leave the engine playing centre-backs out wide forever. Convert
+  // the spare centre-backs rather than inventing players.
+  for (const side of ["LB", "RB"] as const) {
+    if (players.some((p) => p.role === side)) continue;
+    const spare = players.filter((p) => p.role === "CB");
+    if (spare.length <= 2) break;
+    const pick = spare[spare.length - (side === "LB" ? 1 : 2)];
+    if (pick) pick.role = side;
+  }
+
+  // Shirt numbers must be unique inside a squad: the source has genuine
+  // clashes (two number 10s at Trabzonspor) and many players with no number
+  // at all. Keep the first claim on each number and hand out free ones.
+  const taken = new Set<number>();
+  for (const p of players) {
+    if (p.num !== undefined && !taken.has(p.num) && p.num > 0 && p.num < 100) {
+      taken.add(p.num);
+    } else {
+      p.num = undefined;
+    }
+  }
+  let next = 2;
+  for (const p of players) {
+    if (p.num !== undefined) continue;
+    while (taken.has(next) && next < 99) next++;
+    p.num = next;
+    taken.add(next);
+  }
+
+  const short: string[] = [];
+  if (count("GK") < 2) short.push(`GK ${count("GK")}`);
+  if (count("DEF") < 6) short.push(`DEF ${count("DEF")}`);
+  if (count("MID") < 6) short.push(`MID ${count("MID")}`);
+  if (count("FWD") < 3) short.push(`FWD ${count("FWD")}`);
+  if (players.length < 18) short.push(`total ${players.length}`);
+  if (short.length > 0) {
+    console.warn(`  ! ${clubName}: ${short.join(", ")} — check the source roster`);
+  }
+  return players;
+}
+
+const esc = (s: string) => s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+
+function emitClub(club: RawClub): string {
+  const built = rebalance(
+    club.players.map((line) => buildPlayer(line, club)),
+    club.name,
+  );
+  const order: Position[] = ["GK", "DEF", "MID", "FWD"];
+  const lines: string[] = [];
+  for (const pos of order) {
+    const group = built.filter((p) => p.pos === pos);
+    if (group.length === 0) continue;
+    lines.push(`    // ${pos}`);
+    for (const p of group) {
+      const num = p.num === undefined ? "" : ` num: ${p.num},`;
+      lines.push(
+        `    { n: "${esc(p.n)}", pos: "${p.pos}", role: "${p.role}",${num} age: ${p.age}, ovr: ${p.ovr}, pot: ${p.pot}, nat: "${p.nat}" },`,
+      );
+    }
+  }
+  const varName = club.short.replace(/[^A-Za-z]/g, "").toUpperCase() || club.id.toUpperCase();
+  return `const ${varName}_PACK = pack(
+  { id: "${club.id}", name: "${esc(club.name)}", short: "${esc(club.short)}", city: "${esc(club.city)}", color: "${club.color}", color2: "${club.color2}" },
+  [
+${lines.join("\n")}
+  ],
+);`;
+}
+
+const header = `/**
+ * Süper Lig 2026-27 squads.
+ *
+ * GENERATED FILE — do not edit by hand.
+ *   source     : scripts/squad-source.ts
+ *   regenerate : npm run build:squads
+ *
+ * Roster data (name, shirt number, position, age, nationality) transcribed
+ * from Transfermarkt club pages on 13 August 2026. \`ovr\` and \`pot\` are NOT
+ * sourced — no public source publishes a single overall rating — and are
+ * derived by the generator from club tier, age and a hand-maintained table of
+ * well-known players. Treat them as game-balance numbers.
+ *
+ * The 2026-27 Turkish transfer window runs 22 June → 4 September 2026, so
+ * this is a snapshot of a squad list that is still moving. Re-run the fetch
+ * and regenerate once the window closes.
+ */
+import type { Player, PlayerStatus, Position } from "@/types";
+
+export type ClubMeta = {
+  id: string;
+  name: string;
+  short: string;
+  city: string;
+  color: string;
+  color2: string;
+};
+
+export type SquadPack = { club: ClubMeta; players: Player[] };
+
+type Seed = {
+  n: string;
+  pos: Position;
+  role: string;
+  num?: number;
+  age: number;
+  ovr: number;
+  pot: number;
+  nat: string;
+  status?: PlayerStatus;
+};
+
+function pack(club: ClubMeta, seeds: Seed[]): SquadPack {
+  return {
+    club,
+    players: seeds.map((s) => ({
+      n: s.n,
+      pos: s.pos,
+      role: s.role,
+      num: s.num,
+      age: s.age,
+      ovr: s.ovr,
+      pot: s.pot,
+      nat: s.nat,
+      status: s.status,
+    })),
+  };
+}
+`;
+
+console.log("Building squad packs…");
+const blocks = RAW_CLUBS.map(emitClub);
+const names = RAW_CLUBS.map(
+  (c) => `${(c.short.replace(/[^A-Za-z]/g, "").toUpperCase() || c.id.toUpperCase())}_PACK`,
+);
+const footer = `
+/** Every Süper Lig club, in rough order of strength. */
+export const SQUAD_PACKS: SquadPack[] = [
+${names.map((n) => `  ${n},`).join("\n")}
+];
+
+/**
+ * The pack the landing-page mock squad is built from. Kept as a named export
+ * so lib/mock-data.ts does not depend on array ordering.
+ */
+export const USER_PACK: SquadPack = SQUAD_PACKS[0];
+`;
+
+writeFileSync("lib/squad-packs.ts", `${header}\n${blocks.join("\n\n")}\n${footer}`);
+const total = RAW_CLUBS.reduce((s, c) => s + c.players.length, 0);
+console.log(`✓ ${RAW_CLUBS.length} clubs, ${total} players → lib/squad-packs.ts`);

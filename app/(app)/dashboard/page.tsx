@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/primitives";
 import { loadDashboardData } from "@/lib/queries/dashboard";
 import { requireLeagueContext } from "@/lib/session";
+import { formatInZone } from "@/lib/match-time";
 import { fmtEUR } from "@/lib/utils";
 import { PlayNextRoundButton } from "./play-round-button";
 import { InviteChip } from "./invite-chip";
@@ -148,10 +149,7 @@ export default async function DashboardPage() {
                 {d.nextFixture ? "SONRAKİ MAÇ" : "MAÇ YOK"}
                 {d.nextFixture
                   ? " · " +
-                    new Date(d.nextFixture.scheduledAtMs).toLocaleString(
-                      "tr-TR",
-                      { dateStyle: "short", timeStyle: "short" },
-                    )
+                    formatInZone(d.nextFixture.scheduledAtMs, ctx.league.timeZone, { dateStyle: "short", timeStyle: "short" })
                   : ""}
               </span>
               {d.nextFixture?.isDerby && (
@@ -309,9 +307,14 @@ export default async function DashboardPage() {
                 Taktik Hazırla <ChevronRight size={14} strokeWidth={1.6} />
               </Link>
               <SpyButton />
-              {ctx.league.manualAdvanceEnabled && ctx.isCommissioner && (
-                <PlayNextRoundButton />
-              )}
+              {/* Two gates, matching playNextRound's own checks: the feature
+                  must be enabled, and either anyone may advance or you are
+                  the commissioner. Requiring isCommissioner unconditionally
+                  made the "Herkes" setting do nothing at all. */}
+              {ctx.league.manualAdvanceEnabled &&
+                (!ctx.league.commissionerOnlyAdvance || ctx.isCommissioner) && (
+                  <PlayNextRoundButton />
+                )}
             </div>
           </div>
           <div

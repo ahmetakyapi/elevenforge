@@ -31,8 +31,13 @@ const SQUAD_COMPOSITION: Array<[Position, number]> = [
   ["FWD", 5],
 ];
 
-/** A league is 16 clubs; the fixture list is a double round-robin. */
-const CLUB_COUNT = 16;
+/**
+ * A league mirrors the real Süper Lig, which is 18 clubs from 2026-27 (it was
+ * 16 through 2025-26). The fixture list is a double round-robin, so the
+ * season is 2 × (18 − 1) = 34 rounds. The cup stays a 16-team knockout and
+ * draws 16 of the 18, which is how a real cup with a qualifying round works.
+ */
+const CLUB_COUNT = 18;
 
 const TR_FIRST = [
   "Ahmet", "Mehmet", "Mustafa", "Emre", "Burak", "Ali", "Yusuf", "Kerem",
@@ -332,7 +337,7 @@ export async function createStarterLeague(input: {
   // 16 clubs — shuffle the mock CLUBS and let user own the first one,
   // renamed to their chosen team name.
   //
-  // 16 clubs = the 16 Süper Lig packs. User owns pack 0 (Fenerbahçe),
+  // One club per Süper Lig pack. User owns pack 0 (Fenerbahçe),
   // renamed to their input teamName so the UI still reads "their" club.
   // Budget + prestige follow pack order so Big-4 start richer / more
   // prestigious than the Anatolian clubs — board goals and transfer
@@ -340,30 +345,39 @@ export async function createStarterLeague(input: {
   // Balances are scaled to lib/economy.ts STARTING_BALANCE_CENTS (€250M
   // baseline); the spread keeps big clubs able to outbid smaller ones.
   type TierMeta = { prestige: number; balance: number };
+  // One entry per pack, in SQUAD_PACKS order. Derived rather than indexed
+  // blindly: the league grew from 16 to 18 clubs and a fixed-length table
+  // silently handed `undefined` to the last two.
   const TIER_TEMPLATE: TierMeta[] = [
-    { prestige: 82, balance: 33_000_000_000 }, // 0 FB (user)
-    { prestige: 85, balance: 34_000_000_000 }, // 1 GS
-    { prestige: 78, balance: 30_000_000_000 }, // 2 BJK
-    { prestige: 76, balance: 28_000_000_000 }, // 3 TS
-    { prestige: 66, balance: 26_000_000_000 }, // 4 Başakşehir
-    { prestige: 60, balance: 25_000_000_000 }, // 5 Samsun
-    { prestige: 56, balance: 24_000_000_000 }, // 6 Göztepe
-    { prestige: 52, balance: 24_000_000_000 }, // 7 Antalya
-    { prestige: 48, balance: 23_000_000_000 }, // 8 Konya
-    { prestige: 46, balance: 23_000_000_000 }, // 9 Alanya
+    { prestige: 82, balance: 33_000_000_000 }, //  0 Fenerbahçe (user)
+    { prestige: 85, balance: 34_000_000_000 }, //  1 Galatasaray
+    { prestige: 78, balance: 30_000_000_000 }, //  2 Beşiktaş
+    { prestige: 76, balance: 28_000_000_000 }, //  3 Trabzonspor
+    { prestige: 66, balance: 26_000_000_000 }, //  4 Başakşehir
+    { prestige: 60, balance: 25_000_000_000 }, //  5 Samsunspor
+    { prestige: 56, balance: 24_000_000_000 }, //  6 Göztepe
+    { prestige: 48, balance: 23_000_000_000 }, //  7 Çaykur Rizespor
+    { prestige: 46, balance: 23_000_000_000 }, //  8 Alanyaspor
+    { prestige: 46, balance: 23_000_000_000 }, //  9 Konyaspor
     { prestige: 44, balance: 22_000_000_000 }, // 10 Kasımpaşa
-    { prestige: 42, balance: 21_000_000_000 }, // 11 Eyüp
-    { prestige: 36, balance: 20_000_000_000 }, // 12 Kayseri
-    { prestige: 32, balance: 19_000_000_000 }, // 13 Rizespor
-    { prestige: 30, balance: 19_000_000_000 }, // 14 Gaziantep
-    { prestige: 28, balance: 18_000_000_000 }, // 15 Kocaeli
+    { prestige: 40, balance: 21_000_000_000 }, // 11 Gaziantep FK
+    { prestige: 38, balance: 20_000_000_000 }, // 12 Kocaelispor
+    { prestige: 38, balance: 20_000_000_000 }, // 13 Eyüpspor
+    { prestige: 34, balance: 19_000_000_000 }, // 14 Gençlerbirliği
+    { prestige: 30, balance: 18_000_000_000 }, // 15 Çorum FK (promoted)
+    { prestige: 30, balance: 18_000_000_000 }, // 16 Amed SK (promoted)
+    { prestige: 28, balance: 18_000_000_000 }, // 17 Erzurumspor (promoted)
   ];
+  /** Fallback so an added pack can never produce an undefined tier. */
+  const tierFor = (i: number): TierMeta =>
+    TIER_TEMPLATE[i] ?? { prestige: 30, balance: 18_000_000_000 };
+
 
   const clubRows: Array<typeof clubs.$inferSelect> = [];
   for (let i = 0; i < SQUAD_PACKS.length; i++) {
     const pack = SQUAD_PACKS[i];
     const meta = pack.club;
-    const tier = TIER_TEMPLATE[i];
+    const tier = tierFor(i);
     const personality =
       i === 0
         ? BOT_PERSONALITIES[0] // user defaults to balanced 4-3-3

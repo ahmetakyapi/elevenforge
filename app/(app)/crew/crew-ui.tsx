@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/toast";
 import { useEffect, useState, useTransition } from "react";
 import {
   ArrowLeftRight,
@@ -49,6 +50,7 @@ const EMOJI = ["⚽", "🔥", "💎", "🏆", "🟨", "🟥", "😂", "💀"] as
 
 export default function CrewUi({ data }: { data: CrewPageData }) {
   const router = useRouter();
+  const toast = useToast();
 
   // Poll the server every 5s while the tab is visible — chat is the page
   // most users keep open; new messages from other players show up without
@@ -93,7 +95,16 @@ export default function CrewUi({ data }: { data: CrewPageData }) {
       if (res.ok) {
         router.refresh();
       } else {
+        // The action returns four distinct Turkish errors (validation, burst
+        // limit, sustained limit, no session) and none of them used to reach
+        // the user: the message just reappeared in the box with no reason.
         setInput(body);
+        toast({
+          icon: "⚠",
+          title: "Mesaj gönderilemedi",
+          body: res.error,
+          accent: "var(--danger)",
+        });
       }
     });
   };

@@ -19,7 +19,8 @@
     "test:ai": "DATABASE_URL= tsx scripts/test-ai-managers.ts",
     "test:longevity": "DATABASE_URL= tsx scripts/test-longevity.ts",
     "test:all": "npm run db:reset && npm run test:ai && npm run test:multi && npm run test:exploits && npm run test:longevity",
-    "test:exploits": "DATABASE_URL= tsx scripts/test-exploits.ts"
+    "test:exploits": "DATABASE_URL= tsx scripts/test-exploits.ts",
+    "build:squads": "tsx scripts/build-squad-packs.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.4.4",

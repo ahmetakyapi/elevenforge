@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, or } from "drizzle-orm";
+import { and, desc, eq, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   clubs,
@@ -186,7 +186,6 @@ export async function loadDashboardData(
   const myPosition = standings.findIndex((s) => s.isMe) + 1;
 
   // Next fixture for user's club
-  const now = new Date();
   const nextRow = (
     await db
       .select()
@@ -195,7 +194,11 @@ export async function loadDashboardData(
         and(
           eq(fixtures.leagueId, league.id),
           eq(fixtures.status, "scheduled"),
-          gt(fixtures.scheduledAt, now),
+          // No `scheduledAt > now` filter. A fixture whose kick-off has
+          // passed but which the cron has not simulated yet is still the
+          // next match — excluding it made the dashboard advertise the
+          // FOLLOWING week's game, with a countdown to the wrong date,
+          // for as long as the cron was delayed.
         ),
       )
       .orderBy(fixtures.scheduledAt)
