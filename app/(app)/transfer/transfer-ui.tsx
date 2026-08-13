@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/primitives";
 import { Field, SliderField } from "@/components/ui/form";
 import { useToast } from "@/components/ui/toast";
-import { NAT_FLAGS, NAT_NAMES, fmtEUR } from "@/lib/utils";
+import { NAT_FLAGS, NAT_NAMES, fmtEUR, tierColor } from "@/lib/utils";
 import type { Position } from "@/types";
 import type {
   CrestLookup,
@@ -652,13 +652,36 @@ function TransferRow({
   const [pending, startTransition] = useTransition();
   const toast = useToast();
   const trending = listing.trending;
-  const priceColor =
-    listing.priceEur > 40_000_000
-      ? "var(--warn)"
-      : listing.priceEur > 20_000_000
-        ? "var(--text)"
-        : "var(--emerald)";
   const canAfford = balanceEur >= listing.priceEur;
+  const tier = tierColor(listing.overall);
+  const growth = Math.max(0, listing.potential - listing.overall);
+
+  /*
+    The buying decision, made visible.
+
+    The row showed the asking price and nothing to judge it against — market
+    value was loaded (`marketValueEur`) but only appeared once you expanded the
+    row, so scanning a market meant opening every listing in turn. A price is
+    not information; a price relative to what the player is worth is. The
+    premium below is the number a manager actually acts on, so it gets a badge
+    of its own and the price is coloured by it rather than by absolute size.
+  */
+  const premiumPct =
+    listing.marketValueEur > 0
+      ? Math.round(
+          ((listing.priceEur - listing.marketValueEur) / listing.marketValueEur) *
+            100,
+        )
+      : 0;
+  const deal =
+    premiumPct <= -10
+      ? { label: `${premiumPct}% FIRSAT`, tint: "var(--emerald)" }
+      : premiumPct <= 5
+        ? { label: "PİYASA FİYATI", tint: "var(--cyan)" }
+        : premiumPct <= 30
+          ? { label: `+${premiumPct}% PRİM`, tint: "var(--muted)" }
+          : { label: `+${premiumPct}% PAHALI`, tint: "var(--warn)" };
+  const priceColor = canAfford ? deal.tint : "var(--danger)";
 
   const onBuy = () =>
     startTransition(async () => {
@@ -683,22 +706,40 @@ function TransferRow({
   return (
     <div
       className="glass"
+      data-affordable={canAfford || undefined}
       style={{
         padding: 0,
         overflow: "hidden",
+        position: "relative",
         transition: "all 200ms var(--ease)",
         borderColor: open
           ? "color-mix(in oklab, var(--accent) 40%, var(--border))"
           : undefined,
+        // A listing you cannot pay for is still worth reading — you might sell
+        // to reach it — but it should not compete with the ones you can.
+        opacity: canAfford ? 1 : 0.62,
         animation: `slide-up 300ms ${Math.min(idx * 40, 600)}ms both var(--ease)`,
       }}
     >
+      {/* Quality band, readable before any number is. */}
+      <span
+        aria-hidden
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: 3,
+          background: `linear-gradient(180deg, ${tier}, color-mix(in oklab, ${tier} 25%, transparent))`,
+        }}
+      />
       <div
         onClick={() => setOpen(!open)}
         data-transfer-row
         style={{
           display: "grid",
-          gridTemplateColumns: "44px 1.8fr 1.2fr 70px 70px 90px 150px",
+          gridTemplateColumns:
+            "44px 1.7fr 1fr 60px 58px 128px 152px",
           gap: 14,
           alignItems: "center",
           padding: "12px 16px",
@@ -806,9 +847,19 @@ function TransferRow({
           <div className="t-mono" style={{ fontSize: 15, fontWeight: 700 }}>
             {listing.age}
           </div>
-          <div className="t-caption" style={{ fontSize: 10 }}>
-            yaş
-          </div>
+          {growth > 0 ? (
+            <div
+              className="t-mono"
+              title={`Potansiyel ${listing.potential}`}
+              style={{ fontSize: 10, fontWeight: 700, color: "var(--gold)" }}
+            >
+              ↑{growth}
+            </div>
+          ) : (
+            <div className="t-caption" style={{ fontSize: 10 }}>
+              yaş
+            </div>
+          )}
         </div>
 
         <div
@@ -816,21 +867,27 @@ function TransferRow({
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: 2,
+            gap: 3,
           }}
+          title={`Piyasa değeri ${fmtEUR(listing.marketValueEur)} · ${listing.hoursOn} saat önce listelendi`}
         >
           <span
             className="t-mono"
             style={{
-              fontSize: 12,
-              color: trending ? "var(--emerald)" : "var(--muted)",
-              fontWeight: 600,
+              fontSize: 9.5,
+              fontWeight: 700,
+              letterSpacing: "0.03em",
+              padding: "3px 8px",
+              borderRadius: 999,
+              whiteSpace: "nowrap",
+              background: `color-mix(in oklab, ${deal.tint} 15%, transparent)`,
+              color: deal.tint,
             }}
           >
-            {listing.decay}
+            {deal.label}
           </span>
           <span className="t-caption" style={{ fontSize: 10 }}>
-            {listing.hoursOn} saat önce
+            değer {fmtEUR(listing.marketValueEur)}
           </span>
         </div>
 

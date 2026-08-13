@@ -731,6 +731,32 @@ function PlayerCardGrid({
         transition: "all 260ms var(--ease)",
       }}
     >
+      {/* Shirt number as a watermark. The card had the number only in the
+          10px meta line; at this size it reads as club furniture rather than
+          data, which is what a squad list should feel like. */}
+      {p.num !== undefined && (
+        <span
+          aria-hidden
+          style={{
+            position: "absolute",
+            right: 10,
+            bottom: 2,
+            fontFamily: "var(--font-manrope)",
+            fontSize: 62,
+            fontWeight: 800,
+            lineHeight: 1,
+            letterSpacing: "-0.05em",
+            color: tier.accent,
+            opacity: localHover ? 0.1 : 0.055,
+            pointerEvents: "none",
+            transition: "opacity 260ms var(--ease)",
+            zIndex: 0,
+          }}
+        >
+          {p.num}
+        </span>
+      )}
+
       {/* Tier accent stripe along the top edge */}
       <div
         style={{
@@ -1010,7 +1036,9 @@ function PlayerCardGrid({
             borderTop: "1px solid var(--border)",
           }}
         >
-          {/* Last five ratings, oldest → newest. */}
+          {/* Last five ratings, oldest → newest. Absent before kick-off, when
+              a placeholder would only crowd the condition bar. */}
+          {form.length > 0 && (
           <div
             style={{
               display: "flex",
@@ -1019,36 +1047,24 @@ function PlayerCardGrid({
               height: 18,
               flex: "0 0 auto",
             }}
-            title={
-              form.length
-                ? `Son ${form.length} maç: ${form.join(" · ")} (ort. ${avg.toFixed(2)})`
-                : "Henüz maç oynamadı"
-            }
+            title={`Son ${form.length} maç: ${form.join(" · ")} (ort. ${avg.toFixed(2)})`}
           >
-            {form.length === 0 ? (
+            {form.map((f, j) => (
               <span
-                className="t-mono"
-                style={{ fontSize: 9, color: "var(--muted-2)" }}
-              >
-                MAÇ YOK
-              </span>
-            ) : (
-              form.map((f, j) => (
-                <span
-                  key={`fm-${j}`}
-                  style={{
-                    width: 5,
-                    // Ratings run 0-10; floor the bar so a bad game is still
-                    // a visible mark rather than nothing at all.
-                    height: `${Math.max(22, Math.min(100, (f / 10) * 100))}%`,
-                    borderRadius: 2,
-                    background: formTone(f),
-                    opacity: 0.55 + (j / Math.max(1, form.length - 1)) * 0.45,
-                  }}
-                />
-              ))
-            )}
+                key={`fm-${j}`}
+                style={{
+                  width: 5,
+                  // Ratings run 0-10; floor the bar so a bad game is still a
+                  // visible mark rather than nothing at all.
+                  height: `${Math.max(22, Math.min(100, (f / 10) * 100))}%`,
+                  borderRadius: 2,
+                  background: formTone(f),
+                  opacity: 0.55 + (j / Math.max(1, form.length - 1)) * 0.45,
+                }}
+              />
+            ))}
           </div>
+          )}
 
           {/* Condition — the reason a starter is on the bench. */}
           <div style={{ flex: 1, minWidth: 0 }}>
