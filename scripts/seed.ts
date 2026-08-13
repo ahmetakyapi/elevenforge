@@ -37,6 +37,9 @@ const LEAGUE_NAME = "Akyapı Crew";
 const INVITE_CODE = "AKYAPI";
 
 // ─── Name pools for bot-squad generation ─────────────────────
+/** A league is 16 clubs; the fixture list is a double round-robin. */
+const CLUB_COUNT = 16;
+
 const TR_FIRST = [
   "Ahmet", "Mehmet", "Mustafa", "Emre", "Burak", "Ali", "Yusuf", "Kerem",
   "Efe", "Arda", "Onur", "Tolga", "Kaan", "Berke", "Hakan", "Gökhan",
@@ -312,7 +315,9 @@ async function main() {
       createdByUserId: user.id,
       seasonNumber: 3,
       weekNumber: 7,
-      seasonLength: 15,
+      // A double round-robin: 2 × (clubs − 1) rounds. This said 15 while the
+      // generator wrote 30, so every "week X of Y" readout was wrong.
+      seasonLength: (CLUB_COUNT - 1) * 2,
       matchTime: "21:00",
       visibility: "private",
       accentColor: "#dc2626",

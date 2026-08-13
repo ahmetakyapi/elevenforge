@@ -29,6 +29,7 @@ import { autoLineup, isAvailable } from "@/lib/lineup";
 import {
   DISTRESS_SALE_RATE,
   MAX_AI_PRICE_MULTIPLIER,
+  MIN_AI_ASKING_MULTIPLIER,
   RENEWAL_WAGE_MULTIPLIER,
   renewalCostCents,
 } from "@/lib/economy";
@@ -560,9 +561,13 @@ async function respondToOffers(
 
     const value = Number(p.marketValueCents);
     // The asking price rises for players the club rates highly and falls for
-    // ones it is happy to move on.
+    // ones it is happy to move on — but never below what the club would pay
+    // for the same player. See MIN_AI_ASKING_MULTIPLIER: if the two ever
+    // crossed, selling to a bot and buying back became free money.
     const keenness = trait.sellWillingness;
-    const askingPrice = Math.round(value * (1.45 - keenness * 0.45));
+    const askingPrice = Math.round(
+      value * Math.max(MIN_AI_ASKING_MULTIPLIER, 1.6 - keenness * 0.25),
+    );
     const amount = Number(offer.amountCents);
 
     if (amount >= askingPrice) {

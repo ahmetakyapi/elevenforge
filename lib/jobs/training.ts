@@ -8,7 +8,7 @@
  * per-row decisions (a random training bump) fall back to individual writes,
  * and those are batched by the value being written.
  */
-import { and, eq, inArray, isNotNull, lte, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { weeklyInterestCents } from "@/lib/economy";
 import { adjustClubBalance } from "@/lib/money";
@@ -79,12 +79,30 @@ export async function runDailyTraining(opts: { leagueId?: string } = {}) {
   return { promoted: promotedIds.length, healed, fitnessBumped };
 }
 
-/** Weekly wage bill, staff salaries, bank interest and the sponsor tick. */
-export async function runWeeklyEconomy(opts: { leagueId?: string } = {}) {
+/**
+ * Weekly wage bill, staff salaries, bank interest and the sponsor tick.
+ *
+ * Idempotent per club. This job sweeps every club in the database, so it is
+ * exactly the kind of long-running webhook QStash retries after a timeout —
+ * and a retry used to charge the wage bill twice and burn two weeks off every
+ * sponsor contract. Each club is claimed with a conditional UPDATE on
+ * `lastEconomyRunAt` before any money moves; a second run inside the cooldown
+ * matches no rows and skips.
+ *
+ * `force` bypasses the claim for tests that drive many weeks in a row.
+ */
+export async function runWeeklyEconomy(
+  opts: { leagueId?: string; force?: boolean } = {},
+) {
   const allClubs = await (opts.leagueId
     ? db.select().from(clubs).where(eq(clubs.leagueId, opts.leagueId))
     : db.select().from(clubs));
   if (allClubs.length === 0) return { clubs: 0 };
+
+  // A tick may not run twice within this window for the same club.
+  const COOLDOWN_MS = 6 * 24 * 3600 * 1000;
+  const now = new Date();
+  const cutoff = new Date(now.getTime() - COOLDOWN_MS);
 
   // One query for every wage in scope instead of one per club.
   const clubIds = allClubs.map((c) => c.id);
@@ -98,7 +116,31 @@ export async function runWeeklyEconomy(opts: { leagueId?: string } = {}) {
     wageByClub.set(r.clubId, (wageByClub.get(r.clubId) ?? 0) + Number(r.wage));
   }
 
+  let charged = 0;
   for (const c of allClubs) {
+    if (!opts.force) {
+      // Claim the club for this week's tick before touching its balance.
+      const claimed = await db
+        .update(clubs)
+        .set({ lastEconomyRunAt: now })
+        .where(
+          and(
+            eq(clubs.id, c.id),
+            or(
+              isNull(clubs.lastEconomyRunAt),
+              lte(clubs.lastEconomyRunAt, cutoff),
+            ),
+          ),
+        )
+        .returning();
+      if (claimed.length === 0) continue; // already charged this week
+    } else {
+      await db
+        .update(clubs)
+        .set({ lastEconomyRunAt: now })
+        .where(eq(clubs.id, c.id));
+    }
+    charged++;
     const weeklyWage = wageByClub.get(c.id) ?? 0;
     // Interest only accrues on a positive balance — a club in the red does
     // not earn money for being in the red — and is capped so hoarding cash
@@ -165,5 +207,5 @@ export async function runWeeklyEconomy(opts: { leagueId?: string } = {}) {
         .where(eq(clubs.id, c.id));
     }
   }
-  return { clubs: allClubs.length };
+  return { clubs: charged };
 }

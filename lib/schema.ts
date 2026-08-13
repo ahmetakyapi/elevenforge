@@ -190,6 +190,9 @@ export const clubs = pgTable(
     // AI manager personality + state (see lib/ai/profile.ts).
     aiProfileJson: text("ai_profile_json"),
     aiLastRunAt: timestamp("ai_last_run_at", { withTimezone: true }),
+    // When the weekly economy tick last charged this club. Guards against a
+    // retried cron double-charging wages and burning two sponsor weeks.
+    lastEconomyRunAt: timestamp("last_economy_run_at", { withTimezone: true }),
     // True for bot clubs and for human clubs whose manager went inactive.
     aiManaged: boolean("ai_managed").notNull().default(false),
     // Staff slots: { headCoach: {id,name,tier}|null, physio: {...}|null, scout: {...}|null }

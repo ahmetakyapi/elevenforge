@@ -11,12 +11,14 @@ import {
   MessageSquare,
   Newspaper,
   Play,
+  LogOut,
   Settings,
   Target,
   Trophy,
   User2,
   Users,
   UserPlus,
+  Users2,
   type LucideIcon,
 } from "lucide-react";
 import { Crest } from "@/components/ui/primitives";
@@ -24,6 +26,7 @@ import { LogoLockup } from "@/components/brand/logo";
 import { LeagueSwitcher, type OwnedLeague } from "@/app/(app)/league-switcher";
 import { PushSubscribeButton } from "@/components/push-subscribe";
 import { MobileDrawer } from "./mobile-drawer";
+import { signOutAction } from "@/app/(app)/session-actions";
 
 type NavItem = {
   href: string;
@@ -182,6 +185,17 @@ export function TopNav({
           >
             <Settings size={14} strokeWidth={1.6} />
           </Link>
+          {/* Nothing linked to /lobby anywhere in the app, so a manager who
+              wanted to join a friend's league with an invite code — or start
+              a second one — simply could not get there. */}
+          <Link
+            href="/lobby"
+            className="btn btn-ghost btn-sm desktop-only"
+            style={{ textDecoration: "none" }}
+            title="Lige katıl veya yeni lig kur"
+          >
+            <Users2 size={14} strokeWidth={1.6} />
+          </Link>
           <PushSubscribeButton />
           <MobileDrawer />
           <div className="v-divider desktop-only" style={{ height: 22 }} />
@@ -203,6 +217,16 @@ export function TopNav({
               <LeagueSwitcher current={current} owned={owned} />
             </span>
           )}
+          {/* There was no way to sign out anywhere in the app. */}
+          <form action={signOutAction} className="desktop-only">
+            <button
+              type="submit"
+              className="btn btn-ghost btn-sm"
+              title="Çıkış yap"
+            >
+              <LogOut size={14} strokeWidth={1.6} />
+            </button>
+          </form>
           <span
             data-topnav-balance
             className="t-mono"

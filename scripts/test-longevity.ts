@@ -100,7 +100,7 @@ async function playSeason(leagueId: string): Promise<void> {
     // be measuring. Model the real cadence instead.
     roundsPlayed++;
     if (roundsPlayed % ROUNDS_PER_WEEK === 0) {
-      await runWeeklyEconomy({ leagueId });
+      await runWeeklyEconomy({ leagueId, force: true });
     }
 
     const [now] = await db

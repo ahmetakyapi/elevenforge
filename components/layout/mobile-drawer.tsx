@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { signOutAction } from "@/app/(app)/session-actions";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
@@ -18,6 +19,8 @@ import {
   Trophy,
   User2,
   Users,
+  Users2,
+  LogOut,
   UserPlus,
   X,
   type LucideIcon,
@@ -39,6 +42,9 @@ const ITEMS: Item[] = [
   { href: "/crew", label: "Crew", Icon: MessageSquare },
   { href: "/profile", label: "Profil", Icon: User2 },
   { href: "/league-settings", label: "Ayarlar", Icon: Settings },
+  // Nothing linked here before, so joining a friend's league with an invite
+  // code was unreachable once you were inside the app.
+  { href: "/lobby", label: "Lig Kur / Katıl", Icon: Users2 },
 ];
 
 /**
@@ -155,6 +161,22 @@ export function MobileDrawer() {
               );
             })}
             <div style={{ flex: 1 }} />
+            {/* The app had no sign-out control anywhere. */}
+            <form action={signOutAction}>
+              <button
+                type="submit"
+                className="btn btn-ghost btn-sm"
+                style={{
+                  width: "100%",
+                  justifyContent: "flex-start",
+                  gap: 10,
+                  marginBottom: 8,
+                }}
+              >
+                <LogOut size={15} strokeWidth={1.6} />
+                <span>Çıkış Yap</span>
+              </button>
+            </form>
             <div
               style={{
                 fontSize: 11,

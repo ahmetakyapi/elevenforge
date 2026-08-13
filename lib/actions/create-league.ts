@@ -31,6 +31,9 @@ const SQUAD_COMPOSITION: Array<[Position, number]> = [
   ["FWD", 5],
 ];
 
+/** A league is 16 clubs; the fixture list is a double round-robin. */
+const CLUB_COUNT = 16;
+
 const TR_FIRST = [
   "Ahmet", "Mehmet", "Mustafa", "Emre", "Burak", "Ali", "Yusuf", "Kerem",
   "Efe", "Arda", "Onur", "Tolga", "Kaan", "Berke", "Hakan", "Gökhan",
@@ -314,7 +317,9 @@ export async function createStarterLeague(input: {
       createdByUserId: input.userId,
       seasonNumber: 1,
       weekNumber: 0,
-      seasonLength: 15,
+      // A double round-robin: 2 × (clubs − 1) rounds. This said 15 while the
+      // generator wrote 30, so every "week X of Y" readout was wrong.
+      seasonLength: (CLUB_COUNT - 1) * 2,
       matchTime: input.matchTime ?? "21:00",
       visibility: input.visibility ?? "private",
       accentColor: input.accentColor ?? "#dc2626",

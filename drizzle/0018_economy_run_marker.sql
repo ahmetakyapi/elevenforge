@@ -1,0 +1,11 @@
+-- Idempotency marker for the weekly economy tick.
+--
+-- runWeeklyEconomy charges every club's wage bill and ticks its sponsor
+-- countdown, with no record that it had already run. QStash retries a webhook
+-- that times out — and this job sweeps every club in the database, so timing
+-- out is exactly what it does at scale — which charged the wage bill twice
+-- and burned two weeks off every sponsor contract.
+--
+-- Per CLUB, not per league: the job sweeps clubs globally and clubs are what
+-- get charged.
+ALTER TABLE "clubs" ADD COLUMN IF NOT EXISTS "last_economy_run_at" timestamp with time zone;

@@ -82,13 +82,23 @@ export function marketValueCents(
 }
 
 /**
- * The most the AI will pay relative to a player's market value.
+ * The two multipliers that keep the AI from being farmed.
  *
- * Without a ceiling the market was a money printer: sign a free agent for a
+ * INVARIANT: MIN_AI_ASKING_MULTIPLIER > MAX_AI_PRICE_MULTIPLIER.
+ *
+ * A bot both buys (from listings) and sells (by answering offers). If the
+ * most it will pay is ever above the least it will accept, a human can sell
+ * a player to a bot and buy the same player straight back for less, banking
+ * the difference — every day, forever, with no risk. Keeping the spread
+ * strictly one-directional makes the round trip always a loss, which is what
+ * a real transfer market does to you.
+ *
+ * Without any ceiling at all it was worse still: sign a free agent for a
  * fraction of his value, list him at the top of the allowed band, and let a
  * price-blind AI buy him at the asking price.
  */
-export const MAX_AI_PRICE_MULTIPLIER = 1.3;
+export const MAX_AI_PRICE_MULTIPLIER = 1.15;
+export const MIN_AI_ASKING_MULTIPLIER = 1.35;
 
 /** Signing-on fee for a free agent, as a share of market value. */
 export const FREE_AGENT_FEE_RATE = 0.4;
