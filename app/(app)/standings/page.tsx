@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { LiveRefresh } from "@/components/dashboard-auto-refresh";
-import { ListOrdered } from "lucide-react";
+import { ChevronRight, ListOrdered } from "lucide-react";
 import { Crest } from "@/components/ui/primitives";
 import { requireLeagueContext } from "@/lib/session";
 import { loadDashboardData } from "@/lib/queries/dashboard";
+import { PROMOTION_SLOTS } from "@/lib/jobs/promotion";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +64,8 @@ export default async function StandingsPage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "32px 32px minmax(0, 1fr) repeat(7, 44px) 110px",
+            gridTemplateColumns:
+              "32px 32px minmax(0, 1fr) repeat(7, 44px) 110px 16px",
             gap: 6,
             padding: "12px 14px",
             background: "color-mix(in oklab, var(--panel-2) 60%, transparent)",
@@ -88,16 +91,25 @@ export default async function StandingsPage() {
         </div>
         {d.standings.map((row, i) => {
           const rank = i + 1;
-          const promo = rank <= 4;
-          const releg = rank >= 14;
+          // These bands were fixed at "top 4" and "14th or worse", written when
+          // the top flight held 16 clubs and there was nowhere to be relegated
+          // to. A division is 18 now and there are two of them, so the zones
+          // are derived: the second tier promotes its top PROMOTION_SLOTS
+          // rather than qualifying anyone for Europe, and the drop zone is
+          // always the bottom PROMOTION_SLOTS of whatever size the table is.
+          const isTopFlight = d.division.number === 1;
+          const promo = isTopFlight ? rank <= 4 : rank <= PROMOTION_SLOTS;
+          const releg = isTopFlight && rank > d.standings.length - PROMOTION_SLOTS;
           return (
-            <div
+            <Link
               key={row.clubId}
+              href={`/club/${row.clubId}`}
               className="standings-row"
               data-is-me={row.isMe || undefined}
               style={{
                 display: "grid",
-                gridTemplateColumns: "32px 32px minmax(0, 1fr) repeat(7, 44px) 110px",
+                gridTemplateColumns:
+                  "32px 32px minmax(0, 1fr) repeat(7, 44px) 110px 16px",
                 gap: 6,
                 padding: "10px 14px",
                 alignItems: "center",
@@ -109,7 +121,9 @@ export default async function StandingsPage() {
                     : "transparent",
                 position: "relative",
                 transition: "background var(--t-fast) var(--ease)",
-                cursor: "default",
+                cursor: "pointer",
+                textDecoration: "none",
+                color: "var(--text)",
               }}
             >
               <span
@@ -214,7 +228,12 @@ export default async function StandingsPage() {
                   ))
                 )}
               </div>
-            </div>
+              <ChevronRight
+                size={13}
+                strokeWidth={1.8}
+                style={{ color: "var(--muted-2)", justifySelf: "end" }}
+              />
+            </Link>
           );
         })}
       </div>
@@ -231,11 +250,19 @@ export default async function StandingsPage() {
       >
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           <span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--emerald)" }} />
-          1-4: Avrupa kupası + prize money
+          {d.division.number === 1
+            ? "1-4: Avrupa kupası + prize money"
+            : `1-${PROMOTION_SLOTS}: Süper Lig'e yükselme`}
         </span>
+        {d.division.number === 1 && (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--danger)" }} />
+            {`${d.standings.length - PROMOTION_SLOTS + 1}-${d.standings.length}: Küme düşme bölgesi`}
+          </span>
+        )}
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--danger)" }} />
-          14-16: Küme düşme bölgesi (board &quot;survive&quot; hedefi)
+          <ChevronRight size={11} strokeWidth={2} />
+          Bir takıma tıkla → kadrosunu gör
         </span>
       </div>
     </div>
