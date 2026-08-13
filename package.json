@@ -13,7 +13,12 @@
     "db:reseed-squads": "tsx scripts/reseed-squads.ts",
     "db:reset": "node -e \"require('fs').rmSync('./data/pgdata',{recursive:true,force:true})\" && DATABASE_URL= npm run db:migrate && DATABASE_URL= npm run db:seed",
     "cron:dev": "tsx scripts/cron-dev.ts",
-    "db:status": "tsx scripts/db-status.ts"
+    "db:status": "tsx scripts/db-status.ts",
+    "test:season": "DATABASE_URL= tsx scripts/test-full-season.ts",
+    "test:multi": "DATABASE_URL= tsx scripts/test-multiplayer.ts",
+    "test:ai": "DATABASE_URL= tsx scripts/test-ai-managers.ts",
+    "test:longevity": "DATABASE_URL= tsx scripts/test-longevity.ts",
+    "test:all": "npm run db:reset && npm run test:ai && npm run test:multi && npm run test:longevity"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.4.4",

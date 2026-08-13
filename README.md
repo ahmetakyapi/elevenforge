@@ -161,6 +161,11 @@ npm run dev
 | `POST /api/cron/economy` | haftada bir |
 | `POST /api/cron/ai-managers` | 15 dk'da bir |
 
+Maç saati artık ligin **saat dilimine** göre yorumlanıyor (`leagues.time_zone`,
+varsayılan `Europe/Istanbul`). Öncesinde `setHours()` sunucunun saat dilimini
+kullanıyordu — Vercel'de UTC olduğu için 21:00 seçen bir lig gerçekte 00:00'da
+oynuyordu.
+
 Her birine `Authorization: Bearer <CRON_SECRET>` header ekle (env'e `CRON_SECRET` koy).
 
 > **Önemli:** `CRON_SECRET` production'da **zorunlu**. Ayarlanmadığında cron
@@ -193,7 +198,10 @@ iOS 16.4+ için kullanıcının PWA'yı Ana Ekran'a eklemesi gerekir.
 | `npm run db:seed` | Demo lig + 16 kulüp + 320 oyuncu + fikstür |
 | `npm run db:reset` | DB'yi komple sıfırla |
 | `npm run cron:dev` | Dev cron runner (setInterval) |
-| `npx tsx scripts/test-ai-managers.ts` | AI menajer davranış testi |
+| `npm run test:ai` | AI menajer davranış testi |
+| `npm run test:longevity` | 4 sezonluk dayanıklılık testi |
+| `npm run test:all` | reset + üç testi sırayla koşar |
+| `npm run db:status` | Hedef DB'nin salt-okunur özeti (prod'a karşı güvenli) |
 | `npx tsx scripts/test-full-season.ts` | E2E sezon testi (invariants + determinism) |
 | `npx tsx scripts/test-multiplayer.ts` | 10-kullanıcı concurrent multiplayer testi |
 

@@ -80,6 +80,11 @@ export async function evaluateBoardConfidence(
           boardConfidence: 0,
           ownerUserId: null,
           isBot: true,
+          // Without this the club becomes a bot that nothing drives: the AI
+          // tick only picks up ai_managed clubs, so a sacked manager's side
+          // would freeze mid-table with a stale line-up for the rest of the
+          // league's life.
+          aiManaged: true,
         })
         .where(eq(clubs.id, c.id));
       await db.insert(feedEvents).values({

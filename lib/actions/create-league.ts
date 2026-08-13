@@ -18,7 +18,7 @@ import {
   users,
 } from "@/lib/schema";
 import { SQUAD_PACKS } from "@/lib/squad-packs";
-import { applyMatchTime } from "@/lib/match-time";
+import { matchKickoff } from "@/lib/match-time";
 import { roundRobin as sharedRoundRobin } from "@/lib/jobs/season";
 import { assignSeasonGoals } from "@/lib/jobs/board";
 import { generateCupBracket } from "@/lib/jobs/cup";
@@ -444,11 +444,11 @@ export async function createStarterLeague(input: {
   // chosen matchTime ("HH:MM") rather than the previous hardcoded 21:00.
   const clubIds = clubRows.map((c) => c.id);
   const rounds = roundRobin(clubIds);
-  const today = applyMatchTime(new Date(), league.matchTime);
+  const now = new Date();
   const fixtureRows: Array<typeof fixtures.$inferInsert> = [];
   for (let r = 0; r < rounds.length; r++) {
-    const scheduled = new Date(today);
-    scheduled.setDate(today.getDate() + r);
+    // Round r kicks off r days from today at the league's local match time.
+    const scheduled = matchKickoff(now, r, league.matchTime, league.timeZone);
     for (const m of rounds[r]) {
       const home = clubRows.find((c) => c.id === m.home);
       if (!home) continue;

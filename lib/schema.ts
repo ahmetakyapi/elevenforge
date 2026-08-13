@@ -112,6 +112,9 @@ export const leagues = pgTable("leagues", {
   weekNumber: integer("week_number").notNull().default(0),
   seasonLength: integer("season_length").notNull().default(5),
   matchTime: text("match_time").notNull().default("21:00"),
+  // IANA zone the matchTime is expressed in. Without it, "21:00" is
+  // meaningless on a UTC server — see lib/match-time.ts.
+  timeZone: text("time_zone").notNull().default("Europe/Istanbul"),
   visibility: leagueVisibility("visibility").notNull().default("private"),
   accentColor: text("accent_color").notNull().default("#dc2626"),
   status: leagueStatus("status").notNull().default("lobby"),

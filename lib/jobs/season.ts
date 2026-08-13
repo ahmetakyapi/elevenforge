@@ -21,7 +21,7 @@ import { assignSeasonGoals, evaluateBoardConfidence } from "./board";
 import { generateCupBracket } from "./cup";
 import { evaluateSeasonAchievements } from "./achievements";
 import { backfillThinSquads, generateYouthIntake } from "./youth";
-import { applyMatchTime } from "@/lib/match-time";
+import { matchKickoff } from "@/lib/match-time";
 
 /**
  * Full double round-robin: every club plays every other club twice, once at
@@ -135,13 +135,36 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
   });
   const prizes = SEASON_PRIZES_CENTS;
   for (let rank = 0; rank < Math.min(4, standings.length); rank++) {
-    const c = standings[rank];
-    await creditClub(c.id, prizes[rank]);
+    await creditClub(standings[rank].id, prizes[rank]);
+  }
+
+  // Prestige moves in BOTH directions.
+  //
+  // Previously only the top four ever changed and only upward, so every
+  // club drifted toward 100 over a few seasons. Since goalFromPrestige maps
+  // 80+ to "champion" and only one club can actually win the league, the
+  // whole division ended up with an impossible target and the board sacked
+  // almost every manager, every season. A two-sided curve keeps the spread
+  // stable so board goals stay meaningful.
+  const size = standings.length;
+  for (let i = 0; i < size; i++) {
+    const c = standings[i];
+    const rank = i + 1;
+    const share = rank / size; // 0 = top of the table, 1 = bottom
+    let delta: number;
+    if (rank === 1) delta = 8;
+    else if (rank === 2) delta = 5;
+    else if (share <= 0.25) delta = 3;
+    else if (share <= 0.625) delta = 0;
+    else if (share <= 0.8125) delta = -3;
+    else delta = -6;
+    // Gentle pull toward the middle so no club can park at 100 or 0 forever.
+    const drift = c.prestige > 70 ? -1 : c.prestige < 35 ? 1 : 0;
+    const next = Math.max(10, Math.min(100, c.prestige + delta + drift));
+    if (next === c.prestige) continue;
     await db
       .update(clubs)
-      .set({
-        prestige: Math.min(100, c.prestige + (rank === 0 ? 8 : rank === 1 ? 5 : 3)),
-      })
+      .set({ prestige: next })
       .where(eq(clubs.id, c.id));
   }
   if (standings[0]) {
@@ -323,14 +346,11 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
   // previously hardcoded 21:00.
   const clubIds = clubRows.map((c) => c.id);
   const rounds = roundRobin(clubIds);
-  const firstDay = new Date();
-  firstDay.setDate(firstDay.getDate() + 1);
-  applyMatchTime(firstDay, league.matchTime);
-
+  const now = new Date();
   const fixtureRows: Array<typeof fixtures.$inferInsert> = [];
   for (let r = 0; r < rounds.length; r++) {
-    const scheduled = new Date(firstDay);
-    scheduled.setDate(firstDay.getDate() + r);
+    // Day 1 is tomorrow, so the new season starts after a rest day.
+    const scheduled = matchKickoff(now, r + 1, league.matchTime, league.timeZone);
     for (const m of rounds[r]) {
       const home = clubRows.find((c) => c.id === m.home);
       if (!home) continue;

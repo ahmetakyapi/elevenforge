@@ -194,7 +194,13 @@ export async function runWeeklyNewspaper(opts: { leagueId?: string } = {}) {
   const generated: Array<{ leagueId: string; weekNumber: number }> = [];
   for (const L of activeLeagues) {
     if (!L) continue;
-    // Generate for the LAST finished week
+    // Generate for the last finished week OF THE CURRENT SEASON.
+    //
+    // Without the season filter this picked the highest finished week
+    // number across all time: in season 2 week 3 it still returned week 30
+    // (from season 1) and asked for a paper covering a week that had not
+    // been played yet — so no newspaper was ever produced again after the
+    // first season rolled.
     const lastFinished = (
       await db
         .select({ weekNumber: fixtures.weekNumber })
@@ -202,6 +208,7 @@ export async function runWeeklyNewspaper(opts: { leagueId?: string } = {}) {
         .where(
           and(
             eq(fixtures.leagueId, L.id),
+            eq(fixtures.seasonNumber, L.seasonNumber),
             eq(fixtures.status, "finished"),
           ),
         )

@@ -13,7 +13,7 @@ import { and, asc, eq, inArray, lte } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { clubs, cupFixtures, feedEvents, leagues, players } from "@/lib/schema";
 import { simulateMatch } from "@/lib/engine/match";
-import { applyMatchTime } from "@/lib/match-time";
+import { matchKickoff } from "@/lib/match-time";
 
 const CUP_WEEK_BY_ROUND: Record<number, number> = {
   1: 4,
@@ -45,15 +45,14 @@ export async function generateCupBracket(
 
   // Random pairing for R1, scheduled at the league's matchTime.
   const shuffled = [...cs].sort(() => Math.random() - 0.5);
-  const today = applyMatchTime(new Date(), lg.matchTime);
+  const now = new Date();
 
   const rows: Array<typeof cupFixtures.$inferInsert> = [];
   // R1: 8 ties from the 16-team pool
   for (let slot = 0; slot < 8; slot++) {
     const home = shuffled[slot * 2];
     const away = shuffled[slot * 2 + 1];
-    const day = new Date(today);
-    day.setDate(today.getDate() + (CUP_WEEK_BY_ROUND[1] - 1));
+    const day = matchKickoff(now, CUP_WEEK_BY_ROUND[1] - 1, lg.matchTime, lg.timeZone);
     rows.push({
       leagueId,
       seasonNumber,
@@ -69,8 +68,12 @@ export async function generateCupBracket(
   for (let round = 2; round <= 4; round++) {
     const slots = round === 2 ? 4 : round === 3 ? 2 : 1;
     for (let slot = 0; slot < slots; slot++) {
-      const day = new Date(today);
-      day.setDate(today.getDate() + (CUP_WEEK_BY_ROUND[round] - 1));
+      const day = matchKickoff(
+        now,
+        CUP_WEEK_BY_ROUND[round] - 1,
+        lg.matchTime,
+        lg.timeZone,
+      );
       rows.push({
         leagueId,
         seasonNumber,
