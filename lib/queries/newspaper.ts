@@ -45,7 +45,20 @@ export async function loadLatestNewspaper(
   )[0];
   if (!paper) return null;
 
-  const coverRaw = JSON.parse(paper.coverJson) as {
+  // Every column below is JSON-in-text written by a background job. A single
+  // malformed value used to throw straight out of the query and render a 500
+  // for the whole /newspaper route; a missing paper is a far better outcome
+  // than a broken page.
+  const safeParse = <T>(raw: string, fallback: T): T => {
+    try {
+      const parsed = JSON.parse(raw);
+      return (parsed ?? fallback) as T;
+    } catch {
+      return fallback;
+    }
+  };
+
+  const coverRaw = safeParse(paper.coverJson, null) as null | {
     heroHomeClubId: string;
     heroAwayClubId: string;
     homeScore: number;
@@ -55,17 +68,14 @@ export async function loadLatestNewspaper(
     weekNumber: number;
     seasonNumber: number;
   };
-  const totw = JSON.parse(paper.totwJson) as TotwEntry[];
-  const scorers = JSON.parse(paper.scorersJson) as Array<{
-    name: string;
-    clubId: string;
-    g: number;
-  }>;
-  const assists = JSON.parse(paper.assistsJson) as Array<{
-    name: string;
-    clubId: string;
-    a: number;
-  }>;
+  type ScorerRow = { name: string; clubId: string; g: number };
+  type AssistRow = { name: string; clubId: string; a: number };
+  const totw = safeParse<TotwEntry[]>(paper.totwJson, []);
+  const scorers = safeParse<ScorerRow[]>(paper.scorersJson, []);
+  const assists = safeParse<AssistRow[]>(paper.assistsJson, []);
+
+  // A paper whose cover failed to parse has nothing to render.
+  if (!coverRaw) return null;
 
   const [home, away] = await Promise.all([
     db.select().from(clubs).where(eq(clubs.id, coverRaw.heroHomeClubId)).limit(1),

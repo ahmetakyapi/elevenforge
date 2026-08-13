@@ -8,6 +8,7 @@
  * club's league.
  */
 import { and, desc, eq } from "drizzle-orm";
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
@@ -28,7 +29,7 @@ export type LeagueContext = {
   isCommissioner: boolean;
 };
 
-export async function requireLeagueContext(): Promise<LeagueContext> {
+async function resolveLeagueContext(): Promise<LeagueContext> {
   const session = await auth();
   const userId = (session?.user as { id?: string } | undefined)?.id;
   if (!userId) redirect("/login");
@@ -98,7 +99,7 @@ export async function requireLeagueContext(): Promise<LeagueContext> {
  * null instead of redirecting when the user has no club yet, so the layout
  * can render around lobby pages without bouncing the user.
  */
-export async function tryLeagueContext(): Promise<LeagueContext | null> {
+async function resolveTryLeagueContext(): Promise<LeagueContext | null> {
   const session = await auth();
   const userId = (session?.user as { id?: string } | undefined)?.id;
   if (!userId) return null;
@@ -147,10 +148,20 @@ export async function tryLeagueContext(): Promise<LeagueContext | null> {
   };
 }
 
-export async function getSessionUserId(): Promise<string | null> {
+/**
+ * Both resolvers run several queries (user, owned clubs, league, club) and
+ * were called independently by the layout AND the page on every single
+ * request — so each navigation paid for the whole lookup twice. React's
+ * `cache` dedupes them within a request; it does NOT cache across requests,
+ * so a player still sees fresh data on every load.
+ */
+export const requireLeagueContext = cache(resolveLeagueContext);
+export const tryLeagueContext = cache(resolveTryLeagueContext);
+
+export const getSessionUserId = cache(async function getSessionUserId(): Promise<string | null> {
   const session = await auth();
   return (session?.user as { id?: string } | undefined)?.id ?? null;
-}
+});
 
 /**
  * Switch the user's active league. The new id must be one the user owns a

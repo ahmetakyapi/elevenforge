@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   clubs,
@@ -323,10 +323,18 @@ export async function loadTransferData(
       )
     : 0;
   const topPrice = allListings.reduce((m, l) => Math.max(m, l.priceEur), 0);
+  // "Sold today" means today — this used to count every transfer in the
+  // league's entire history and load the whole table to do it.
+  const dayAgo = new Date(Date.now() - 24 * 3600 * 1000);
   const soldTodayRows = await db
     .select({ id: transferHistory.id })
     .from(transferHistory)
-    .where(eq(transferHistory.leagueId, league.id));
+    .where(
+      and(
+        eq(transferHistory.leagueId, league.id),
+        gte(transferHistory.completedAt, dayAgo),
+      ),
+    );
   const marketStats: MarketStatsView = {
     movement: "↑ +12%",
     avgPrice,

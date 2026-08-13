@@ -586,12 +586,17 @@ export function simulateMatch(input: SimInput): MatchResult {
       });
     }
   }
-  // Halftime marker
+  // Halftime marker. This is pushed after the event loop has finished, so
+  // `runningHome`/`runningAway` hold the FULL-TIME score by now — the half
+  // time line was reporting the final result. Count the goals actually
+  // scored in the first half instead.
+  const halfHome = homeMins.filter((m) => m <= 45).length;
+  const halfAway = awayMins.filter((m) => m <= 45).length;
   events.push({
     minute: 45,
     icon: "⏱",
     type: "half",
-    text: `İlk yarı sonu. ${input.homeClubName} ${runningHome}, ${input.awayClubName} ${runningAway}.`,
+    text: `İlk yarı sonu. ${input.homeClubName} ${halfHome}, ${input.awayClubName} ${halfAway}.`,
   });
   // Reorder by minute after insertion
   events.sort((a, b) => a.minute - b.minute);
@@ -655,7 +660,14 @@ export function simulateMatch(input: SimInput): MatchResult {
     points: awayResult === "W" ? 3 : awayResult === "D" ? 1 : 0,
   };
 
-  // Per-player updates
+  // Per-player updates.
+  //
+  // Every patch is a DELTA applied on top of BASE_RATING. Previously the
+  // create branch used `patch.rating ?? 6.5`, so anyone who was not a starter
+  // — a substitute — was created with the delta itself as their whole rating:
+  // a sub who scored got 1.1, clamped up to the 4.0 floor, and then lost
+  // morale for a match-winning goal.
+  const BASE_RATING = 6.5;
   const playerUpdates: PlayerUpdate[] = [];
   const upsert = (id: string, patch: Partial<PlayerUpdate>) => {
     const existing = playerUpdates.find((u) => u.playerId === id);
@@ -671,7 +683,7 @@ export function simulateMatch(input: SimInput): MatchResult {
     } else {
       playerUpdates.push({
         playerId: id,
-        rating: patch.rating ?? 6.5,
+        rating: BASE_RATING + (patch.rating ?? 0),
         goals: patch.goals ?? 0,
         assists: patch.assists ?? 0,
         yellow: patch.yellow ?? 0,
@@ -680,9 +692,10 @@ export function simulateMatch(input: SimInput): MatchResult {
       });
     }
   };
-  // Base rating 6.5 for all starters, modified by events
+  // Seed the starters with a small spread around the base. Substitutes are
+  // created on first contribution and pick the base up from `upsert`.
   for (const p of [...homeStarters, ...awayStarters]) {
-    upsert(p.id, { rating: 6.5 + (rng() - 0.5) * 0.6 });
+    upsert(p.id, { rating: (rng() - 0.5) * 0.6 });
   }
   for (const e of raw) {
     if (e.kind === "goal" && e.scorer) {
