@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { chatMessages, clubs, feedEvents, users } from "@/lib/schema";
 import type { LeagueContext } from "@/lib/session";
@@ -60,14 +60,15 @@ export async function loadCrewData(ctx: LeagueContext): Promise<CrewPageData> {
   const ownerIds = clubRows
     .map((c) => c.ownerUserId)
     .filter((id): id is string => !!id);
+  // One query for every owner, not one per owner. The crew page polls every
+  // few seconds, so an N+1 here is N+1 round-trips per member per poll.
   const ownerRows = ownerIds.length
-    ? await Promise.all(
-        ownerIds.map((id) =>
-          db.select().from(users).where(eq(users.id, id)).limit(1),
-        ),
-      )
+    ? await db
+        .select({ id: users.id, name: users.name })
+        .from(users)
+        .where(inArray(users.id, ownerIds))
     : [];
-  const ownerMap = new Map(ownerRows.flat().map((u) => [u.id, u]));
+  const ownerMap = new Map(ownerRows.map((u) => [u.id, u]));
 
   const roster: CrewMemberView[] = clubRows.map((c) => {
     const owner = c.ownerUserId ? ownerMap.get(c.ownerUserId) : undefined;
