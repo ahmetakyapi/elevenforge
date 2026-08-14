@@ -408,6 +408,39 @@ a:focus-visible,
   background: color-mix(in oklab, var(--accent) 16%, transparent) !important;
 }
 
+/* Cup bracket connectors.
+
+   Without them the four columns are four unrelated lists and the reader has
+   to infer which quarter-final a last-16 tie feeds. The stub on the right of
+   every tie plus the stub on the left of the next round's tie join into one
+   line across the column gap, which is what makes a bracket look like a
+   bracket. Drawn with pseudo-elements so no extra DOM is needed and the
+   ties stay a plain flex column. */
+.cup-tie::after,
+.cup-tie::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 13px;
+  height: 1px;
+  background: color-mix(in oklab, var(--border-strong) 100%, var(--muted) 35%);
+}
+.cup-tie::after { right: -13px; }
+.cup-tie::before { left: -13px; }
+/* The final has nothing after it — the winner is the end of the line. */
+[data-cup-bracket] > div:last-child .cup-tie::after { display: none; }
+[data-cup-bracket] > div:first-child .cup-tie::before { display: none; }
+
+@media (max-width: 900px) {
+  [data-cup-bracket] {
+    grid-template-columns: minmax(0, 1fr) !important;
+    min-height: 0 !important;
+  }
+  .cup-round { gap: 12px; }
+  .cup-tie::after,
+  .cup-tie::before { display: none; }
+}
+
 /* Rival squad rows on /club/[id] — the whole row is the offer link. */
 .club-squad-row {
   transition: background var(--t-fast) var(--ease);

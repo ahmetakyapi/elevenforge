@@ -15,6 +15,8 @@ export type CupTie = {
   awayShort: string | null;
   homeColor: string | null;
   awayColor: string | null;
+  homeColor2: string | null;
+  awayColor2: string | null;
   homeScore: number | null;
   awayScore: number | null;
   winnerId: string | null;
@@ -61,6 +63,8 @@ export async function loadCupBracket(
       awayShort: away?.shortName ?? null,
       homeColor: home?.color ?? null,
       awayColor: away?.color ?? null,
+      homeColor2: home?.color2 ?? null,
+      awayColor2: away?.color2 ?? null,
       homeScore: r.homeScore,
       awayScore: r.awayScore,
       winnerId: r.winnerClubId,
