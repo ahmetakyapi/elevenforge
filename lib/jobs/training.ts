@@ -14,8 +14,21 @@ import { weeklyInterestCents } from "@/lib/economy";
 import { adjustClubBalance } from "@/lib/money";
 import { clubs, feedEvents, players } from "@/lib/schema";
 import { staffById } from "@/lib/staff";
+import { claimJob } from "./claim";
 
-export async function runDailyTraining(opts: { leagueId?: string } = {}) {
+export async function runDailyTraining(
+  opts: { leagueId?: string; force?: boolean } = {},
+) {
+  // Injury recovery, fitness regen and the training dice are all once-a-day
+  // operations, and unlike the economy tick there is no per-club row to claim
+  // them against. The production scheduler sweeps hourly, so without this
+  // marker every player would regain fitness and roll for a rating bump
+  // twenty-four times a night. `force` and `leagueId` runs are unguarded:
+  // tests drive many days in a row, and a single-league call is a deliberate
+  // manual action.
+  if (!opts.force && !opts.leagueId && !(await claimJob("daily-training"))) {
+    return { promoted: 0, healed: 0, fitnessBumped: 0, skipped: true as const };
+  }
   const leagueFilter = opts.leagueId
     ? eq(players.leagueId, opts.leagueId)
     : undefined;

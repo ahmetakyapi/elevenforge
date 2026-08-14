@@ -19,6 +19,7 @@ import {
 } from "@/lib/schema";
 import { SQUAD_PACKS, SQUAD_PACKS_D2 } from "@/lib/squad-packs";
 import { matchKickoff } from "@/lib/match-time";
+import { deriveShortName } from "@/lib/utils";
 import { roundRobin as sharedRoundRobin } from "@/lib/jobs/season";
 import { assignSeasonGoals } from "@/lib/jobs/board";
 import { generateCupBracket } from "@/lib/jobs/cup";
@@ -575,12 +576,7 @@ export async function createStarterLeague(input: {
           name: i === 0 ? input.teamName : meta.name,
           shortName:
             i === 0
-              ? input.teamName
-                  .split(/\s+/)
-                  .map((w) => w[0])
-                  .slice(0, 3)
-                  .join("")
-                  .toUpperCase()
+              ? deriveShortName(input.teamName)
               : meta.short,
           city: meta.city,
           color: meta.color,

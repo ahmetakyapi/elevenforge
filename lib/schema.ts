@@ -779,3 +779,17 @@ export const seasonHistory = pgTable(
 );
 
 export type SeasonHistoryRow = typeof seasonHistory.$inferSelect;
+
+// ─── Job run markers ──────────────────────────────────────────────
+// One row per global scheduled job. `runDailyTraining` heals injuries, regens
+// fitness and rolls the training dice — all once-a-day operations with no
+// per-club claim to hold them back, unlike the economy tick. The production
+// scheduler sweeps hourly (a league may kick off at any hour, and matches must
+// not wait a day), so without a marker every player would regain fitness and
+// roll for a rating bump twenty-four times a night.
+export const jobRuns = pgTable("job_runs", {
+  key: text("key").primaryKey(),
+  ranAt: timestamp("ran_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type JobRun = typeof jobRuns.$inferSelect;

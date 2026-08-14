@@ -152,16 +152,29 @@ npm run dev
 
 [Upstash QStash](https://upstash.com/qstash) free tier yeterli (10 schedule). Aşağıdaki endpoint'leri ekle:
 
-| Endpoint | Periyot |
-|----------|---------|
-| `POST /api/cron/match-day` | her gün, lig matchTime saatinde |
-| `POST /api/cron/transfer-bots` | saatte bir |
-| `POST /api/cron/price-decay` | 6 saatte bir |
-| `POST /api/cron/scout-returns` | 15 dk'da bir |
-| `POST /api/cron/training` | günde bir |
-| `POST /api/cron/newspaper` | match-day'den hemen sonra |
-| `POST /api/cron/economy` | günde bir (maç günü = oyun haftası) |
-| `POST /api/cron/ai-managers` | 15 dk'da bir |
+| Endpoint | Sıklık | Not |
+|---|---|---|
+| `GET/POST /api/cron/daily` | saatte bir | Tüm oyun döngüsü, sırayla |
+
+`vercel.json` tek bir saatlik cron tanımlar ve `/api/cron/daily` bütün işleri
+doğru sırada çalıştırır: inactivity → ai-managers → match-day → training →
+economy → scout-returns → price-decay → transfer-bots → newspaper.
+
+**Saatlik, çünkü** her ligin kendi maç saati var; günlük bir tetikleyici
+21:00'da başlayan bir maçı ertesi güne bırakırdı. İşler kendilerini günlük
+sınırlar: ekonomi kulüp başına 20 saat cooldown, AI menajer `aiLastRunAt`,
+antrenman `job_runs` işaretçisi. Bu yüzden saatlik süpürme fazladan iş
+yapmaz — sadece gecikmiş fikstürleri zamanında yakalar.
+
+**Kurulum:** Vercel'de `CRON_SECRET` env değişkenini ayarla. Vercel Cron
+isteği `Authorization: Bearer $CRON_SECRET` ile gönderir; `verifyCron` bunu
+bekler ve production'da eksikse fail-closed davranır (503), yani unutulan bir
+env oyunu internete açmaz, cron'u bozar.
+
+> Vercel Hobby planı iki cron girdisi ve **günlük** granülerlik ile sınırlıdır.
+> Saatlik çalıştırmak için Pro gerekir; alternatif olarak QStash veya
+> cron-job.org aynı endpoint'i saatlik çağırabilir (ikisi de POST + bearer).
+
 
 Maç saati artık ligin **saat dilimine** göre yorumlanıyor (`leagues.time_zone`,
 varsayılan `Europe/Istanbul`). Öncesinde `setHours()` sunucunun saat dilimini

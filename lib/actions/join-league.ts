@@ -12,6 +12,7 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { clubs, feedEvents, leagues, users } from "@/lib/schema";
+import { deriveShortName } from "@/lib/utils";
 
 export type JoinResult =
   | {
@@ -69,14 +70,7 @@ export async function joinLeagueByInviteCode(input: {
     const teamName = (input.teamName ?? "").trim();
     const newName = teamName.length >= 2 ? teamName : candidate.name;
     const newShort =
-      teamName.length >= 2
-        ? teamName
-            .split(/\s+/)
-            .map((w) => w[0])
-            .slice(0, 3)
-            .join("")
-            .toUpperCase()
-        : candidate.shortName;
+      teamName.length >= 2 ? deriveShortName(teamName) : candidate.shortName;
     const updated = await db
       .update(clubs)
       .set({

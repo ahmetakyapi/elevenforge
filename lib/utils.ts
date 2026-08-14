@@ -58,3 +58,29 @@ export const POS_FULL: Record<Position, string> = {
   MID: "Orta Saha",
   FWD: "Forvet",
 };
+
+/**
+ * A club's badge abbreviation, derived from its name.
+ *
+ * Both sign-up paths built this the same way — first letter of each word,
+ * capped at three — which is right for "Kartel Crew FK" and wrong for every
+ * single-word name in Turkish football. "Fenerbahçe" came out as a lone "F",
+ * so the crest on the dashboard, the fixture card and the league table read as
+ * a broken placeholder rather than a badge. Real abbreviations are two or
+ * three characters: FB, GS, BJK.
+ *
+ * Turkish note: `toLocaleUpperCase("tr")` is required. The default mapping
+ * turns "i" into "I", not "İ", so "İstanbulspor" would abbreviate to "IST".
+ */
+export function deriveShortName(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "FC";
+  const initials =
+    words.length > 1
+      ? words
+          .map((w) => w[0])
+          .slice(0, 3)
+          .join("")
+      : words[0].slice(0, 3);
+  return initials.toLocaleUpperCase("tr");
+}
