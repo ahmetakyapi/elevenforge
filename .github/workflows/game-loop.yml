@@ -1,0 +1,61 @@
+# Hourly game loop.
+#
+# Vercel's Hobby plan only accepts DAILY cron expressions, and a daily trigger
+# is not enough: every league picks its own kick-off time, so a single fixed
+# hour would leave a 21:00 fixture unplayed until the next day. `vercel.json`
+# therefore keeps a daily run as a backstop, and this workflow drives the real
+# hourly cadence.
+#
+# Safe to run hourly. Every job behind /api/cron/daily claims its own work
+# before doing it — the economy tick holds a 20-hour cooldown per club, the AI
+# manager checks `aiLastRunAt`, daily training claims the `job_runs` marker —
+# so an extra sweep costs one request and plays whatever fixtures have come
+# due. Nothing is charged or trained twice.
+name: game-loop
+
+on:
+  schedule:
+    # Top of every hour, UTC. GitHub queues scheduled runs and may start them
+    # several minutes late under load; that is harmless here, because the work
+    # is "play whatever is now due" rather than "fire at exactly HH:00".
+    - cron: "0 * * * *"
+  # Lets you run the loop by hand from the Actions tab — useful after a
+  # deploy, or to catch a league up without waiting for the hour.
+  workflow_dispatch:
+
+# A slow sweep must not overlap with the next hour's run. Matches are played
+# inside the request, and two concurrent sweeps would race for the same
+# fixtures — the claims would hold, but it wastes a serverless invocation.
+concurrency:
+  group: game-loop
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger daily game loop
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          ENDPOINT: https://elevenforge.vercel.app/api/cron/daily
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET}" ]; then
+            echo "::error::CRON_SECRET is not set in repository secrets."
+            exit 1
+          fi
+          # --max-time matches the route's maxDuration (300s) plus headroom.
+          status=$(curl -sS -o /tmp/response.json -w '%{http_code}' \
+            --max-time 320 \
+            -X POST "${ENDPOINT}" \
+            -H "Authorization: Bearer ${CRON_SECRET}")
+          echo "HTTP ${status}"
+          # The route reports per-step results; print them so a failing job is
+          # diagnosable from the Actions log without opening Vercel.
+          cat /tmp/response.json | head -c 4000
+          echo
+          if [ "${status}" != "200" ]; then
+            echo "::error::Game loop returned ${status}"
+            exit 1
+          fi

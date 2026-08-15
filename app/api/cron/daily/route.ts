@@ -15,6 +15,13 @@
  * pick line-ups before kick-off and trade after it, and the newspaper must
  * report results that already exist.
  *
+ * WHO CALLS IT. `.github/workflows/game-loop.yml` hourly, because leagues
+ * choose their own kick-off time and a daily trigger would leave a 21:00
+ * fixture unplayed until the next day. `vercel.json` also holds a daily entry
+ * as a backstop for when Actions is paused — a public repo's schedules stop
+ * after 60 days of inactivity. Two independent triggers are safe precisely
+ * because every step below claims its own work first.
+ *
  * FAILURE ISOLATION. One failing job must not strand the rest — a transfer-bot
  * error should never stop match day. Each step is caught and reported
  * individually, and the response lists what ran and what did not, so a failure
