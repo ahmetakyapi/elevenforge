@@ -129,7 +129,10 @@ export async function sendSpy(): Promise<
   // snapshot and two clicks could both pass it. Refund if the receipt row
   // cannot be written (unique index on club+fixture), so a duplicate request
   // never costs the manager twice.
-  const paid = await debitClub(ctx.club.id, SPY_COST_CENTS);
+  const paid = await debitClub(ctx.club.id, SPY_COST_CENTS, undefined, {
+    kind: "scout",
+    note: "Casus raporu",
+  });
   if (!paid) {
     return {
       ok: false,
@@ -145,7 +148,10 @@ export async function sendSpy(): Promise<
       resultJson: JSON.stringify(payload),
     });
   } catch {
-    await creditClub(ctx.club.id, SPY_COST_CENTS);
+    await creditClub(ctx.club.id, SPY_COST_CENTS, undefined, {
+      kind: "transfer_refund",
+      note: "Casus iadesi",
+    });
     return { ok: false, error: "Bu maç için zaten casus gönderdin." };
   }
   await db.insert(feedEvents).values({

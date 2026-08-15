@@ -87,7 +87,9 @@ export async function buyListing(listingId: string) {
   // Take the money before handing over the player. A guarded debit is the
   // real affordability check — the context snapshot above may be seconds old
   // and two parallel purchases must not both pass it.
-  const paid = await debitClub(ctx.club.id, row.priceCents);
+  const paid = await debitClub(ctx.club.id, row.priceCents, undefined, {
+    kind: "transfer_in",
+  });
   if (!paid) {
     await db
       .update(transferListings)
@@ -117,7 +119,9 @@ export async function buyListing(listingId: string) {
     )
     .returning();
   if (moved.length === 0) {
-    await creditClub(ctx.club.id, row.priceCents);
+    await creditClub(ctx.club.id, row.priceCents, undefined, {
+      kind: "transfer_refund",
+    });
     await db
       .update(transferListings)
       .set({ status: "expired" })
@@ -136,7 +140,9 @@ export async function buyListing(listingId: string) {
     priceCents: row.priceCents,
   });
   if (row.sellerClubId) {
-    await creditClub(row.sellerClubId, row.priceCents);
+    await creditClub(row.sellerClubId, row.priceCents, undefined, {
+      kind: "transfer_out",
+    });
   }
   await db.insert(feedEvents).values({
     leagueId: ctx.league.id,
@@ -319,7 +325,10 @@ export async function sendScoutAction(input: {
   }
 
   const COST = 50_000_000; // €500K in cents
-  const paid = await debitClub(ctx.club.id, COST);
+  const paid = await debitClub(ctx.club.id, COST, undefined, {
+    kind: "scout",
+    note: "Kaşif görevi",
+  });
   if (!paid) return { ok: false as const, error: "Bütçe yetersiz." };
 
   const scout = await jobSendScout({

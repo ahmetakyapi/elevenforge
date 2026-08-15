@@ -20,7 +20,10 @@ export async function hireStaff(input: { staffId: string }) {
   // Guarded debit rather than a check against the request-start snapshot:
   // hiring into three different slots in parallel all passed the old check
   // and all debited.
-  const paid = await debitClub(ctx.club.id, member.hireCostCents);
+  const paid = await debitClub(ctx.club.id, member.hireCostCents, undefined, {
+    kind: "staff",
+    note: member.name,
+  });
   if (!paid) {
     return {
       ok: false as const,

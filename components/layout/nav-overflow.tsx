@@ -11,6 +11,7 @@ import {
   User2,
   UserPlus,
   Users2,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -25,10 +26,11 @@ type Item = { href: string; label: string; hint: string; Icon: LucideIcon };
  * and fell back to a horizontal scrollbar, which is a poor way to reach a
  * primary navigation item: you cannot see what you are scrolling toward.
  *
- * These five are real pages but not the daily loop, so they live one click
- * away with names attached instead of being guessable icons.
+ * These are real pages but not the daily loop, so they live one click away
+ * with names attached instead of being guessable icons.
  */
 const ITEMS: Item[] = [
+  { href: "/finances", label: "Finans", hint: "Gelir, gider, kasa geçmişi", Icon: Wallet },
   { href: "/crew", label: "Crew", hint: "Sohbet ve etkinlik akışı", Icon: Bell },
   { href: "/stats", label: "İstatistikler", hint: "Gol krallığı, form", Icon: BarChart2 },
   { href: "/free-agents", label: "Serbest Oyuncular", hint: "Sözleşmesi bitenler", Icon: UserPlus },

@@ -222,7 +222,24 @@ export async function runWeeklyEconomy(
 
     // Signed SQL delta, not an absolute write: a transfer completing between
     // the read above and this line must not be erased.
-    await adjustClubBalance(c.id, delta);
+    //
+    // The delta is four different things at once, so it carries a breakdown:
+    // a Finans page showing one lump labelled "ekonomi" would answer nothing,
+    // and the split is validated against the delta inside writeLedger so the
+    // lines can never quietly disagree with the balance they describe.
+    await adjustClubBalance(c.id, delta, undefined, {
+      kind: "wages",
+      split: [
+        { kind: "wages", amountCents: -weeklyWage, note: "Oyuncu maaşları" },
+        { kind: "staff", amountCents: -staffWage, note: "Teknik ekip" },
+        { kind: "interest", amountCents: interest, note: "Banka faizi" },
+        {
+          kind: "sponsor",
+          amountCents: delta + weeklyWage + staffWage - interest,
+          note: "Sponsor sezon bonusu",
+        },
+      ],
+    });
     if (nextSponsorJson !== c.activeSponsorJson) {
       await db
         .update(clubs)

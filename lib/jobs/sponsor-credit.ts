@@ -40,5 +40,8 @@ export async function creditSponsorForMatch(
     (Number.isFinite(perMatch) ? perMatch : 0) +
     (isWin && Number.isFinite(perWin) ? perWin : 0);
   if (credit <= 0) return;
-  await creditClub(clubId, credit, exec);
+  await creditClub(clubId, credit, exec, {
+    kind: "sponsor",
+    note: isWin ? "Maç başı + galibiyet primi" : "Maç başı ödeme",
+  });
 }

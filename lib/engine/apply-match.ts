@@ -29,6 +29,7 @@ import {
   decrementSuspensions,
 } from "./apply-player-updates";
 import { matchIncomeCents } from "@/lib/economy";
+import { creditClub } from "@/lib/money";
 import type { MatchResult } from "./match";
 
 /**
@@ -95,9 +96,15 @@ export async function applyMatchResult(
           seasonLosses: sqlAdd(clubs.seasonLosses, side.result === "L" ? 1 : 0),
           seasonGoalsFor: sqlAdd(clubs.seasonGoalsFor, side.goalsFor),
           seasonGoalsAgainst: sqlAdd(clubs.seasonGoalsAgainst, side.goalsAgainst),
-          balanceCents: sqlAdd(clubs.balanceCents, income),
         })
         .where(eq(clubs.id, side.clubId));
+      // Gate receipts go through lib/money.ts rather than riding along in the
+      // statement above, so they land in the ledger like every other move.
+      // Same transaction, so the money and the result still commit together.
+      await creditClub(side.clubId, income, tx, {
+        kind: "match_income",
+        note: side.result === "W" ? "Galibiyet hasılatı" : "Maç hasılatı",
+      });
       await creditSponsorForMatch(side.clubId, side.result === "W", tx);
     }
 

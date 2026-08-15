@@ -238,7 +238,9 @@ export async function respondToTransferOffer(input: {
   }
 
   const amount = Number(offer.amountCents);
-  const paid = await debitClub(offer.fromClubId, amount);
+  const paid = await debitClub(offer.fromClubId, amount, undefined, {
+    kind: "transfer_in",
+  });
   if (!paid) {
     await db
       .update(transferOffers)
@@ -258,7 +260,9 @@ export async function respondToTransferOffer(input: {
     )
     .returning();
   if (moved.length === 0) {
-    await creditClub(offer.fromClubId, amount);
+    await creditClub(offer.fromClubId, amount, undefined, {
+      kind: "transfer_refund",
+    });
     await db
       .update(transferOffers)
       .set({ status: "rejected", message: "Oyuncu artık kadroda değil." })
@@ -266,7 +270,9 @@ export async function respondToTransferOffer(input: {
     return { ok: false as const, error: "Bu oyuncu artık kadronda değil." };
   }
 
-  await creditClub(ctx.club.id, amount);
+  await creditClub(ctx.club.id, amount, undefined, {
+    kind: "transfer_out",
+  });
   // Any open listing for him is void now that he has been sold directly.
   await db
     .update(transferListings)

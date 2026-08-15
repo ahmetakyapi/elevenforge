@@ -793,3 +793,61 @@ export const jobRuns = pgTable("job_runs", {
 });
 
 export type JobRun = typeof jobRuns.$inferSelect;
+
+// ─── Club ledger ──────────────────────────────────────────────────
+// Every money move, labelled. Written from inside lib/money.ts — the one file
+// every balance change already flows through — so the record cannot drift out
+// of step with the balances it describes.
+//
+// The economy was reworked (match income scales with prestige, wages charged
+// per match day, interest per tick) and none of it was visible: the club had a
+// balance and no account of how it got there. transfer_history records only
+// completed player deals, and feed_events is free prose with no amount column.
+//
+// INVARIANT: for any club, SUM(amount_cents) equals the change in its balance
+// over the same period. scripts/test-exploits.ts asserts it.
+export const ledgerKind = pgEnum("ledger_kind", [
+  "match_income",
+  "sponsor",
+  "prize",
+  "interest",
+  "wages",
+  "staff",
+  "facility",
+  "scout",
+  "transfer_in",
+  "transfer_out",
+  "transfer_refund",
+  "free_agent_fee",
+  "contract_renewal",
+  "other",
+]);
+
+export const clubLedger = pgTable(
+  "club_ledger",
+  {
+    id: id(),
+    leagueId: uuid("league_id")
+      .notNull()
+      .references(() => leagues.id, { onDelete: "cascade" }),
+    clubId: uuid("club_id")
+      .notNull()
+      .references(() => clubs.id, { onDelete: "cascade" }),
+    kind: ledgerKind("kind").notNull(),
+    // SIGNED: negative is money out, positive is money in. Deliberately not
+    // two columns — a single signed figure makes SUM() the whole invariant.
+    amountCents: money("amount_cents").notNull(),
+    // The club's balance immediately after this move, taken from the same
+    // statement's RETURNING clause so it is exact rather than reconstructed.
+    balanceAfterCents: money("balance_after_cents").notNull(),
+    note: text("note"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("ledger_club_idx").on(t.clubId, t.createdAt),
+    index("ledger_league_idx").on(t.leagueId, t.createdAt),
+  ],
+);
+
+export type LedgerRow = typeof clubLedger.$inferSelect;
+export type LedgerKind = (typeof ledgerKind.enumValues)[number];

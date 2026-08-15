@@ -124,7 +124,10 @@ export async function playFriendly(playerId: string) {
   // Charge first. The previous absolute write (`Math.max(0, snapshot - cost)`)
   // erased any credit that landed since the page loaded — a player could
   // receive transfer income and have it wiped by a friendly.
-  const paid = await debitClub(ctx.club.id, FRIENDLY_COST_CENTS);
+  const paid = await debitClub(ctx.club.id, FRIENDLY_COST_CENTS, undefined, {
+    kind: "other",
+    note: "Dostluk maçı",
+  });
   if (!paid) return { ok: false as const, error: "Bütçe yetersiz." };
 
   // Record the friendly immediately so the 24h cap counts this one even if

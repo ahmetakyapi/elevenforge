@@ -71,7 +71,9 @@ export async function runTransferBots(opts: { leagueId?: string } = {}) {
 
       // Guarded debit is the affordability check; the balance read above may
       // already be stale by the time we get here.
-      const paid = await debitClub(winner.id, listing.priceCents);
+      const paid = await debitClub(winner.id, listing.priceCents, undefined, {
+        kind: "transfer_in",
+      });
       if (!paid) {
         await db
           .update(transferListings)
@@ -95,7 +97,9 @@ export async function runTransferBots(opts: { leagueId?: string } = {}) {
         )
         .returning();
       if (moved.length === 0) {
-        await creditClub(winner.id, listing.priceCents);
+        await creditClub(winner.id, listing.priceCents, undefined, {
+          kind: "transfer_refund",
+        });
         await db
           .update(transferListings)
           .set({ status: "expired" })
@@ -111,7 +115,9 @@ export async function runTransferBots(opts: { leagueId?: string } = {}) {
         priceCents: listing.priceCents,
       });
       if (listing.sellerClubId) {
-        await creditClub(listing.sellerClubId, listing.priceCents);
+        await creditClub(listing.sellerClubId, listing.priceCents, undefined, {
+          kind: "transfer_out",
+        });
       }
       const playerRow = (
         await db

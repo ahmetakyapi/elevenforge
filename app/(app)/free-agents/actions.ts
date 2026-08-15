@@ -43,7 +43,10 @@ export async function signFreeAgent(input: { playerId: string }) {
   // club ended up in the red holding both players. Paying before the claim
   // (and refunding a lost race below) also means a refused payment can never
   // leave the club holding the player for free.
-  const paid = await debitClub(ctx.club.id, fee);
+  const paid = await debitClub(ctx.club.id, fee, undefined, {
+    kind: "free_agent_fee",
+    note: p.name,
+  });
   if (!paid) {
     return {
       ok: false as const,
@@ -80,7 +83,10 @@ export async function signFreeAgent(input: { playerId: string }) {
     .returning();
   if (claimed.length === 0) {
     // Lost the race — hand the money back.
-    await creditClub(ctx.club.id, fee);
+    await creditClub(ctx.club.id, fee, undefined, {
+      kind: "transfer_refund",
+      note: p.name,
+    });
     return { ok: false as const, error: "Az önce başkası imzaladı." };
   }
   await db.insert(feedEvents).values({

@@ -20,6 +20,7 @@ import {
   User2,
   Users,
   Users2,
+  Wallet,
   LogOut,
   UserPlus,
   X,
@@ -29,6 +30,7 @@ import {
 type Item = { href: string; label: string; Icon: LucideIcon };
 
 const ITEMS: Item[] = [
+  { href: "/finances", label: "Finans", Icon: Wallet },
   { href: "/dashboard", label: "Ana", Icon: Home },
   { href: "/squad", label: "Kadro", Icon: Users },
   { href: "/transfer", label: "Transfer", Icon: ArrowLeftRight },

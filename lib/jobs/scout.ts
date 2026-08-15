@@ -384,7 +384,10 @@ export async function claimScoutPlayer(
 
   // Atomic, overdraft-proof debit. On refusal, hand the scout back so the
   // user can try again once they can afford the fee.
-  const paid = await debitClub(s.clubId, c.marketValueCents);
+  const paid = await debitClub(s.clubId, c.marketValueCents, undefined, {
+    kind: "scout",
+    note: c.name,
+  });
   if (!paid) {
     await db
       .update(scouts)

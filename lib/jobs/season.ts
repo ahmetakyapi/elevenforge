@@ -167,7 +167,10 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
   });
   const prizes = SEASON_PRIZES_CENTS;
   for (let rank = 0; rank < Math.min(4, standings.length); rank++) {
-    await creditClub(standings[rank].id, prizes[rank]);
+    await creditClub(standings[rank].id, prizes[rank], undefined, {
+      kind: "prize",
+      note: `Lig ${rank + 1}. sıra`,
+    });
   }
 
   // Prestige moves in BOTH directions.

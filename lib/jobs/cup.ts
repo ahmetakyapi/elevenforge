@@ -267,7 +267,10 @@ export async function runCupRound(opts: { leagueId: string }): Promise<{
         // Prize money as an SQL delta, not an absolute write computed from a
         // row read earlier: a transfer completing in between would otherwise
         // be silently erased by the payout.
-        await creditClub(winner.id, CUP_WINNER_PRIZE_CENTS);
+        await creditClub(winner.id, CUP_WINNER_PRIZE_CENTS, undefined, {
+          kind: "prize",
+          note: "Kupa şampiyonluğu",
+        });
         await db
           .update(clubs)
           .set({ prestige: Math.min(100, winner.prestige + 5) })
@@ -275,7 +278,10 @@ export async function runCupRound(opts: { leagueId: string }): Promise<{
         const runnerUpId = winnerId === home.id ? away.id : home.id;
         const [runnerUp] = await db.select().from(clubs).where(eq(clubs.id, runnerUpId));
         if (runnerUp) {
-          await creditClub(runnerUp.id, CUP_RUNNER_UP_PRIZE_CENTS);
+          await creditClub(runnerUp.id, CUP_RUNNER_UP_PRIZE_CENTS, undefined, {
+            kind: "prize",
+            note: "Kupa ikinciliği",
+          });
           await db
             .update(clubs)
             .set({ prestige: Math.min(100, runnerUp.prestige + 3) })

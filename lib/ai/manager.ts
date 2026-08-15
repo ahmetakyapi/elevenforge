@@ -155,7 +155,10 @@ async function renewExpiringContracts(
     const worthKeeping = p.age < 34 || squad.length <= HARD_MIN_SQUAD + 2;
     if (!worthKeeping) continue;
     const cost = renewalCostCents(Number(p.wageCents), 2);
-    const paid = await debitClub(club.id, cost);
+    const paid = await debitClub(club.id, cost, undefined, {
+      kind: "contract_renewal",
+      note: p.name,
+    });
     if (!paid) break; // out of money — stop trying
     await db
       .update(players)
@@ -394,7 +397,10 @@ async function emergencySales(
           eq(transferListings.status, "active"),
         ),
       );
-    await creditClub(club.id, fee);
+    await creditClub(club.id, fee, undefined, {
+      kind: "transfer_out",
+      note: `${p.name} (zorunlu satış)`,
+    });
     await db.insert(feedEvents).values({
       leagueId: club.leagueId,
       clubId: club.id,
@@ -498,7 +504,10 @@ async function developClub(
       (m) => m.role === role && m.hireCostCents <= staffBudget,
     ).sort((a, b) => b.tier - a.tier)[0];
     if (!best) continue;
-    const paid = await debitClub(club.id, best.hireCostCents);
+    const paid = await debitClub(club.id, best.hireCostCents, undefined, {
+      kind: "staff",
+      note: best.name,
+    });
     if (!paid) break;
     staff = { ...staff, [role]: { id: best.id } };
     await db
@@ -549,7 +558,10 @@ async function signFreeAgents(
   let signed = 0;
   for (const p of wanted.slice(0, 2)) {
     const fee = Math.round(Number(p.marketValueCents) / 5);
-    const paid = await debitClub(club.id, fee);
+    const paid = await debitClub(club.id, fee, undefined, {
+      kind: "free_agent_fee",
+      note: p.name,
+    });
     if (!paid) break;
     const claimed = await db
       .update(players)
@@ -557,7 +569,10 @@ async function signFreeAgents(
       .where(and(eq(players.id, p.id), isNull(players.clubId)))
       .returning();
     if (claimed.length === 0) {
-      await creditClub(club.id, fee); // someone beat us to him
+      await creditClub(club.id, fee, undefined, {
+        kind: "transfer_refund",
+        note: p.name,
+      }); // someone beat us to him
       continue;
     }
     await db.insert(feedEvents).values({
@@ -645,7 +660,10 @@ async function buyFromMarket(
       .returning();
     if (claimed.length === 0) continue;
 
-    const paid = await debitClub(club.id, c.listing.priceCents);
+    const paid = await debitClub(club.id, c.listing.priceCents, undefined, {
+      kind: "transfer_in",
+      note: c.player.name,
+    });
     if (!paid) {
       await db
         .update(transferListings)
@@ -666,11 +684,17 @@ async function buyFromMarket(
       )
       .returning();
     if (moved.length === 0) {
-      await creditClub(club.id, c.listing.priceCents);
+      await creditClub(club.id, c.listing.priceCents, undefined, {
+        kind: "transfer_refund",
+        note: c.player.name,
+      });
       continue;
     }
     if (c.listing.sellerClubId) {
-      await creditClub(c.listing.sellerClubId, c.listing.priceCents);
+      await creditClub(c.listing.sellerClubId, c.listing.priceCents, undefined, {
+        kind: "transfer_out",
+        note: c.player.name,
+      });
     }
     await db.insert(transferHistory).values({
       leagueId: club.leagueId,
@@ -824,7 +848,9 @@ async function respondToOffers(
 
     if (amount >= askingPrice) {
       // Accept: move the player and settle up, guarded at every step.
-      const paid = await debitClub(offer.fromClubId, amount);
+      const paid = await debitClub(offer.fromClubId, amount, undefined, {
+        kind: "transfer_in",
+      });
       if (!paid) {
         await reject("Teklif eden kulübün bütçesi yetersiz.");
         handled++;
@@ -836,12 +862,16 @@ async function respondToOffers(
         .where(and(eq(players.id, p.id), eq(players.clubId, club.id)))
         .returning();
       if (moved.length === 0) {
-        await creditClub(offer.fromClubId, amount);
+        await creditClub(offer.fromClubId, amount, undefined, {
+          kind: "transfer_refund",
+        });
         await reject("Bu oyuncu artık kadromuzda değil.");
         handled++;
         continue;
       }
-      await creditClub(club.id, amount);
+      await creditClub(club.id, amount, undefined, {
+        kind: "transfer_out",
+      });
       await db
         .update(transferOffers)
         .set({

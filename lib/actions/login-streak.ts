@@ -91,7 +91,10 @@ export async function claimLoginReward(userId: string): Promise<{
     return { ok: false, error: "Bugünün ödülünü zaten aldın." };
   }
 
-  await creditClub(c.id, rewardEur * 100);
+  await creditClub(c.id, rewardEur * 100, undefined, {
+    kind: "other",
+    note: "Giriş serisi ödülü",
+  });
 
   if (rewardDay === 7) {
     await db.insert(feedEvents).values({

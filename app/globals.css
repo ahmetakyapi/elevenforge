@@ -408,6 +408,11 @@ a:focus-visible,
   background: color-mix(in oklab, var(--accent) 16%, transparent) !important;
 }
 
+/* Finans: income and expense sit side by side, stacked on a phone. */
+@media (max-width: 760px) {
+  [data-finance-cols] { grid-template-columns: minmax(0, 1fr) !important; }
+}
+
 /* The theme button must not sit on the mobile tab bar.
 
    It is fixed at bottom-right with zIndex 900; the bar is zIndex 50. On a

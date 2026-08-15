@@ -58,7 +58,9 @@ export async function renewContract(input: {
 
   // Charge first: the guarded debit is the affordability check, so two
   // concurrent renewals can't both pass a stale balance read.
-  const paid = await debitClub(ctx.club.id, cost);
+  const paid = await debitClub(ctx.club.id, cost, undefined, {
+    kind: "contract_renewal",
+  });
   if (!paid) {
     return {
       ok: false as const,
