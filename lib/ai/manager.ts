@@ -654,6 +654,24 @@ async function bidOnAuctions(
     .from(players)
     .where(inArray(players.id, open.map((l) => l.playerId)));
   const byId = new Map(listedPlayers.map((p) => [p.id, p]));
+
+  // Who is selling decides how high this club may go — see the ceiling below.
+  const sellerIds = open
+    .map((l) => l.sellerClubId)
+    .filter((id): id is string => id !== null);
+  const humanSellers = new Set(
+    sellerIds.length === 0
+      ? []
+      : (
+          await db
+            .select({ id: clubs.id, ai: clubs.aiManaged })
+            .from(clubs)
+            .where(inArray(clubs.id, sellerIds))
+        )
+          .filter((c) => !c.ai)
+          .map((c) => c.id),
+  );
+
   const needs = squadNeeds(squad);
   const squadAvg =
     squad.length > 0
@@ -699,9 +717,32 @@ async function bidOnAuctions(
   let placed = 0;
   for (const c of candidates.slice(0, 2)) {
     if (rng() > 0.6) continue;
+    /*
+      How high this club will go, and why it depends on the seller.
+
+      MAX_AI_PRICE_MULTIPLIER (1.15×) exists to stop a human farming the AI:
+      a bot ACCEPTS an incoming offer at MIN_AI_ASKING_MULTIPLIER (1.35×), so
+      if a bot would ever pay more than a bot asks, selling to one and buying
+      back from another is free money, repeatable daily.
+
+      That exploit needs a human on one side of the trade. Bot-to-bot money
+      never leaves the AI economy, and holding bots to 1.15× on an auction
+      whose reserve is 1.35× by construction meant they could never bid at
+      all — thirty-three open auctions in production with zero bids on any of
+      them, because every candidate was skipped on this line.
+
+      So: the hard cap still applies whenever a HUMAN is selling, and bots may
+      contest each other's auctions a little above the reserve.
+    */
+    const sellerIsHuman =
+      c.listing.sellerClubId !== null &&
+      humanSellers.has(c.listing.sellerClubId);
+    const multiplier = sellerIsHuman
+      ? MAX_AI_PRICE_MULTIPLIER
+      : MIN_AI_ASKING_MULTIPLIER * 1.15;
     const ceiling = Math.min(
       budget,
-      Math.round(Number(c.player.marketValueCents) * MAX_AI_PRICE_MULTIPLIER),
+      Math.round(Number(c.player.marketValueCents) * multiplier),
     );
     const top = topByListing.get(c.listing.id) ?? 0;
     // Open at the asking price; otherwise raise over the leader.
