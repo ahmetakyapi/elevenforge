@@ -70,11 +70,33 @@ const STEPS = [
   { name: "newspaper", run: () => runWeeklyNewspaper() },
 ] as const;
 
+/**
+ * Stop starting new steps this late into the invocation.
+ *
+ * The platform kills the function at `maxDuration` and the response is lost,
+ * so a sweep that overruns reports nothing at all — the Actions log shows a
+ * timeout and which steps ran is anyone's guess. Measured on the first sweep
+ * of a day, `ai-managers` alone took 236s of the 300s budget, because that is
+ * the run where all 120 clubs are still unclaimed.
+ *
+ * Deferring is cheap and correct: every step claims its own work, so whatever
+ * is skipped simply runs on the next hourly sweep. What matters is that the
+ * skip is deliberate and reported rather than a silent 504.
+ */
+const SOFT_DEADLINE_MS = 240_000;
+
 async function runAll() {
   const results: Record<string, unknown> = {};
   const failed: string[] = [];
+  const deferred: string[] = [];
+  const sweepStartedAt = Date.now();
 
   for (const step of STEPS) {
+    if (Date.now() - sweepStartedAt > SOFT_DEADLINE_MS) {
+      deferred.push(step.name);
+      results[step.name] = { ok: true, deferred: true };
+      continue;
+    }
     const startedAt = Date.now();
     try {
       results[step.name] = {
@@ -94,10 +116,25 @@ async function runAll() {
     }
   }
 
+  if (deferred.length > 0) {
+    console.warn(
+      `[cron/daily] deferred to the next sweep after ${Math.round(
+        (Date.now() - sweepStartedAt) / 1000,
+      )}s: ${deferred.join(", ")}`,
+    );
+  }
+
   return NextResponse.json(
-    { ranAt: new Date().toISOString(), failed, steps: results },
+    {
+      ranAt: new Date().toISOString(),
+      elapsedMs: Date.now() - sweepStartedAt,
+      failed,
+      deferred,
+      steps: results,
+    },
     // A partial failure is still a failure: return non-200 so the scheduler's
-    // log shows it rather than a green tick over a broken game loop.
+    // log shows it rather than a green tick over a broken game loop. Deferral
+    // is NOT a failure — the work is claimed by nobody and runs next hour.
     { status: failed.length === 0 ? 200 : 500 },
   );
 }
