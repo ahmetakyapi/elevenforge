@@ -2,6 +2,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { players } from "@/lib/schema";
 import type { LeagueContext } from "@/lib/session";
+import { FREE_AGENT_FEE_RATE } from "@/lib/economy";
 
 export type FreeAgentView = {
   id: string;
@@ -16,7 +17,10 @@ export type FreeAgentView = {
   signingFeeEur: number;
 };
 
-const SIGNING_FEE_DIVISOR = 5; // signing-on bonus = 1/5 of market value
+// The rate lives in lib/economy.ts. A local divisor here said 1/5 while
+// app/(app)/free-agents/actions.ts charged FREE_AGENT_FEE_RATE (0.4), so the
+// list quoted every free agent at HALF his real price and the signing failed
+// or emptied the club by twice what the screen promised.
 
 export async function loadFreeAgents(
   ctx: LeagueContext,
@@ -40,7 +44,7 @@ export async function loadFreeAgents(
         overall: p.overall,
         potential: p.potential,
         marketValueEur: valEur,
-        signingFeeEur: Math.round(valEur / SIGNING_FEE_DIVISOR),
+        signingFeeEur: Math.round(valEur * FREE_AGENT_FEE_RATE),
       };
     })
     .sort((a, b) => b.overall - a.overall);

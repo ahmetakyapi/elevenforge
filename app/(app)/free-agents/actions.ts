@@ -10,7 +10,7 @@ import { requireLeagueContext } from "@/lib/session";
 
 /**
  * Sign a free agent (player with clubId=null in the same league). Costs
- * 1/5 of the player's market value as a signing-on bonus, plus the
+ * FREE_AGENT_FEE_RATE of the player's market value as a signing-on bonus, plus the
  * player joins on a default 2-year contract.
  *
  * Race-safe: uses an UPDATE-where-clubId-IS-NULL clause; if another club
@@ -32,7 +32,7 @@ export async function signFreeAgent(input: { playerId: string }) {
     return { ok: false as const, error: "Bu oyuncu serbest değil." };
   }
 
-  // A signing-on fee, not a bargain bin. At 1/5 of market value a free agent
+  // A signing-on fee, not a bargain bin. At FREE_AGENT_FEE_RATE of market value a free agent
   // could be signed and immediately relisted at the top of the allowed band
   // for several times what he cost.
   const fee = Math.round(Number(p.marketValueCents) * FREE_AGENT_FEE_RATE);

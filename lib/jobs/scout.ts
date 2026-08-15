@@ -9,6 +9,7 @@
 import { and, eq, lt, lte } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { debitClub } from "@/lib/money";
+import { attributesFor } from "@/lib/attributes";
 import { feedEvents, players, scouts, clubs } from "@/lib/schema";
 import type { Position } from "@/types";
 import { marketValueCents, wageFromValueCents } from "@/lib/economy";
@@ -408,6 +409,11 @@ export async function claimScoutPlayer(
       nationality: c.nat,
       overall: c.overall,
       potential: c.potential,
+      // Without these the INSERT fell through to the schema defaults —
+      // pace/shooting/passing/defending/physical 60, goalkeeping 30 — so every
+      // scouted player performed like a 60 no matter what his rating said.
+      // The match engine reads the attributes, not just `overall`.
+      ...attributesFor(c.overall, c.role),
       marketValueCents: c.marketValueCents,
       wageCents: c.wageCents,
     })

@@ -23,7 +23,7 @@
  * Everything here is deterministic per club per day (see dailyRng) and
  * idempotent via clubs.aiLastRunAt, so a retried cron does not double-spend.
  */
-import { and, eq, gt, inArray, isNull, lt, ne } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, lt, ne, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { autoLineup, isAvailable } from "@/lib/lineup";
 import {
@@ -607,7 +607,15 @@ async function buyFromMarket(
         eq(transferListings.leagueId, club.leagueId),
         eq(transferListings.status, "active"),
         // Never buy your own player back.
-        ne(transferListings.sellerClubId, club.id),
+        //
+        // `seller <> $id` evaluates to NULL — not true — for the null-seller
+        // rows that lib/jobs/transfer-bots.ts creates as free-agent stock, so
+        // this filter silently excluded the entire bot market and no AI club
+        // had ever bought from it. The null case has to be spelled out.
+        or(
+          isNull(transferListings.sellerClubId),
+          ne(transferListings.sellerClubId, club.id),
+        ),
       ),
     );
   if (listings.length === 0) return 0;
@@ -684,10 +692,24 @@ async function buyFromMarket(
       )
       .returning();
     if (moved.length === 0) {
+      // Somebody else took him between the claim and the move. Refund — and
+      // then finish the job: this used to `continue` with the listing still
+      // marked 'sold' and the player still 'listed', so he was invisible to
+      // team selection until runPriceDecay's stranded-listing self-heal
+      // happened to sweep him up. buyListing has always cleaned up after
+      // itself here; this path did not.
       await creditClub(club.id, c.listing.priceCents, undefined, {
         kind: "transfer_refund",
         note: c.player.name,
       });
+      await db
+        .update(transferListings)
+        .set({ status: "expired" })
+        .where(eq(transferListings.id, c.listing.id));
+      await db
+        .update(players)
+        .set({ status: "active" })
+        .where(and(eq(players.id, c.player.id), eq(players.status, "listed")));
       continue;
     }
     if (c.listing.sellerClubId) {
