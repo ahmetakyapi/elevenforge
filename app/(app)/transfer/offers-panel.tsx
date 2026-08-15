@@ -30,6 +30,24 @@ function eur(n: number): string {
   return `€${n}`;
 }
 
+/**
+ * Same container as the rest of the transfer page.
+ *
+ * This panel renders as a sibling of TransferUi, which sets its own
+ * `maxWidth`/`padding`. The panel set neither, so "Transfer Teklifleri" was
+ * pinned to the viewport edge while every row beneath it was inset — a
+ * misalignment on desktop and, on a phone, text touching the glass.
+ *
+ * The literal string matters: app/globals.css tightens mobile padding by
+ * matching serialized inline styles, and "20px 28px" is one of the forms it
+ * looks for.
+ */
+const PANEL_CONTAINER = {
+  maxWidth: 1400,
+  margin: "0 auto",
+  padding: "20px 28px",
+} as const;
+
 export default function OffersPanel({ offers }: { offers: OfferView[] }) {
   const [pending, startTransition] = useTransition();
   const [counterFor, setCounterFor] = useState<string | null>(null);
@@ -61,7 +79,7 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
 
   if (offers.length === 0) {
     return (
-      <section className="space-y-3">
+      <section className="space-y-3" style={PANEL_CONTAINER}>
         <SectionHead label="Pazarlık" title="Transfer Teklifleri" />
         <p className="rounded-xl border border-white/8 bg-white/[0.02] px-4 py-6 text-center text-xs text-white/40">
           Henüz teklif yok. Listede olmayan bir oyuncu için kulübüne doğrudan
@@ -73,7 +91,7 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
   }
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-4" style={PANEL_CONTAINER}>
       <SectionHead
         label="Pazarlık"
         title="Transfer Teklifleri"

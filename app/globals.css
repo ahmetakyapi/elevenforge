@@ -408,6 +408,17 @@ a:focus-visible,
   background: color-mix(in oklab, var(--accent) 16%, transparent) !important;
 }
 
+/* The theme button must not sit on the mobile tab bar.
+
+   It is fixed at bottom-right with zIndex 900; the bar is zIndex 50. On a
+   phone that put a 40px circle directly over the last tab, so tapping "Maç"
+   opened the theme panel instead. Lift it clear of the bar's height. */
+@media (max-width: 899px) {
+  .tweaks-fab {
+    bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
 /* Cup bracket connectors.
 
    Without them the four columns are four unrelated lists and the reader has

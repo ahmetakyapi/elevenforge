@@ -70,8 +70,12 @@ export function TweaksPanel() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Tema ayarları"
+        className="tweaks-fab"
         style={{
           position: "fixed",
+          // Cleared above the mobile tab bar in globals.css — at `bottom: 20`
+          // this button sat on top of the last tab ("Maç") and swallowed its
+          // taps, because it carries zIndex 900 against the bar's 50.
           bottom: 20,
           right: 20,
           zIndex: 900,
