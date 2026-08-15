@@ -240,6 +240,106 @@ async function listSurplus(
 }
 
 /**
+ * 4a-ii. Sell from strength.
+ *
+ * `listSurplus` above ranks the squad by `valueToClub` and lists from the
+ * bottom, which is correct for clearing deadwood and catastrophic for the
+ * market: the bottom of a squad is by definition old and weak, so every bot
+ * listed the same kind of player and nobody ever listed a good one. Measured
+ * on the live league — 103 listings, ratings 60-79, median 68, not a single
+ * player at 80+, while the best player at an AI club was 87. A market where
+ * nothing is ever worth buying is not a transfer market.
+ *
+ * Real clubs sell good players when they are covered in that position. This
+ * looks for genuine depth — a position carrying two players clearly above the
+ * floor — and offers the SECOND best of them. The first choice is never for
+ * sale, so a club never weakens its own XI, and the asking price carries a
+ * premium because it does not need the money.
+ *
+ * One per tick, so quality trickles into the market rather than flooding it.
+ */
+async function listQualitySurplus(
+  club: Club,
+  squad: DBPlayer[],
+  trait: AiTrait,
+  rng: () => number,
+): Promise<number> {
+  if (squad.length <= trait.minSquad) return 0;
+  // A reluctant seller mostly sits on its depth.
+  if (rng() > 0.25 + trait.sellWillingness * 0.4) return 0;
+
+  const listedRows = await db
+    .select({ playerId: transferListings.playerId })
+    .from(transferListings)
+    .where(
+      and(
+        eq(transferListings.sellerClubId, club.id),
+        eq(transferListings.status, "active"),
+      ),
+    );
+  const listedIds = new Set(listedRows.map((r) => r.playerId));
+
+  const candidates: DBPlayer[] = [];
+  for (const position of ["GK", "DEF", "MID", "FWD"] as const) {
+    const inPos = squad
+      .filter(
+        (p) =>
+          p.position === position &&
+          !listedIds.has(p.id) &&
+          p.status === "active",
+      )
+      .sort((a, b) => b.overall - a.overall);
+
+    // Depth means a spare body ABOVE the floor, not merely meeting it.
+    if (inPos.length < POSITION_FLOOR[position] + 2) continue;
+
+    // Never the first choice — selling him would weaken the XI, which is the
+    // one thing a club managing itself should not do voluntarily.
+    const second = inPos[1];
+    if (!second) continue;
+    // Only worth surfacing if he would actually interest somebody.
+    if (second.overall < 74) continue;
+    candidates.push(second);
+  }
+  if (candidates.length === 0) return 0;
+
+  // Offer the best of the spare men — that is the one another club wants.
+  const pick = candidates.sort((a, b) => b.overall - a.overall)[0];
+  if (!isExpendable(pick, squad)) return 0;
+
+  // A club selling from strength is not desperate: it asks above the odds.
+  // The floor is MIN_AI_ASKING_MULTIPLIER so this can never undercut what the
+  // same bot would demand in a direct negotiation, which would otherwise open
+  // a buy-here-sell-there arbitrage.
+  const premium = Math.max(
+    MIN_AI_ASKING_MULTIPLIER,
+    1.6 - trait.sellWillingness * 0.2,
+  );
+  const priceCents = Math.round(Number(pick.marketValueCents) * premium);
+
+  try {
+    await db.insert(transferListings).values({
+      leagueId: club.leagueId,
+      playerId: pick.id,
+      sellerClubId: club.id,
+      isBotMarket: false,
+      priceCents,
+      originalPriceCents: priceCents,
+      // Longer than a deadwood listing: this is a standing invitation, not a
+      // clearance sale, and it gives human managers time to save up.
+      expiresAt: new Date(Date.now() + 96 * 3600 * 1000),
+    });
+  } catch {
+    return 0; // unique index — already listed
+  }
+  await db
+    .update(players)
+    .set({ status: "listed" })
+    .where(and(eq(players.id, pick.id), eq(players.status, "active")));
+  return 1;
+}
+
+/**
  * 4b. Emergency sales for a club that has run out of money.
  *
  * Without this a club that fell far enough into the red was stuck there
@@ -914,6 +1014,7 @@ export async function runAiManagers(
     result.emergencySales += await emergencySales(club, squad, trait);
     result.renewed += await renewExpiringContracts(club, squad, trait);
     result.listed += await listSurplus(club, squad, trait, rng);
+    result.listed += await listQualitySurplus(club, squad, trait, rng);
     result.signed += await signFreeAgents(club, squad, trait);
     result.bought += await buyFromMarket(club, squad, trait, rng);
     result.offersSent += await sendOffers(club, squad, trait, rng);
