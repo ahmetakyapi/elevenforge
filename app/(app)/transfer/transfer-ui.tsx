@@ -51,6 +51,22 @@ export default function TransferMarketUi({ data }: { data: TransferPageData }) {
   const [sort, setSort] = useState<SortKey>("trend");
   const [mode, setMode] = useState<Mode>("buy");
 
+  /*
+    "Does this player actually improve my team?" is the question a market
+    exists to answer, and the row could not answer it. Price, rating and age
+    describe the player in isolation; whether he beats what you already have
+    at his position is the thing you are really buying. `userSquad` is already
+    loaded for the Sell tab, so the comparison costs nothing.
+  */
+  const squadBest = useMemo(() => {
+    const best: Partial<Record<PosFilter, number>> = {};
+    for (const p of data.userSquad) {
+      const current = best[p.position];
+      if (current === undefined || p.overall > current) best[p.position] = p.overall;
+    }
+    return best;
+  }, [data.userSquad]);
+
   const filtered = data.listings
     .filter((p) => pos === "ALL" || p.position === pos)
     .filter((p) => p.priceEur <= maxPrice * 1_000_000)
@@ -201,6 +217,7 @@ export default function TransferMarketUi({ data }: { data: TransferPageData }) {
                     idx={i}
                     crestLookup={data.crestLookup}
                     balanceEur={data.balanceEur}
+                    squadBest={squadBest[p.position]}
                   />
                 ))}
                 {sorted.length === 0 && (
@@ -642,11 +659,14 @@ function TransferRow({
   idx,
   crestLookup,
   balanceEur,
+  squadBest,
 }: {
   listing: TransferListingView;
   idx: number;
   crestLookup: CrestLookup;
   balanceEur: number;
+  /** Best overall the user already fields in this player's position. */
+  squadBest: number | undefined;
 }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -682,6 +702,20 @@ function TransferRow({
           ? { label: `+${premiumPct}% PRİM`, tint: "var(--muted)" }
           : { label: `+${premiumPct}% PAHALI`, tint: "var(--warn)" };
   const priceColor = canAfford ? deal.tint : "var(--danger)";
+
+  // Measured against the best you already have in that position, because that
+  // is who he would have to displace.
+  const fit =
+    squadBest === undefined
+      ? null
+      : listing.overall - squadBest >= 1
+        ? {
+            label: `EN İYİN OLUR +${listing.overall - squadBest}`,
+            tint: "var(--emerald)",
+          }
+        : listing.overall - squadBest >= -2
+          ? { label: "İLK 11 ADAYI", tint: "var(--cyan, #22d3ee)" }
+          : { label: "YEDEK", tint: "var(--muted)" };
 
   const onBuy = () =>
     startTransition(async () => {
@@ -766,6 +800,24 @@ function TransferRow({
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 15, fontWeight: 600 }}>{listing.name}</span>
+            {fit && (
+              <span
+                className="t-mono"
+                title={`Bu mevkideki en iyi oyuncun ${squadBest} overall`}
+                style={{
+                  fontSize: 9.5,
+                  fontWeight: 700,
+                  letterSpacing: "0.03em",
+                  padding: "2px 7px",
+                  borderRadius: 999,
+                  whiteSpace: "nowrap",
+                  background: `color-mix(in oklab, ${fit.tint} 15%, transparent)`,
+                  color: fit.tint,
+                }}
+              >
+                {fit.label}
+              </span>
+            )}
             {trending && (
               <span
                 className="t-mono"
