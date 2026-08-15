@@ -81,18 +81,56 @@
   --maxw: 1440px;
 }
 
+/*
+ * Light theme.
+ *
+ * The first version only inverted the greys and left everything else alone,
+ * which does not survive contact with a white page. Three things broke:
+ *
+ *   - Panels were `rgba(0,0,0,0.02)` over `#fafafa` — a 2% black wash on an
+ *     almost-white ground, so a card had no edge and the whole screen read as
+ *     one undifferentiated sheet. Dark mode gets away with a translucent panel
+ *     because it sits on near-black; light does not.
+ *   - The accents were the dark-mode values. `--gold: #facc15` on white is
+ *     around 1.6:1 — the "85 ELİTE" tier label was effectively invisible, and
+ *     cyan was not much better. Every accent here is the darker step of the
+ *     same hue so it holds contrast against a light ground while staying
+ *     recognisably the same colour.
+ *   - Shadows were tuned for black (`rgba(0,0,0,0.6)`), which on white reads
+ *     as grime rather than elevation.
+ *
+ * Panels are SOLID here, not translucent: on light, separation has to come
+ * from the surface itself, so the page is tinted and the cards are white —
+ * the opposite arrangement to dark mode, which is why it cannot be expressed
+ * by flipping the same values.
+ */
 [data-theme="light"] {
-  --bg: #fafafa;
-  --bg-2: #f2f3f6;
-  --panel: rgba(0, 0, 0, 0.02);
-  --panel-2: rgba(0, 0, 0, 0.035);
-  --panel-hover: rgba(0, 0, 0, 0.05);
-  --border: rgba(0, 0, 0, 0.08);
-  --border-strong: rgba(0, 0, 0, 0.14);
-  --text: #0a0e1a;
-  --text-2: #2b3143;
-  --muted: #6b7280;
-  --muted-2: #9099ab;
+  --bg: #eceff5;
+  --bg-2: #e3e8f0;
+  --panel: #ffffff;
+  --panel-2: #f3f5f9;
+  --panel-hover: #eaeef6;
+  --border: rgba(15, 23, 42, 0.1);
+  --border-strong: rgba(15, 23, 42, 0.2);
+  --text: #0f172a;
+  --text-2: #334155;
+  --muted: #5b6577;
+  --muted-2: #8a94a6;
+
+  /* Same hues, darker steps — legible on white without changing identity. */
+  --indigo: #4f46e5;
+  --emerald: #047857;
+  --cyan: #0e7490;
+  --warn: #b45309;
+  --danger: #dc2626;
+  --gold: #a16207;
+
+  /* Elevation, not grime. */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.1), 0 2px 6px -2px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 12px 28px -8px rgba(15, 23, 42, 0.14), 0 4px 10px -4px rgba(15, 23, 42, 0.08);
+  --shadow-xl: 0 24px 48px -12px rgba(15, 23, 42, 0.18), 0 8px 16px -8px rgba(15, 23, 42, 0.1);
 }
 
 /* Tailwind v4 — expose CSS vars as utility colors */

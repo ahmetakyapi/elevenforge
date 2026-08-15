@@ -22,6 +22,7 @@ import { PushSubscribeButton } from "@/components/push-subscribe";
 import { MobileDrawer } from "./mobile-drawer";
 import { signOutAction } from "@/app/(app)/session-actions";
 import { NavOverflow } from "./nav-overflow";
+import { ThemeToggle } from "@/components/tweaks/theme-toggle";
 
 type NavItem = {
   href: string;
@@ -151,6 +152,7 @@ export function TopNav({
 
         <div data-topnav-right style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <NavOverflow />
+          <ThemeToggle compact />
           <PushSubscribeButton />
           <MobileDrawer />
           <div className="v-divider desktop-only" style={{ height: 22 }} />

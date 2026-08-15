@@ -262,13 +262,46 @@ export default function SquadPage({
         </div>
       </div>
 
-      {/* Results */}
+      {/* Results.
+
+          Grouped by line — keeper, defence, midfield, attack — rather than
+          one continuous grid of thirty cards. A squad is not a list: the
+          question you bring to this screen is almost always positional
+          ("who can play right back", "is my midfield thin"), and a flat grid
+          sorted by rating makes you scan the whole thing to answer it. Each
+          line gets its own headed band with air around it, so the four groups
+          read as four things instead of one wall.
+
+          The grouping is suppressed while a position filter is active — one
+          heading over one group is a heading that says nothing. */}
       {view === "grid" ? (
+        filter === "ALL" ? (
+          <div style={{ display: "grid", gap: 30 }}>
+            {POSITION_GROUPS.map(({ pos, label }) => {
+              const group = filtered.filter((p) => p.pos === pos);
+              if (group.length === 0) return null;
+              return (
+                <PositionBand
+                  key={pos}
+                  pos={pos}
+                  label={label}
+                  players={group}
+                  onClick={handlePlayerClick}
+                  hoveredNum={hoveredNum}
+                  onHover={setHoveredNum}
+                  compareMode={compareMode}
+                  compareA={compareA}
+                  compareB={compareB}
+                />
+              );
+            })}
+          </div>
+        ) : (
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-            gap: 14,
+            gap: 18,
           }}
         >
           {filtered.map((p, i) => (
@@ -291,6 +324,7 @@ export default function SquadPage({
             />
           ))}
         </div>
+        )
       ) : (
         <PlayerTable list={filtered} onSelect={handlePlayerClick} />
       )}
@@ -671,6 +705,129 @@ function tierPalette(ovr: number): {
   return { label: "DEPTH", accent: "var(--muted)", glow: "none" };
 }
 
+const POSITION_GROUPS: Array<{ pos: Position; label: string }> = [
+  { pos: "GK", label: "Kaleci" },
+  { pos: "DEF", label: "Defans" },
+  { pos: "MID", label: "Orta Saha" },
+  { pos: "FWD", label: "Forvet" },
+];
+
+/**
+ * One line of the team, in its own band.
+ *
+ * The band carries a tinted rule and a heading in the position's colour, and
+ * the cards sit inside with generous gutters. The tint is deliberately faint:
+ * it is there to bound the group, and anything stronger would compete with the
+ * cards, which are the thing you are actually reading.
+ */
+function PositionBand({
+  pos,
+  label,
+  players,
+  onClick,
+  hoveredNum,
+  onHover,
+  compareMode,
+  compareA,
+  compareB,
+}: {
+  pos: Position;
+  label: string;
+  players: Player[];
+  onClick: (p: Player) => void;
+  hoveredNum: number | null;
+  onHover: (n: number | null) => void;
+  compareMode: boolean;
+  compareA: Player | null;
+  compareB: Player | null;
+}) {
+  const tint = posColor(pos);
+  const avg =
+    players.length === 0
+      ? 0
+      : Math.round(
+          (players.reduce((sum, p) => sum + p.ovr, 0) / players.length) * 10,
+        ) / 10;
+
+  return (
+    <section>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          marginBottom: 14,
+        }}
+      >
+        <PosBadge pos={pos} size={26} />
+        <h2
+          style={{
+            fontFamily: "var(--font-manrope)",
+            fontSize: 17,
+            fontWeight: 750,
+            letterSpacing: "-0.015em",
+            color: "var(--text)",
+            margin: 0,
+          }}
+        >
+          {label}
+        </h2>
+        <span
+          className="t-mono"
+          style={{
+            fontSize: 10.5,
+            fontWeight: 700,
+            padding: "3px 9px",
+            borderRadius: 999,
+            background: `color-mix(in oklab, ${tint} 15%, transparent)`,
+            color: tint,
+          }}
+        >
+          {players.length} oyuncu · ort {avg}
+        </span>
+        {/* A rule that runs to the edge, so the eye reads the band as a
+            container without needing a box around it. */}
+        <span
+          aria-hidden
+          style={{
+            flex: 1,
+            height: 1,
+            background: `linear-gradient(90deg, color-mix(in oklab, ${tint} 35%, transparent), transparent)`,
+          }}
+        />
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+          gap: 18,
+        }}
+      >
+        {players.map((p, i) => (
+          <PlayerCardGrid
+            key={p.num ?? p.n}
+            p={p}
+            i={i}
+            onClick={() => onClick(p)}
+            hovered={hoveredNum === p.num}
+            onHover={onHover}
+            compareMark={
+              compareMode
+                ? compareA?.n === p.n
+                  ? "A"
+                  : compareB?.n === p.n
+                    ? "B"
+                    : null
+                : null
+            }
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function PlayerCardGrid({
   p,
   i,
@@ -731,32 +888,6 @@ function PlayerCardGrid({
         transition: "all 260ms var(--ease)",
       }}
     >
-      {/* Shirt number as a watermark. The card had the number only in the
-          10px meta line; at this size it reads as club furniture rather than
-          data, which is what a squad list should feel like. */}
-      {p.num !== undefined && (
-        <span
-          aria-hidden
-          style={{
-            position: "absolute",
-            right: 10,
-            bottom: 2,
-            fontFamily: "var(--font-manrope)",
-            fontSize: 62,
-            fontWeight: 800,
-            lineHeight: 1,
-            letterSpacing: "-0.05em",
-            color: tier.accent,
-            opacity: localHover ? 0.1 : 0.055,
-            pointerEvents: "none",
-            transition: "opacity 260ms var(--ease)",
-            zIndex: 0,
-          }}
-        >
-          {p.num}
-        </span>
-      )}
-
       {/* Tier accent stripe along the top edge */}
       <div
         style={{

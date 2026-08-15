@@ -12,6 +12,7 @@ import { Crest } from "@/components/ui/primitives";
 import { LogoLockup } from "@/components/brand/logo";
 import { CLUBS, COMMENTARY, GLOBAL_TRANSFERS, clubById } from "@/lib/mock-data";
 import { fmtEUR } from "@/lib/utils";
+import { ThemeToggle } from "@/components/tweaks/theme-toggle";
 
 // Top-nav + footer product targets. Each label scrolls to the matching
 // section on the landing page (sections expose these IDs below).
@@ -189,7 +190,8 @@ function LandingNav() {
           </a>
         ))}
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <ThemeToggle compact />
         <Link
           href="/login"
           className="btn btn-ghost btn-sm"
