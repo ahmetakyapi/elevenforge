@@ -8,6 +8,7 @@ import { runMatchDay } from "../lib/jobs/match-day";
 import { runAiManagers } from "../lib/ai/manager";
 import { runWeeklyNewspaper } from "../lib/jobs/newspaper";
 import { runPriceDecay } from "../lib/jobs/price-decay";
+import { closeMarketForSeasonRoll } from "../lib/jobs/market-reset";
 import { runWeeklyEconomy } from "../lib/jobs/training";
 import {
   clubs,
@@ -17,7 +18,12 @@ import {
   players,
   seasonHistory,
   transferListings,
+  transferOffers,
 } from "../lib/schema";
+import {
+  MAX_LISTING_MULTIPLIER,
+  MIN_LISTING_MULTIPLIER,
+} from "../lib/economy";
 
 /**
  * Does the league still work after several seasons?
@@ -118,8 +124,47 @@ async function main() {
   const startD1Size = startTop.length;
 
   console.log(`\n=== Simulating ${SEASONS} seasons ===`);
+  // The market invariant has to be sampled after EVERY roll, not once at the
+  // end. runPriceDecay walks a listing's price down every simulated week and
+  // both AI listing paths are behind a dice roll, so by the final snapshot most
+  // listings have decayed away — an end-state-only assertion is a coin flip and
+  // would have missed the stale-price bug this exists to catch.
+  let worstListingRatio = 1;
+  let worstListingLabel = "—";
+
   for (let i = 0; i < SEASONS; i++) {
     await playSeason(leagueId);
+
+    // Every surviving listing must quote a price that is still in band against
+    // the player's CURRENT value. Measured on originalPriceCents, not
+    // priceCents: runPriceDecay legitimately walks the live price down to 20%
+    // of original, so asserting on it would fail on healthy listings.
+    const openListings = await db
+      .select({
+        original: transferListings.originalPriceCents,
+        value: players.marketValueCents,
+        name: players.name,
+      })
+      .from(transferListings)
+      .innerJoin(players, eq(transferListings.playerId, players.id))
+      .where(
+        and(
+          eq(transferListings.leagueId, leagueId),
+          eq(transferListings.status, "active"),
+        ),
+      );
+    for (const l of openListings) {
+      const value = Number(l.value);
+      if (value <= 0) continue;
+      const ratio = Number(l.original) / value;
+      const drift = Math.max(ratio, 1 / ratio);
+      if (drift > Math.max(worstListingRatio, 1 / worstListingRatio)) {
+        worstListingRatio = ratio;
+        worstListingLabel = l.name;
+      }
+    }
+
+
     const [lg] = await db.select().from(leagues).where(eq(leagues.id, leagueId));
     const squads = await db
       .select({ clubId: players.clubId })
@@ -144,6 +189,7 @@ async function main() {
     .select()
     .from(clubs)
     .where(eq(clubs.leagueId, leagueId));
+  const allClubsForOffers = allClubs;
   let thin = 0;
   let noKeeper = 0;
   for (const c of allClubs) {
@@ -204,6 +250,57 @@ async function main() {
   const openSet = new Set(open.map((o) => o.playerId));
   const stranded = listed.filter((p) => !openSet.has(p.id)).length;
   ok(stranded === 0, `no players stranded as 'listed' (${stranded} found)`);
+
+  // 5b. The season roll closes the market, so nothing carries last season's
+  //     price into this one. Without closeMarketForSeasonRoll this failed at
+  //     4.58x on a four-season run.
+  ok(
+    worstListingRatio >= MIN_LISTING_MULTIPLIER &&
+      worstListingRatio <= MAX_LISTING_MULTIPLIER,
+    `every open listing is priced in band (worst ${worstListingRatio.toFixed(2)}x` +
+      ` on ${worstListingLabel}, allowed ${MIN_LISTING_MULTIPLIER}-${MAX_LISTING_MULTIPLIER}x)`,
+  );
+  // 5c. Offers do not survive the break. This is asserted directly rather than
+  //     by counting live offers after playSeason: the AI legitimately opens
+  //     offers for the NEW season within moments of the roll, so an emergent
+  //     count measures the wrong thing and would pass or fail on timing.
+  const [anyClubA, anyClubB] = allClubsForOffers;
+  const [victim] = await db
+    .select({ id: players.id })
+    .from(players)
+    .where(eq(players.clubId, anyClubB.id))
+    .limit(1);
+  if (victim) {
+    const seeded = await db
+      .insert(transferOffers)
+      .values([
+        {
+          leagueId,
+          playerId: victim.id,
+          fromClubId: anyClubA.id,
+          toClubId: anyClubB.id,
+          amountCents: 1_000_000,
+          status: "pending" as const,
+          expiresAt: new Date(Date.now() + 86_400_000),
+        },
+      ])
+      .returning();
+    await db
+      .update(transferOffers)
+      .set({ status: "countered", counterCents: 2_000_000 })
+      .where(eq(transferOffers.id, seeded[0].id));
+
+    await closeMarketForSeasonRoll(leagueId);
+
+    const [after] = await db
+      .select({ status: transferOffers.status })
+      .from(transferOffers)
+      .where(eq(transferOffers.id, seeded[0].id));
+    ok(
+      after?.status === "expired",
+      `a countered offer is expired by the season roll (status ${after?.status})`,
+    );
+  }
 
   // 6. Fixtures were generated for the new season and are in the future.
   const [lgFinal] = await db.select().from(leagues).where(eq(leagues.id, leagueId));

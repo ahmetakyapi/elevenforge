@@ -19,7 +19,7 @@ import { players, transferListings } from "@/lib/schema";
  * Guarded on `status = 'listed'` so it cannot clobber a player who was sold,
  * injured or suspended in the meantime.
  */
-async function releasePlayers(playerIds: string[]): Promise<void> {
+export async function releasePlayers(playerIds: string[]): Promise<void> {
   if (playerIds.length === 0) return;
   await db
     .update(players)

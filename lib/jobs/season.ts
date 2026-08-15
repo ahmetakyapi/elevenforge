@@ -6,7 +6,11 @@
  */
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { marketValueCents, SEASON_PRIZES_CENTS } from "@/lib/economy";
+import {
+  marketValueCents,
+  SEASON_PRIZES_CENTS,
+  wageFromValueCents,
+} from "@/lib/economy";
 import { creditClub } from "@/lib/money";
 import {
   clubs,
@@ -21,6 +25,10 @@ import { assignSeasonGoals, evaluateBoardConfidence } from "./board";
 import { generateCupBracket } from "./cup";
 import { evaluateSeasonAchievements } from "./achievements";
 import { backfillThinSquads, generateYouthIntake } from "./youth";
+import {
+  closeMarketForSeasonRoll,
+  type MarketResetResult,
+} from "./market-reset";
 import { matchKickoff } from "@/lib/match-time";
 import { sortStandings } from "@/lib/standings";
 import { applyPromotionRelegation, PROMOTION_SLOTS } from "./promotion";
@@ -70,6 +78,8 @@ export function roundRobin(teamIds: string[]) {
 export async function rollSeasonIfDone(leagueId: string): Promise<{
   rolled: boolean;
   newSeason?: number;
+  /** What closing the market for the break cleared away. */
+  market?: MarketResetResult;
 }> {
   const [league] = await db
     .select()
@@ -338,8 +348,11 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
         overall: newOvr,
         potential: newPot,
         marketValueCents: newValue,
-        // Wages track value on the same curve the generator uses.
-        wageCents: Math.max(1_200_000, Math.round(newValue / 200)),
+        // Wages track value on the same curve the generator uses — via the
+        // shared helper, because an inlined copy of "value ÷ 200, floor €12K"
+        // is exactly how four different valuation formulas drifted apart here
+        // once before.
+        wageCents: wageFromValueCents(newValue),
         contractYears: expiring ? 0 : newCtr,
         clubId: expiring ? null : p.clubId,
         status: expiring ? "active" : p.status,
@@ -363,6 +376,12 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
       lastRatings: "[]",
     })
     .where(eq(players.leagueId, leagueId));
+
+  // The market closes for the break. Every price above was just recomputed
+  // from each player's new overall/potential/age, so every listing and every
+  // open offer in this league is now quoting last season's valuation — see
+  // lib/jobs/market-reset.ts for why they are cleared rather than repriced.
+  const market = await closeMarketForSeasonRoll(leagueId);
 
   // Youth intake — the other half of the lifecycle. Retirement used to
   // delete players with nothing ever replacing them, so squads shrank every
@@ -452,5 +471,5 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
         : ""),
   });
 
-  return { rolled: true, newSeason };
+  return { rolled: true, newSeason, market };
 }
