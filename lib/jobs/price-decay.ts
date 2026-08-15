@@ -9,7 +9,7 @@
  * squad. The `expires_at` column was written at listing time and then never
  * read at all.
  */
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { players, transferListings } from "@/lib/schema";
 
@@ -36,12 +36,16 @@ export async function runPriceDecay(opts: { leagueId?: string } = {}) {
     .select()
     .from(transferListings)
     .where(
-      opts.leagueId
-        ? and(
-            eq(transferListings.leagueId, opts.leagueId),
-            eq(transferListings.status, "active"),
-          )
-        : eq(transferListings.status, "active"),
+      and(
+        eq(transferListings.status, "active"),
+        // Auctions are settled by resolveTransferBids, not by decay. Left in,
+        // decay would walk the reserve down underneath live bids and could
+        // expire a listing people are actively bidding on before it closes.
+        isNull(transferListings.bidsCloseAt),
+        ...(opts.leagueId
+          ? [eq(transferListings.leagueId, opts.leagueId)]
+          : []),
+      ),
     );
 
   const toExpire: string[] = [];

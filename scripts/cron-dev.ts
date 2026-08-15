@@ -5,6 +5,7 @@
  * Schedules:
  *  - transfer-bots: every 10 minutes
  *  - price-decay:   every 30 minutes
+ *  - bids:         every 5 minutes (closes auctions whose deadline passed)
  *  - scout-returns: every 2 minutes
  *  - training:      every 12 hours
  *  - match-day:     every 5 minutes (picks up any due fixtures)
@@ -23,6 +24,7 @@ import {
   runDailyTraining,
   runMatchDay,
   runPriceDecay,
+  resolveTransferBids,
   runTransferBots,
   runWeeklyEconomy,
   runWeeklyNewspaper,
@@ -38,6 +40,7 @@ const JOBS: Job[] = [
   { name: "match-day",     intervalMs: 5 * MIN,  run: () => runMatchDay() },
   { name: "transfer-bots", intervalMs: 10 * MIN, run: () => runTransferBots() },
   { name: "price-decay",   intervalMs: 30 * MIN, run: () => runPriceDecay() },
+  { name: "bids",          intervalMs: 5 * MIN,  run: () => resolveTransferBids() },
   { name: "scout-returns", intervalMs: 2 * MIN,  run: () => processScoutReturns() },
   { name: "training",      intervalMs: 12 * HOUR, run: () => runDailyTraining() },
   { name: "newspaper",     intervalMs: 10 * MIN, run: () => runWeeklyNewspaper() },

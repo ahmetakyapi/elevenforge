@@ -4,6 +4,7 @@ import {
   clubs,
   players,
   scouts,
+  transferBids,
   transferHistory,
   transferListings,
   transferWishlist,
@@ -32,6 +33,12 @@ export type TransferListingView = {
   trending: boolean;
   /** True if the user's club has bookmarked this player (wishlist). */
   watching: boolean;
+  /** Set when this listing is an auction; null means fixed price, buy now. */
+  bidsCloseAtMs: number | null;
+  bidCount: number;
+  topBidEur: number | null;
+  /** The caller's own live bid, so the row can say "you are leading". */
+  myBidEur: number | null;
 };
 
 export type GlobalTransferView = {
@@ -155,6 +162,35 @@ export async function loadTransferData(
     .where(eq(transferWishlist.clubId, club.id));
   const watchingSet = new Set(wishlistRows.map((w) => w.playerId));
 
+  // Live bids per listing, in one query rather than per row. `top` drives the
+  // "current leader" figure and `mine` lets a row tell the manager whether the
+  // bid he is looking at is his own.
+  const bidRows = await db
+    .select({
+      listingId: transferBids.listingId,
+      amount: transferBids.amountCents,
+      bidder: transferBids.bidderClubId,
+    })
+    .from(transferBids)
+    .where(
+      and(
+        eq(transferBids.leagueId, league.id),
+        eq(transferBids.status, "active"),
+      ),
+    );
+  const bidStats = new Map<
+    string,
+    { count: number; top: number; mine: number | null }
+  >();
+  for (const b of bidRows) {
+    const eur = Math.round(Number(b.amount) / 100);
+    const cur = bidStats.get(b.listingId) ?? { count: 0, top: 0, mine: null };
+    cur.count++;
+    if (eur > cur.top) cur.top = eur;
+    if (b.bidder === club.id) cur.mine = eur;
+    bidStats.set(b.listingId, cur);
+  }
+
   const now = Date.now();
   const listings: TransferListingView[] = listingRows
     // don't show user's own listings in buy feed
@@ -191,6 +227,12 @@ export async function loadTransferData(
         sellerClubName: sellerClub?.name ?? null,
         trending,
         watching: watchingSet.has(r.player.id),
+        bidsCloseAtMs: r.listing.bidsCloseAt
+          ? new Date(r.listing.bidsCloseAt).getTime()
+          : null,
+        bidCount: bidStats.get(r.listing.id)?.count ?? 0,
+        topBidEur: bidStats.get(r.listing.id)?.top ?? null,
+        myBidEur: bidStats.get(r.listing.id)?.mine ?? null,
       };
     });
 

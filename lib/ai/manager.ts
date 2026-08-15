@@ -34,10 +34,12 @@ import {
   renewalCostCents,
 } from "@/lib/economy";
 import { creditClub, debitClub, purchaseFacilityLevel } from "@/lib/money";
+import { cancelBidsForListings } from "@/lib/jobs/bids";
 import {
   clubs,
   feedEvents,
   players,
+  transferBids,
   transferHistory,
   transferListings,
   transferOffers,
@@ -261,6 +263,15 @@ async function listSurplus(
  *
  * One per tick, so quality trickles into the market rather than flooding it.
  */
+/**
+ * How long an auction stays open.
+ *
+ * Long enough that a human who logs in once a day sees it at least once —
+ * a shorter window would hand every contested player to whoever happened to
+ * be online, which is the problem auctions exist to fix.
+ */
+const AUCTION_WINDOW_MS = 36 * 3600 * 1000;
+
 async function listQualitySurplus(
   club: Club,
   squad: DBPlayer[],
@@ -331,6 +342,11 @@ async function listQualitySurplus(
       // Longer than a deadwood listing: this is a standing invitation, not a
       // clearance sale, and it gives human managers time to save up.
       expiresAt: new Date(Date.now() + 96 * 3600 * 1000),
+      // Good players go to auction. This is the half of the market worth
+      // competing over, and an auction is what turns "click first" into a
+      // decision. Deadwood in listSurplus stays buy-it-now, because nobody
+      // wants a bidding war over a 33-year-old squad filler.
+      bidsCloseAt: new Date(Date.now() + AUCTION_WINDOW_MS),
     });
   } catch {
     return 0; // unique index — already listed
@@ -388,7 +404,7 @@ async function emergencySales(
       .returning();
     if (moved.length === 0) continue;
 
-    await db
+    const pulled = await db
       .update(transferListings)
       .set({ status: "withdrawn" })
       .where(
@@ -396,7 +412,12 @@ async function emergencySales(
           eq(transferListings.playerId, p.id),
           eq(transferListings.status, "active"),
         ),
-      );
+      )
+      .returning();
+    // A distress sale can pull a player who was mid-auction. Close the bids
+    // with him, or those clubs wait on a listing that will never resolve —
+    // resolveTransferBids only looks at listings still marked 'active'.
+    await cancelBidsForListings(pulled.map((l) => l.id));
     await creditClub(club.id, fee, undefined, {
       kind: "transfer_out",
       note: `${p.name} (zorunlu satış)`,
@@ -587,6 +608,126 @@ async function signFreeAgents(
 }
 
 /** 5b. Buy from the open market. */
+/**
+ * Bid on other clubs' auctions.
+ *
+ * Shares buyFromMarket's judgement about who is worth having — same budget
+ * share, same "does he improve us" test, same MAX_AI_PRICE_MULTIPLIER ceiling
+ * that stops a price-blind bot turning the listing band into a money printer.
+ * The difference is that nothing is bought and nothing is charged here: a bid
+ * is a row, and resolveTransferBids settles it when the auction closes.
+ *
+ * Bids beat the current top by a personality-flavoured margin rather than
+ * jumping to the ceiling, so an auction between two bots actually escalates
+ * and a human watching it can decide whether to go again.
+ */
+async function bidOnAuctions(
+  club: Club,
+  squad: DBPlayer[],
+  trait: AiTrait,
+  rng: () => number,
+): Promise<number> {
+  if (squad.length >= MAX_SQUAD) return 0;
+  const [fresh] = await db.select().from(clubs).where(eq(clubs.id, club.id));
+  if (!fresh || fresh.balanceCents <= 0) return 0;
+  const budget = Math.round(fresh.balanceCents * trait.splurge);
+  if (budget <= 0) return 0;
+
+  const open = await db
+    .select()
+    .from(transferListings)
+    .where(
+      and(
+        eq(transferListings.leagueId, club.leagueId),
+        eq(transferListings.status, "active"),
+        gt(transferListings.bidsCloseAt, new Date()),
+        or(
+          isNull(transferListings.sellerClubId),
+          ne(transferListings.sellerClubId, club.id),
+        ),
+      ),
+    );
+  if (open.length === 0) return 0;
+
+  const listedPlayers = await db
+    .select()
+    .from(players)
+    .where(inArray(players.id, open.map((l) => l.playerId)));
+  const byId = new Map(listedPlayers.map((p) => [p.id, p]));
+  const needs = squadNeeds(squad);
+  const squadAvg =
+    squad.length > 0
+      ? squad.reduce((s, p) => s + p.overall, 0) / squad.length
+      : 60;
+
+  // Current top bid per listing, so a raise is a raise.
+  const topByListing = new Map<string, number>();
+  const existing = await db
+    .select({
+      listingId: transferBids.listingId,
+      amount: transferBids.amountCents,
+      bidder: transferBids.bidderClubId,
+    })
+    .from(transferBids)
+    .where(
+      and(
+        inArray(transferBids.listingId, open.map((l) => l.id)),
+        eq(transferBids.status, "active"),
+      ),
+    );
+  const alreadyBid = new Set<string>();
+  for (const e of existing) {
+    const amount = Number(e.amount);
+    topByListing.set(
+      e.listingId,
+      Math.max(topByListing.get(e.listingId) ?? 0, amount),
+    );
+    if (e.bidder === club.id) alreadyBid.add(e.listingId);
+  }
+
+  const candidates = open
+    .map((l) => ({ listing: l, player: byId.get(l.playerId) }))
+    .filter(
+      (c): c is { listing: (typeof open)[number]; player: DBPlayer } =>
+        !!c.player &&
+        c.player.clubId !== club.id &&
+        !alreadyBid.has(c.listing.id) &&
+        (c.player.overall > squadAvg - 2 || needs.includes(c.player.position)),
+    )
+    .sort((a, b) => valueToClub(b.player, trait) - valueToClub(a.player, trait));
+
+  let placed = 0;
+  for (const c of candidates.slice(0, 2)) {
+    if (rng() > 0.6) continue;
+    const ceiling = Math.min(
+      budget,
+      Math.round(Number(c.player.marketValueCents) * MAX_AI_PRICE_MULTIPLIER),
+    );
+    const top = topByListing.get(c.listing.id) ?? 0;
+    // Open at the asking price; otherwise raise over the leader.
+    const target =
+      top === 0
+        ? c.listing.priceCents
+        : Math.round(top * (1.04 + trait.bidAggression * 0.03));
+    if (target > ceiling) continue;
+
+    try {
+      await db.insert(transferBids).values({
+        leagueId: club.leagueId,
+        listingId: c.listing.id,
+        bidderClubId: club.id,
+        amountCents: target,
+      });
+    } catch {
+      // The partial unique index refused a second live bid from this club.
+      // Same handling as sendOffers: a duplicate is a no-op, not an error.
+      continue;
+    }
+    placed++;
+  }
+  return placed;
+}
+
 async function buyFromMarket(
   club: Club,
   squad: DBPlayer[],
@@ -639,6 +780,9 @@ async function buyFromMarket(
       (c): c is { listing: (typeof listings)[number]; player: DBPlayer } =>
         !!c.player &&
         c.player.clubId !== club.id &&
+        // Auctions are not for sale at the asking price — bidOnAuctions
+        // handles those. Buying one here would bypass every other bidder.
+        c.listing.bidsCloseAt === null &&
         c.listing.priceCents <= budget &&
         // Never pay a silly price. A price-blind buyer turns the listing
         // band into a money printer: sign someone cheap, list at the top of
@@ -980,6 +1124,7 @@ export type AiTickResult = {
   clubsManaged: number;
   renewed: number;
   listed: number;
+  bidsPlaced: number;
   signed: number;
   bought: number;
   offersSent: number;
@@ -1022,6 +1167,7 @@ export async function runAiManagers(
     clubsManaged: 0,
     renewed: 0,
     listed: 0,
+    bidsPlaced: 0,
     signed: 0,
     bought: 0,
     offersSent: 0,
@@ -1067,6 +1213,7 @@ export async function runAiManagers(
     result.renewed += await renewExpiringContracts(club, squad, trait);
     result.listed += await listSurplus(club, squad, trait, rng);
     result.listed += await listQualitySurplus(club, squad, trait, rng);
+    result.bidsPlaced += await bidOnAuctions(club, squad, trait, rng);
     result.signed += await signFreeAgents(club, squad, trait);
     result.bought += await buyFromMarket(club, squad, trait, rng);
     result.offersSent += await sendOffers(club, squad, trait, rng);

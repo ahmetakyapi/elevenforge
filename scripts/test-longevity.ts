@@ -8,6 +8,7 @@ import { runMatchDay } from "../lib/jobs/match-day";
 import { runAiManagers } from "../lib/ai/manager";
 import { runWeeklyNewspaper } from "../lib/jobs/newspaper";
 import { runPriceDecay } from "../lib/jobs/price-decay";
+import { resolveTransferBids } from "../lib/jobs/bids";
 import { closeMarketForSeasonRoll } from "../lib/jobs/market-reset";
 import { runWeeklyEconomy } from "../lib/jobs/training";
 import {
@@ -93,6 +94,7 @@ async function playSeason(leagueId: string): Promise<void> {
     await runAiManagers({ leagueId, force: true });
     await runWeeklyNewspaper({ leagueId });
     await runPriceDecay({ leagueId });
+    await resolveTransferBids({ leagueId });
 
     // The economy job runs once per MATCH DAY in production, because a match
     // day is this game's football week — see the note on runWeeklyEconomy.

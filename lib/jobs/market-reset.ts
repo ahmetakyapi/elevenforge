@@ -27,11 +27,13 @@ import { and, eq, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { transferListings, transferOffers } from "@/lib/schema";
 import { releasePlayers } from "./price-decay";
+import { cancelBidsForListings } from "./bids";
 
 export type MarketResetResult = {
   listingsCleared: number;
   playersReleased: number;
   offersExpired: number;
+  bidsCancelled: number;
 };
 
 export async function closeMarketForSeasonRoll(
@@ -62,6 +64,12 @@ export async function closeMarketForSeasonRoll(
   await releasePlayers(listedIds);
   const released = listedIds.length;
 
+  // Any auction that was still running dies with its listing. Without this the
+  // bids survive as 'active' rows pointing at a listing nobody will ever
+  // resolve, and resolveTransferBids would skip them forever because it only
+  // looks at listings that are still 'active'.
+  const bidsCancelled = await cancelBidsForListings(cleared.map((l) => l.id));
+
   // Offers, BOTH statuses. "countered" is the half that matters: the club has
   // named a price and acceptCounterOffer will happily revive that offer at
   // `counterCents` with a fresh expiry, so a countered offer left alive across
@@ -91,5 +99,6 @@ export async function closeMarketForSeasonRoll(
     listingsCleared: cleared.length,
     playersReleased: released,
     offersExpired: offers.length,
+    bidsCancelled,
   };
 }

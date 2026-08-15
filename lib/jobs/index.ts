@@ -10,3 +10,4 @@ export { runDailyTraining, runWeeklyEconomy } from "./training";
 export { runWeeklyNewspaper, generateNewspaper } from "./newspaper";
 export { runAiManagers } from "@/lib/ai/manager";
 export { syncInactiveManagers } from "@/lib/ai/inactivity";
+export { resolveTransferBids, cancelBidsForListings } from "./bids";

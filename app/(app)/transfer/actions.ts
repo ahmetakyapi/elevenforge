@@ -20,6 +20,7 @@ import {
 } from "@/lib/economy";
 import { euroAmountSchema, uuidSchema, validate } from "@/lib/validation";
 import type { Position } from "@/types";
+import { cancelBidsForListings } from "@/lib/jobs/bids";
 
 export async function buyListing(listingId: string) {
   const ctx = await requireLeagueContext();
@@ -48,6 +49,16 @@ export async function buyListing(listingId: string) {
   if (!player) return { ok: false as const, error: "Oyuncu bulunamadı." };
   if (player.clubId === ctx.club.id) {
     return { ok: false as const, error: "Bu oyuncu zaten sende." };
+  }
+
+  // An auction is not for sale at the asking price. Letting the buy-now path
+  // through here would hand the player to whoever clicked, which is exactly
+  // the behaviour bidding replaces — and it would strand every existing bid.
+  if (row.bidsCloseAt !== null) {
+    return {
+      ok: false as const,
+      error: "Bu ilan teklif usulü — sabit fiyatla alınamaz, teklif ver.",
+    };
   }
 
   // Optimistic lock: claim the listing first. If two buyers race, only the
@@ -280,6 +291,10 @@ export async function removeListing(listingId: string) {
   if (withdrawn.length === 0) {
     return { ok: false as const, error: "Bu ilan artık aktif değil." };
   }
+  // Withdrawing an auction has to close its bids too, or the clubs bidding on
+  // it wait forever: resolveTransferBids only ever looks at listings that are
+  // still 'active'.
+  await cancelBidsForListings(withdrawn.map((l) => l.id));
   await db
     .update(players)
     .set({ status: "active" })

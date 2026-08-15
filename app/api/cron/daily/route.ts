@@ -29,6 +29,7 @@
  */
 import { NextResponse } from "next/server";
 import { verifyCron } from "@/lib/cron/verify";
+import { resolveTransferBids } from "@/lib/jobs/bids";
 import {
   processScoutReturns,
   runAiManagers,
@@ -54,9 +55,13 @@ import {
  *                   (see runWeeklyEconomy); charging before the gate receipts
  *                   land would bankrupt clubs that are actually solvent.
  *  6. scouts      — assignments that came due.
- *  7. price-decay — unsold listings drift down.
- *  8. transfer-bots — market activity on the freshly decayed prices.
- *  9. newspaper   — reports the results, so it runs last.
+ *  7. price-decay — unsold listings drift down (auctions are exempt).
+ *  8. bids        — auctions whose deadline has passed are awarded. After
+ *                   ai-managers, because that is where bots place their bids;
+ *                   before transfer-bots, whose free-agent top-up counts open
+ *                   listings and must not restock against ones about to close.
+ *  9. transfer-bots — market activity on the freshly decayed prices.
+ * 10. newspaper   — reports the results, so it runs last.
  */
 const STEPS = [
   { name: "inactivity", run: () => syncInactiveManagers() },
@@ -66,6 +71,7 @@ const STEPS = [
   { name: "economy", run: () => runWeeklyEconomy() },
   { name: "scout-returns", run: () => processScoutReturns() },
   { name: "price-decay", run: () => runPriceDecay() },
+  { name: "bids", run: () => resolveTransferBids() },
   { name: "transfer-bots", run: () => runTransferBots() },
   { name: "newspaper", run: () => runWeeklyNewspaper() },
 ] as const;

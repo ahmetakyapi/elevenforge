@@ -350,6 +350,10 @@ export const transferListings = pgTable(
       .notNull()
       .defaultNow(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    // NULL = fixed price, buy it now (the original behaviour, unchanged).
+    // Set = an auction: bids are taken until this instant, then the highest
+    // one that can actually pay wins. Always <= expiresAt.
+    bidsCloseAt: timestamp("bids_close_at", { withTimezone: true }),
     status: listingStatus("status").notNull().default("active"),
   },
   (t) => [
@@ -851,3 +855,58 @@ export const clubLedger = pgTable(
 
 export type LedgerRow = typeof clubLedger.$inferSelect;
 export type LedgerKind = (typeof ledgerKind.enumValues)[number];
+
+// ─── Transfer bids (auctions) ──────────────────────────────────────
+// A listing used to be a fixed price with an "Al" button: whoever clicked
+// first got the player, and nobody else ever knew there was a contest. An
+// auction is what makes a signing feel earned — several clubs want him, you
+// find out whether you wanted him more.
+//
+// A bid is a row, not an entry in a JSON blob. The existing `autoBidsJson`
+// text column on transfer_listings is mutated through a five-attempt
+// compare-and-swap in app/(app)/transfer/auto-bid-actions.ts, and that CAS
+// exists purely because the array shares one column. Real rows make concurrent
+// bids independent and let Postgres enforce one live bid per club per listing
+// instead of application code.
+//
+// MONEY DOES NOT MOVE WHEN A BID IS PLACED. It moves once, at award, through
+// lib/money.ts — so a losing bidder is never debited and never needs a refund.
+export const bidStatus = pgEnum("bid_status", [
+  "active",
+  "won",
+  "lost",
+  "withdrawn",
+  "expired",
+  "failed",
+]);
+
+export const transferBids = pgTable(
+  "transfer_bids",
+  {
+    id: id(),
+    leagueId: uuid("league_id")
+      .notNull()
+      .references(() => leagues.id, { onDelete: "cascade" }),
+    listingId: uuid("listing_id")
+      .notNull()
+      .references(() => transferListings.id, { onDelete: "cascade" }),
+    bidderClubId: uuid("bidder_club_id")
+      .notNull()
+      .references(() => clubs.id, { onDelete: "cascade" }),
+    amountCents: money("amount_cents").notNull(),
+    status: bidStatus("status").notNull().default("active"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    // The partial unique index that enforces one LIVE bid per club per listing
+    // is declared in drizzle/0023_transfer_bids.sql, following the precedent
+    // of listings_one_active_per_player (0013) and offers_one_pending_per_target
+    // (0014): Drizzle's schema carries the plain indexes, the SQL carries the
+    // ones with a WHERE clause.
+    index("bids_listing_idx").on(t.listingId, t.status),
+    index("bids_bidder_idx").on(t.bidderClubId, t.status),
+    index("bids_league_idx").on(t.leagueId, t.status),
+  ],
+);
+
+export type TransferBid = typeof transferBids.$inferSelect;

@@ -37,6 +37,7 @@ import {
 } from "./actions";
 import { claimScout } from "./claim-scout";
 import { ListingExtraActions } from "./listing-extra-actions";
+import { placeBid } from "./bid-actions";
 
 type SortKey = "trend" | "price-asc" | "price-desc" | "ovr" | "age";
 type PosFilter = Position | "ALL";
@@ -717,6 +718,46 @@ function TransferRow({
           ? { label: "İLK 11 ADAYI", tint: "var(--cyan, #22d3ee)" }
           : { label: "YEDEK", tint: "var(--muted)" };
 
+  const isAuction = listing.bidsCloseAtMs !== null;
+  const leading =
+    isAuction &&
+    listing.myBidEur !== null &&
+    listing.myBidEur === listing.topBidEur;
+  const closesLabel = (() => {
+    if (!listing.bidsCloseAtMs) return "";
+    const mins = Math.round((listing.bidsCloseAtMs - Date.now()) / 60000);
+    if (mins <= 0) return "kapanıyor";
+    if (mins < 60) return `${mins}dk`;
+    return `${Math.round(mins / 60)}sa`;
+  })();
+
+  const onBid = () =>
+    startTransition(async () => {
+      // Open at the asking price, raise over the leader. The server re-checks
+      // both the band and the deadline; this only picks a sensible default so
+      // the common case is one click rather than a form.
+      const next =
+        listing.topBidEur === null
+          ? listing.priceEur
+          : Math.round(listing.topBidEur * 1.05);
+      const res = await placeBid({ listingId: listing.id, amountEur: next });
+      if (res.ok) {
+        toast({
+          icon: "🔨",
+          title: res.raised ? "Teklifin yükseltildi" : "Teklifin kaydedildi",
+          body: `${listing.name} · ${fmtEUR(next)}`,
+          accent: "var(--gold)",
+        });
+      } else {
+        toast({
+          icon: "⚠",
+          title: "Teklif verilemedi",
+          body: res.error,
+          accent: "var(--danger)",
+        });
+      }
+    });
+
   const onBuy = () =>
     startTransition(async () => {
       const res = await buyListing(listing.id);
@@ -800,6 +841,25 @@ function TransferRow({
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 15, fontWeight: 600 }}>{listing.name}</span>
+            {isAuction && (
+              <span
+                className="t-mono"
+                title={closesLabel}
+                style={{
+                  fontSize: 9.5,
+                  fontWeight: 700,
+                  letterSpacing: "0.03em",
+                  padding: "2px 7px",
+                  borderRadius: 999,
+                  whiteSpace: "nowrap",
+                  background:
+                    "color-mix(in oklab, var(--gold) 18%, transparent)",
+                  color: "var(--gold)",
+                }}
+              >
+                {leading ? "AÇIK ARTIRMA · ÖNDESİN" : `AÇIK ARTIRMA · ${closesLabel}`}
+              </span>
+            )}
             {fit && (
               <span
                 className="t-mono"
@@ -939,7 +999,11 @@ function TransferRow({
             {deal.label}
           </span>
           <span className="t-caption" style={{ fontSize: 10 }}>
-            değer {fmtEUR(listing.marketValueEur)}
+            {isAuction
+              ? listing.bidCount === 0
+                ? "henüz teklif yok"
+                : `${listing.bidCount} teklif · en yüksek ${fmtEUR(listing.topBidEur ?? 0)}`
+              : `değer ${fmtEUR(listing.marketValueEur)}`}
           </span>
         </div>
 
@@ -973,18 +1037,38 @@ function TransferRow({
               {listing.sellerType === "bot" ? "Bot" : `@${listing.sellerName ?? ""}`}
             </span>
           </div>
-          <button
-            type="button"
-            className="btn btn-sm btn-primary"
-            disabled={!canAfford || pending}
-            onClick={(e) => {
-              e.stopPropagation();
-              onBuy();
-            }}
-            style={{ minWidth: 56 }}
-          >
-            {pending ? "…" : "Al"}
-          </button>
+          {isAuction ? (
+            <button
+              type="button"
+              className="btn btn-sm btn-primary"
+              disabled={pending}
+              onClick={(e) => {
+                e.stopPropagation();
+                onBid();
+              }}
+              style={{ minWidth: 78 }}
+              title={
+                listing.myBidEur !== null
+                  ? `Teklifin ${fmtEUR(listing.myBidEur)} — yükselt`
+                  : "Açık artırmaya katıl"
+              }
+            >
+              {pending ? "…" : listing.myBidEur !== null ? "Yükselt" : "Teklif"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-sm btn-primary"
+              disabled={!canAfford || pending}
+              onClick={(e) => {
+                e.stopPropagation();
+                onBuy();
+              }}
+              style={{ minWidth: 56 }}
+            >
+              {pending ? "…" : "Al"}
+            </button>
+          )}
         </div>
       </div>
 
