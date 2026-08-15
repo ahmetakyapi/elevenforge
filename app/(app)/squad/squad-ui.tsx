@@ -1502,13 +1502,17 @@ function PlayerSheet({
   };
   // Rendered into <body>, not in place.
   //
-  // The (app) layout gives <main> `animation: page-enter ... both`, and a
-  // fill-mode animation leaves a transform on the element permanently. Any
-  // non-none transform makes that element the containing block for its
-  // fixed-position descendants — so `position: fixed; inset: 0` resolved
-  // against <main> instead of the viewport, and the dialog rendered near the
-  // middle of the whole (tall) page rather than the middle of the screen.
-  // That is what looked like the page scrolling down on open.
+  // The bug this was written for is now fixed at its source: <main> carried
+  // `animation: page-enter ... both`, and a fill-mode animation leaves the
+  // final keyframe's transform on the element forever, which made <main> the
+  // containing block for every fixed-position descendant in the app. See the
+  // note on [data-page-enter] in app/globals.css.
+  //
+  // The portal stays anyway. It costs nothing and it makes this dialog
+  // independent of whatever any ancestor does later — a `filter`,
+  // `backdrop-filter` or `will-change: transform` added to a wrapper in a
+  // year's time would silently reintroduce exactly the same symptom, and the
+  // symptom (a dialog somewhere down the page) does not point at its cause.
   if (typeof document === "undefined") return null;
   return createPortal(
     <div

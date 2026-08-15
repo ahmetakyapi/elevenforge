@@ -547,8 +547,27 @@ body[data-modal-open="true"] { overflow: hidden; }
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+/*
+ * NO FILL MODE. `both` keeps the final keyframe applied forever, and that
+ * keyframe ends on `transform: translateY(0)` — a transform, even a zero one,
+ * makes the element a CONTAINING BLOCK for every `position: fixed` descendant
+ * inside it. So every modal in the app anchored itself to <main> instead of
+ * the viewport: dialogs opened far down the page and you had to scroll to find
+ * them.
+ *
+ * Without a fill mode the transform exists only for the 220ms the animation is
+ * running and is gone afterwards, so <main> stops being a containing block and
+ * `position: fixed` means what it says. There is no delay on this animation,
+ * so dropping the fill costs nothing visually — `backwards` would only matter
+ * if the start were deferred.
+ *
+ * Anything added to this element later — `filter`, `backdrop-filter`,
+ * `perspective`, `will-change: transform`, `contain: paint` — reintroduces the
+ * same bug. It is not obvious from the symptom, which looks like a modal
+ * positioning mistake rather than a page-transition one.
+ */
 [data-page-enter] {
-  animation: page-enter 220ms var(--ease) both;
+  animation: page-enter 220ms var(--ease);
 }
 @media (prefers-reduced-motion: reduce) {
   [data-page-enter] { animation: none; }
