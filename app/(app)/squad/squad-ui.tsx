@@ -15,6 +15,11 @@ import {
   Target,
   X,
   Zap,
+  Dumbbell,
+  Square,
+  Tag,
+  Bandage as BandageIcon,
+  type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/components/ui/toast";
@@ -940,8 +945,12 @@ function PlayerCardGrid({
             color: statusStyles.c,
             border: "1px solid currentColor",
             zIndex: 2,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
           }}
         >
+          <statusStyles.Icon size={10} strokeWidth={2.2} />
           {statusStyles.label}
         </div>
       )}
@@ -1274,26 +1283,41 @@ function formTone(rating: number): string {
   return "var(--muted-2)";
 }
 
-const STATUS_STYLE: Record<string, { bg: string; c: string; label: string }> = {
+/**
+ * Status chips.
+ *
+ * The labels used to lead with an emoji (🩹 / 🟥 / 💰 / 💪). Emoji render
+ * differently on every platform — weight, colour and metrics all shift — so a
+ * chip that lines up on macOS breaks on Windows, and they cannot take the
+ * theme's colour. lucide, like every other icon in the app.
+ */
+const STATUS_STYLE: Record<
+  string,
+  { bg: string; c: string; label: string; Icon: LucideIcon }
+> = {
   injured: {
     bg: "color-mix(in oklab, var(--danger) 20%, transparent)",
     c: "var(--danger)",
-    label: "🩹 SAKAT",
+    label: "SAKAT",
+    Icon: BandageIcon,
   },
   suspended: {
     bg: "color-mix(in oklab, var(--warn) 20%, transparent)",
     c: "var(--warn)",
-    label: "🟥 CEZALI",
+    label: "CEZALI",
+    Icon: Square,
   },
   listed: {
     bg: "color-mix(in oklab, var(--emerald) 20%, transparent)",
     c: "var(--emerald)",
-    label: "💰 SATIŞTA",
+    label: "SATIŞTA",
+    Icon: Tag,
   },
   training: {
     bg: "color-mix(in oklab, var(--cyan) 20%, transparent)",
     c: "var(--cyan)",
-    label: "💪 EĞİTİM",
+    label: "EĞİTİM",
+    Icon: Dumbbell,
   },
 };
 
@@ -1451,18 +1475,29 @@ function PlayerTable({
             }
           />
           <Currency value={p.val ?? 0} size={13} />
-          <div style={{ fontSize: 14 }}>{STATUS_ICON[p.status ?? "_"] ?? ""}</div>
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            {(() => {
+              const Icon = STATUS_ICON[p.status ?? "_"];
+              return Icon ? (
+                <Icon
+                  size={13}
+                  strokeWidth={2}
+                  style={{ color: STATUS_STYLE[p.status ?? "_"]?.c }}
+                />
+              ) : null;
+            })()}
+          </div>
         </div>
       ))}
     </div>
   );
 }
 
-const STATUS_ICON: Record<string, string> = {
-  injured: "🩹",
-  suspended: "🟥",
-  training: "💪",
-  listed: "💰",
+const STATUS_ICON: Record<string, LucideIcon> = {
+  injured: BandageIcon,
+  suspended: Square,
+  training: Dumbbell,
+  listed: Tag,
 };
 
 // ─── Player sheet (modal detail) ─────────────────────────────
@@ -1868,9 +1903,9 @@ function PlayerSheet({
                   Moral
                 </span>
                 <span style={{ fontSize: 14, letterSpacing: "-0.03em" }}>
-                  {"❤".repeat(p.mor ?? 0)}
+                  {"●".repeat(p.mor ?? 0)}
                   <span style={{ color: "var(--muted-2)" }}>
-                    {"❤".repeat(5 - (p.mor ?? 0))}
+                    {"●".repeat(5 - (p.mor ?? 0))}
                   </span>
                 </span>
               </div>
@@ -2103,7 +2138,7 @@ function PlayerSheetActions({
       const res = await toggleTraining(p.id!);
       if (res.ok) {
         toast({
-          icon: res.status === "training" ? "💪" : "✓",
+          icon: res.status === "training" ? "▲" : "✓",
           title: res.status === "training" ? "Antrenmana kondu" : "Antrenmandan çıktı",
           body: p.n,
           accent: "var(--emerald)",
@@ -2126,7 +2161,7 @@ function PlayerSheetActions({
       const res = await playFriendly(p.id!);
       if (res.ok) {
         toast({
-          icon: res.ovrBump ? "⭐" : "⚽",
+          icon: res.ovrBump ? "▲" : "✓",
           title: res.ovrBump
             ? `${p.n} 1 basamak yükseldi!`
             : `Dostluk maçı oynandı`,

@@ -71,7 +71,7 @@ export function TrainingPanel({ squad }: { squad: Player[] }) {
       const res = await setTrainingFocus({ playerId, focus: attr });
       if (res.ok) {
         pushToast({
-          icon: "🎯",
+          icon: "◎",
           title: `${name} artık ${ATTR_LABEL[attr]} çalışıyor`,
           accent: "var(--accent)",
         });
@@ -86,7 +86,7 @@ export function TrainingPanel({ squad }: { squad: Player[] }) {
       const res = await toggleTraining(playerId);
       if (res.ok) {
         pushToast({
-          icon: adding ? "🔥" : "✓",
+          icon: adding ? "▲" : "✓",
           title: adding ? `${name} antrenmana alındı` : `${name} antrenmandan çıktı`,
           accent: adding ? "var(--emerald)" : undefined,
         });

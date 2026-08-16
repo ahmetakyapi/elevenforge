@@ -786,7 +786,7 @@ function TransferRow({
       const res = await placeBid({ listingId: listing.id, amountEur: next });
       if (res.ok) {
         toast({
-          icon: "🔨",
+          icon: "◈",
           title: res.raised ? "Teklifin yükseltildi" : "Teklifin kaydedildi",
           body: `${listing.name} · ${fmtEUR(next)}`,
           accent: "var(--gold)",
@@ -806,7 +806,7 @@ function TransferRow({
       const res = await buyListing(listing.id);
       if (res.ok) {
         toast({
-          icon: "⚽",
+          icon: "✓",
           title: `${res.playerName} takımında`,
           body: "Oyuncu kadronla birleşti.",
           accent: "var(--emerald)",
