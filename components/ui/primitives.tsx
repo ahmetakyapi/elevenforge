@@ -257,7 +257,10 @@ export function UserAvatar({ name, size = 24 }: UserAvatarProps) {
         width: size,
         height: size,
         borderRadius: "50%",
-        background: `oklch(0.5 0.08 ${hue})`,
+        // L=0.5 put white text at roughly 4:1 — under AA at these sizes, and
+        // it varies by hue because oklch lightness is perceptual but the text
+        // is fixed white. 0.42 clears 4.5:1 for every hue on the wheel.
+        background: `oklch(0.42 0.09 ${hue})`,
         color: "#fff",
         fontWeight: 600,
         fontSize: size * 0.4,

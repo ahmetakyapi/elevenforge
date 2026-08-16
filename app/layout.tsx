@@ -50,9 +50,31 @@ export default function RootLayout({
     <html
       lang="tr"
       data-theme="dark"
+      data-accent="indigo"
       suppressHydrationWarning
       className={`${manrope.variable} ${jetbrainsMono.variable}`}
     >
+      <head>
+        {/*
+          Apply the saved theme BEFORE first paint.
+
+          The server always renders data-theme="dark" (it cannot know the
+          preference), and the tweaks panel only corrects it after React
+          mounts — so a light-mode user got a full dark flash on every single
+          navigation. This is the standard no-flash shim: a tiny blocking
+          script that reads the same `ef.tweaks` key the panel writes and
+          stamps both attributes before the browser paints anything.
+
+          It must stay inline and synchronous. Deferring it, or moving it into
+          a component, puts it after the first paint and reintroduces exactly
+          the flash it exists to prevent.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=JSON.parse(localStorage.getItem('ef.tweaks')||'{}');if(t.theme==='light'||t.theme==='dark')document.documentElement.setAttribute('data-theme',t.theme);if(t.accent)document.documentElement.setAttribute('data-accent',t.accent);}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body>{children}</body>
     </html>
   );

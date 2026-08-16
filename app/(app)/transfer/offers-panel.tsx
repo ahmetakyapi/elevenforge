@@ -15,13 +15,22 @@ import type { Position } from "@/types";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
+/*
+ * Tokens, not hex.
+ *
+ * This file was the odd one out: it carried its own literal palette while the
+ * rest of the app styles from CSS variables. That meant the theme could not
+ * reach it — "Kabul edildi" stayed at the dark-mode emerald and measured
+ * 2.2:1 against a white page — and the accept buttons below used Tailwind's
+ * `bg-emerald-500/90 text-black`, which is 1.04:1 in dark mode.
+ */
 const STATUS_LABEL: Record<string, { text: string; color: string }> = {
-  pending: { text: "Bekliyor", color: "#f59e0b" },
-  accepted: { text: "Kabul edildi", color: "#10b981" },
-  rejected: { text: "Reddedildi", color: "#ef4444" },
-  countered: { text: "Karşı teklif", color: "#6366f1" },
-  withdrawn: { text: "Geri çekildi", color: "#71717a" },
-  expired: { text: "Süresi doldu", color: "#71717a" },
+  pending: { text: "Bekliyor", color: "var(--warn)" },
+  accepted: { text: "Kabul edildi", color: "var(--emerald)" },
+  rejected: { text: "Reddedildi", color: "var(--danger)" },
+  countered: { text: "Karşı teklif", color: "var(--accent)" },
+  withdrawn: { text: "Geri çekildi", color: "var(--muted)" },
+  expired: { text: "Süresi doldu", color: "var(--muted)" },
 };
 
 function eur(n: number): string {
@@ -67,7 +76,7 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
   function run(fn: () => Promise<{ ok: boolean; error?: string }>, okMsg: string) {
     startTransition(async () => {
       const res = await fn();
-      if (res.ok) pushToast({ title: okMsg, accent: "#10b981" });
+      if (res.ok) pushToast({ title: okMsg, accent: "var(--emerald)" });
       else
         pushToast({
           title: "İşlem başarısız",
@@ -146,7 +155,7 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
                         "Transfer tamamlandı",
                       )
                     }
-                    className="rounded-lg bg-emerald-500/90 px-3 py-1.5 text-xs font-semibold text-black transition hover:bg-emerald-400 disabled:opacity-50"
+                    className="btn btn-sm btn-primary"
                   >
                     Kabul Et
                   </button>
@@ -239,8 +248,8 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
                 <span
                   className="ml-auto rounded-full px-2 py-0.5 font-mono text-[10px]"
                   style={{
-                    background: `${STATUS_LABEL[o.status]?.color ?? "#71717a"}22`,
-                    color: STATUS_LABEL[o.status]?.color ?? "#71717a",
+                    background: `color-mix(in oklab, ${STATUS_LABEL[o.status]?.color ?? "var(--muted)"} 14%, transparent)`,
+                    color: STATUS_LABEL[o.status]?.color ?? "var(--muted)",
                   }}
                 >
                   {STATUS_LABEL[o.status]?.text ?? o.status}
@@ -273,7 +282,7 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
                         "Karşı teklif kabul edildi",
                       )
                     }
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/90 px-3 py-1.5 text-xs font-semibold text-black transition hover:bg-emerald-400 disabled:opacity-50"
+                    className="btn btn-sm btn-primary"
                   >
                     <Handshake size={13} /> {eur(o.counterEur)} Öde
                   </button>
@@ -316,8 +325,8 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
                 <span
                   className="rounded-full px-1.5 py-0.5 font-mono text-[9px]"
                   style={{
-                    background: `${STATUS_LABEL[o.status]?.color ?? "#71717a"}22`,
-                    color: STATUS_LABEL[o.status]?.color ?? "#71717a",
+                    background: `color-mix(in oklab, ${STATUS_LABEL[o.status]?.color ?? "var(--muted)"} 14%, transparent)`,
+                    color: STATUS_LABEL[o.status]?.color ?? "var(--muted)",
                   }}
                 >
                   {STATUS_LABEL[o.status]?.text ?? o.status}

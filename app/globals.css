@@ -16,7 +16,10 @@
   --text: #f4f5f7;
   --text-2: #c7ccd8;
   --muted: #8b92a5;
-  --muted-2: #5a6172;
+  /* Readable as small text, not just as a hairline. At #5a6172 this measured
+     3.25:1 against the page and it is used for real copy — the cup bracket's
+     "?", the fixture card's "vs", secondary figures in the squad table. */
+  --muted-2: #7b8497;
 
   --indigo: #6366f1;
   --emerald: #10b981;
@@ -24,6 +27,16 @@
   --warn: #f59e0b;
   --danger: #ef4444;
   --gold: #facc15;
+
+  /* Position colours. These were a hardcoded hex map in lib/utils.ts, which
+     meant they ignored the theme completely: the keeper's #facc15 measured
+     1.24:1 against a white page — the squad screen's position bands, badges
+     and training chips were unreadable in light mode and nothing in the theme
+     could reach them. Tokens so the light block below can restate them. */
+  --pos-gk: #facc15;
+  --pos-def: #3b82f6;
+  --pos-mid: #10b981;
+  --pos-fwd: #ef4444;
 
   --accent: var(--indigo);
   --accent-2: var(--emerald);
@@ -115,15 +128,21 @@
   --text: #0f172a;
   --text-2: #334155;
   --muted: #5b6577;
-  --muted-2: #8a94a6;
+  --muted-2: #626b7d;
 
   /* Same hues, darker steps — legible on white without changing identity. */
   --indigo: #4f46e5;
   --emerald: #047857;
   --cyan: #0e7490;
-  --warn: #b45309;
-  --danger: #dc2626;
-  --gold: #a16207;
+  --warn: #9a4708;
+  --danger: #b91c1c;
+  --gold: #8a5a06;
+
+  /* Same hues, dark enough to read as text on white. */
+  --pos-gk: #8a5a06;
+  --pos-def: #1d4ed8;
+  --pos-mid: #047857;
+  --pos-fwd: #b91c1c;
 
   /* Elevation, not grime. */
   --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.06);
@@ -132,6 +151,25 @@
   --shadow-lg: 0 12px 28px -8px rgba(15, 23, 42, 0.14), 0 4px 10px -4px rgba(15, 23, 42, 0.08);
   --shadow-xl: 0 24px 48px -12px rgba(15, 23, 42, 0.18), 0 8px 16px -8px rgba(15, 23, 42, 0.1);
 }
+
+/*
+ * Accent choice, resolved per theme.
+ *
+ * The tweaks panel used to write `--accent` as an inline style on <html>.
+ * An inline style outranks every stylesheet rule, so the light theme's darker
+ * accent was never applied and light mode kept the dark-mode indigo — measured
+ * 3.88:1 on the standings heading. The panel now sets a `data-accent` key and
+ * the pairing lives here, next to the theme it belongs to.
+ */
+[data-accent="indigo"] { --accent: #6366f1; --accent-2: #10b981; }
+[data-accent="emerald"] { --accent: #10b981; --accent-2: #22d3ee; }
+[data-accent="cyan"] { --accent: #22d3ee; --accent-2: #6366f1; }
+[data-accent="gold"] { --accent: #facc15; --accent-2: #f59e0b; }
+
+[data-theme="light"][data-accent="indigo"] { --accent: #4338ca; --accent-2: #047857; }
+[data-theme="light"][data-accent="emerald"] { --accent: #047857; --accent-2: #0e7490; }
+[data-theme="light"][data-accent="cyan"] { --accent: #0e7490; --accent-2: #4338ca; }
+[data-theme="light"][data-accent="gold"] { --accent: #8a5a06; --accent-2: #b45309; }
 
 /* Tailwind v4 — expose CSS vars as utility colors */
 @theme inline {

@@ -53,9 +53,11 @@ export function TweaksPanel() {
   useEffect(() => {
     if (!mounted) return;
     document.documentElement.setAttribute("data-theme", theme);
-    const a = ACCENTS[accent];
-    document.documentElement.style.setProperty("--accent", a.main);
-    document.documentElement.style.setProperty("--accent-2", a.alt);
+    // A data attribute, NOT an inline style. An inline `--accent` outranks
+    // every stylesheet rule, including [data-theme="light"], so light mode
+    // kept the dark accent and its headings measured 3.88:1. The per-theme
+    // pairing now lives in app/globals.css where the theme can restate it.
+    document.documentElement.dataset.accent = accent;
     try {
       window.localStorage.setItem(
         STORAGE_KEY,

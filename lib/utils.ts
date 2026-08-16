@@ -31,11 +31,20 @@ export const tierLabel = (ovr: number): string => {
   return "C";
 };
 
+/*
+ * Position colours, as tokens rather than hex.
+ *
+ * These were literal hex values, so they were the one part of the palette the
+ * theme could not reach: the keeper's #facc15 measured 1.24:1 against a white
+ * page and made the squad screen's position bands, badges and training chips
+ * unreadable in light mode. The values now live in app/globals.css, restated
+ * under [data-theme="light"] like every other colour.
+ */
 const POS_COLOR_MAP: Record<Position, string> = {
-  GK: "#facc15",
-  DEF: "#3b82f6",
-  MID: "#10b981",
-  FWD: "#ef4444",
+  GK: "var(--pos-gk)",
+  DEF: "var(--pos-def)",
+  MID: "var(--pos-mid)",
+  FWD: "var(--pos-fwd)",
 };
 
 export const posColor = (pos: Position): string => POS_COLOR_MAP[pos] ?? "var(--muted)";
