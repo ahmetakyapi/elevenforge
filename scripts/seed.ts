@@ -29,7 +29,6 @@ import { roundRobin as sharedRoundRobin } from "../lib/jobs/season";
 import {
   marketValueCents,
   STARTING_BALANCE_CENTS,
-  wageFromValueCents,
 } from "../lib/economy";
 import type { Position } from "../types";
 import { assertLocalDatabase } from "./guard-remote-db";
@@ -124,6 +123,8 @@ const HAND_SECONDARY: Record<string, string[]> = {
 
 // Budget for each club (€M in cents)
 const START_BALANCE_CENTS = STARTING_BALANCE_CENTS;
+// Seeded clubs open on the same prestige-derived budget a season roll would
+// give them, so a fresh league and a rolled-over one start from one rule.
 
 const SQUAD_COMPOSITION: Array<[Position, number]> = [
   ["GK", 2],
@@ -234,7 +235,6 @@ function generatePlayerForClub(
   // Young players have higher potential upside
   const pot = age <= 21 ? Math.max(ovr + 3, potCap) : Math.max(ovr, potCap);
   const valueCents = marketValueCents(ovr, pot, age);
-  const wageCents = wageFromValueCents(valueCents);
   const attrs = computeAttrsFromOvr(ovr, role, r);
   return {
     leagueId,
@@ -251,9 +251,7 @@ function generatePlayerForClub(
     ...attrs,
     fitness: 85 + Math.floor(r() * 15),
     morale: 3 + Math.floor(r() * 3),
-    wageCents,
     marketValueCents: valueCents,
-    contractYears: 1 + Math.floor(r() * 5),
     status: "active",
     lastRatings: JSON.stringify(
       Array.from({ length: 5 }, () =>
@@ -434,13 +432,8 @@ async function main() {
       morale: p.mor ?? 4,
       // Derive from the curve rather than a constant — see the note in
       // create-league.ts. A flat fallback once priced every player at €1M.
-      wageCents:
-        p.wage != null
-          ? p.wage * 100
-          : wageFromValueCents(marketValueCents(p.ovr, p.pot, p.age)),
       marketValueCents:
         p.val != null ? p.val * 100 : marketValueCents(p.ovr, p.pot, p.age),
-      contractYears: p.ctr ?? 3,
       status:
         p.status && p.status !== "listed"
           ? (p.status as "active" | "injured" | "suspended" | "training")

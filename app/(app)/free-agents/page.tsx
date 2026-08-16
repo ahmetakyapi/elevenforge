@@ -38,7 +38,7 @@ export default async function FreeAgentsPage() {
             Bonservisle imzala
           </div>
           <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>
-            Sözleşmesi biten oyuncular havuzda — transfer ücreti yok, sadece
+            Kulübü olmayan oyuncular havuzda — transfer ücreti yok, sadece
             piyasa değerinin %40&apos;ı imzalama bonusu. Bütçen: €{(balanceEur / 1_000_000).toFixed(1)}M
           </div>
         </div>

@@ -24,14 +24,13 @@ import { playFriendly, toggleTraining } from "./actions";
 import { FormationSwitcher } from "./formation-switcher";
 import { SquadBoard } from "./squad-board";
 import { TrainingPanel } from "./training-panel";
-import { renewContract } from "./contract-actions";
 import { ComparePanel } from "./compare-panel";
 import {
   Crest,
   PosBadge,
   RatingDot,
 } from "@/components/ui/primitives";
-import { fmtEUR, fmtWage, posColor } from "@/lib/utils";
+import { fmtEUR, posColor } from "@/lib/utils";
 import { ATTR_LABEL, type TrainableAttr } from "@/lib/attributes";
 import type { Player, Position } from "@/types";
 
@@ -1622,7 +1621,6 @@ function PlayerSheet({
                 {fmtEUR(p.val ?? 0)}
               </span>
               <span className="t-mono" style={{ fontSize: 10.5, color: "var(--muted)" }}>
-                {fmtWage(p.wage ?? 0)}
               </span>
             </div>
           </div>
@@ -1650,32 +1648,51 @@ function PlayerSheet({
               />
             </div>
 
+            {/* The contract panel used to live here. Contracts and wages are
+                gone from the game (see lib/economy.ts), so what a manager
+                wants in this slot is the thing that DOES change about a
+                player he owns: how far he still has to run. */}
             <div className="glass" style={{ padding: 14 }}>
-              <span className="t-label">SÖZLEŞME</span>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
-                <span className="t-mono" style={{ fontSize: 20, fontWeight: 800 }}>
-                  {p.ctr ?? 0}
+              <span className="t-label">GELİŞİM</span>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 10 }}>
+                <span className="t-mono" style={{ fontSize: 20, fontWeight: 800, color: tier.accent }}>
+                  {p.ovr}
                 </span>
-                <span className="t-caption" style={{ fontSize: 11 }}>yıl kaldı</span>
-                <div style={{ display: "flex", gap: 3, marginLeft: "auto" }}>
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <span
-                      key={`c-${i}`}
-                      style={{
-                        width: 16,
-                        height: 5,
-                        borderRadius: 3,
-                        background: i < (p.ctr ?? 0) ? "var(--accent)" : "var(--panel-2)",
-                      }}
-                    />
-                  ))}
-                </div>
+                <span className="t-caption" style={{ fontSize: 11 }}>→</span>
+                <span
+                  className="t-mono"
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 800,
+                    color: growth > 0 ? "var(--emerald)" : "var(--muted)",
+                  }}
+                >
+                  {p.pot}
+                </span>
+                <span className="t-caption" style={{ fontSize: 11, marginLeft: "auto" }}>
+                  {growth > 0 ? `+${growth} kaldı` : "tavanında"}
+                </span>
               </div>
-              {(p.ctr ?? 0) <= 1 && (
-                <p className="t-caption" style={{ fontSize: 11, marginTop: 8, color: "var(--warn)" }}>
-                  Sözleşme bitmek üzere — yenilemezsen bedelsiz gider.
-                </p>
-              )}
+              <div
+                style={{
+                  height: 5,
+                  borderRadius: 999,
+                  background: "var(--panel-2)",
+                  overflow: "hidden",
+                  marginTop: 10,
+                }}
+              >
+                <div
+                  style={{
+                    height: "100%",
+                    width: "100%",
+                    background: tier.accent,
+                    transformOrigin: "left",
+                    transform: `scaleX(${p.pot > 0 ? Math.min(1, p.ovr / p.pot) : 1})`,
+                    transition: "transform 600ms var(--ease)",
+                  }}
+                />
+              </div>
             </div>
 
             <div className="glass" style={{ padding: 14 }}>
@@ -1861,30 +1878,6 @@ function PlayerSheetActions({
         onClick={handleFriendly}
       >
         <Zap size={14} strokeWidth={1.6} /> Dostluk Maçı
-      </button>
-      <button
-        type="button"
-        className="btn btn-ghost"
-        disabled={pending || !p.id}
-        onClick={() => {
-          if (!p.id) return;
-          startTransition(async () => {
-            const res = await renewContract({ playerId: p.id!, years: 2 });
-            if (!res.ok) {
-              toast({ icon: "⚠", title: "Sözleşme uzatılamadı", body: res.error, accent: "var(--danger)" });
-              return;
-            }
-            toast({
-              icon: "✍",
-              title: `${p.n} sözleşme yeniledi`,
-              body: `Yeni süre: ${res.newYears} yıl`,
-              accent: "var(--emerald)",
-            });
-            router.refresh();
-          });
-        }}
-      >
-        Sözleşme +2y
       </button>
       {p.id && (
         <Link

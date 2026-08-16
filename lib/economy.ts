@@ -22,8 +22,58 @@
  * All amounts are in CENTS (€1 = 100).
  */
 
-/** Starting balance for a new club: enough for 2-4 real signings. */
-export const STARTING_BALANCE_CENTS = 25_000_000_000; // €250M
+/**
+ * ─── NO WAGES, NO CONTRACTS ──────────────────────────────────────────────
+ *
+ * Both are gone. A contract that expires needs renewing, a renewal needs a
+ * cost, a cost needs a wage to be a multiple of, and a wage needs a weekly
+ * charge — four systems whose only job was to take money away again so the
+ * income figures had something to be balanced against. None of it was a
+ * decision: nobody ever chose NOT to renew a player they wanted, so the
+ * whole apparatus reduced to a bill that arrived on a timer and a button you
+ * pressed when it did.
+ *
+ * With it removed, money means exactly one thing: what you can buy. That is
+ * the only question the transfer market ever asked, and it is now the only
+ * question the economy answers.
+ *
+ * ─── WHY THE BALANCE RESETS EACH SEASON ──────────────────────────────────
+ *
+ * Money used to flow both ways: gate receipts in, wages out, roughly level.
+ * Take the wages away and it only flows in, so by season five every club is
+ * sitting on billions and the transfer market stops meaning anything — the
+ * exact failure the economy was rebalanced to fix in the first place.
+ *
+ * So a season is a self-contained financial run. Every club starts it with a
+ * budget sized by its prestige, earns through the year, and spends. At the
+ * roll the books are closed and the next season opens with a fresh budget.
+ * What CARRIES is everything you built with the money — the squad, the
+ * players you developed, the trophies, the prestige. What does not carry is
+ * the cash pile, because a cash pile is not an achievement.
+ */
+
+/**
+ * What a club starts a season with, before prestige.
+ *
+ * Sized against the transfer market rather than against a wage bill: a squad
+ * player is €3-15M, a first-team upgrade €25-60M, a marquee signing €90M+.
+ * A base budget of €90M plus a season's income is one star or a rebuilt
+ * spine — enough to change your team, not enough to buy everyone's.
+ */
+export const STARTING_BALANCE_CENTS = 9_000_000_000; // €90M
+
+/**
+ * The budget a club opens a season with.
+ *
+ * Prestige-scaled for the same reason match income is: a big club's squad
+ * costs eight times a small one's, so a flat budget is a rounding error to
+ * one and a fortune to the other. The spread is deliberately narrower than
+ * the revenue spread — the league should be winnable from mid-table.
+ */
+export function seasonBudgetCents(prestige: number): number {
+  const p = Math.max(0, Math.min(100, prestige));
+  return Math.round(STARTING_BALANCE_CENTS * (0.6 + (p / 100) * 0.9));
+}
 
 /**
  * Match-day revenue, in cents.
@@ -155,25 +205,6 @@ export function marketValueCents(
 }
 
 /**
- * Weekly wage implied by a valuation.
- *
- * One divisor, used by the squad-pack generator, the academy, the scouts and
- * the repricing script, so a player's wage always tracks what he is worth.
- * €100M of value costs €500K/week, which is about €26M a year — the right
- * order of magnitude, and it keeps a top club's bill near the €6.8M/week that
- * `matchIncomeCents` above is sized against.
- */
-export const WAGE_DIVISOR = 200;
-export const MIN_WEEKLY_WAGE_CENTS = 1_200_000; // €12K/week
-
-export function wageFromValueCents(valueCents: number): number {
-  return Math.max(
-    MIN_WEEKLY_WAGE_CENTS,
-    Math.round(valueCents / WAGE_DIVISOR / 100) * 100,
-  );
-}
-
-/**
  * The two multipliers that keep the AI from being farmed.
  *
  * INVARIANT: MIN_AI_ASKING_MULTIPLIER > MAX_AI_PRICE_MULTIPLIER.
@@ -199,30 +230,13 @@ export const FREE_AGENT_FEE_RATE = 0.4;
 export const MIN_LISTING_MULTIPLIER = 0.5;
 export const MAX_LISTING_MULTIPLIER = 1.8;
 
-/**
- * Interest on a positive balance, per economy tick.
- *
- * At the old 0.5% this compounded to +16% per season, which rewarded sitting
- * on cash more reliably than running a football club. It is now small and
- * capped, so it offsets a little inflation without becoming a strategy.
- *
- * A TICK IS A MATCH DAY, roughly 34 per season rather than the ~5 real weeks
- * a season occupies. The rate is per tick, so it was divided by seven when the
- * economy moved onto the match-day clock — left alone it would have paid seven
- * times the intended interest, and the clubs it pays most are the ones already
- * holding the most cash. The cap matters more than the rate: it stops a club
- * that has hoarded a billion from out-earning one that is running a team.
+/*
+ * Bank interest used to live here. It is gone with the wage bill: interest on
+ * a positive balance pays the club that is doing the least with its money,
+ * and with nothing draining the account it became the largest income line in
+ * the game. Cash now earns nothing, which is the correct incentive when the
+ * balance is wiped at the season roll anyway.
  */
-export const WEEKLY_INTEREST_RATE = 0.0002;
-export const WEEKLY_INTEREST_CAP_CENTS = 30_000_000; // €300K
-
-export function weeklyInterestCents(balanceCents: number): number {
-  if (balanceCents <= 0) return 0;
-  return Math.min(
-    WEEKLY_INTEREST_CAP_CENTS,
-    Math.round(balanceCents * WEEKLY_INTEREST_RATE),
-  );
-}
 
 /** League prize money, 1st through 4th, scaled to the new balance range. */
 export const SEASON_PRIZES_CENTS = [
@@ -237,28 +251,11 @@ export const CUP_WINNER_PRIZE_CENTS = 1_500_000_000; // €15M
 export const CUP_RUNNER_UP_PRIZE_CENTS = 500_000_000; // €5M
 
 /**
- * Cost to extend a contract: a signing bonus of ~12 weeks' wages per year.
- *
- * The old formula charged `weeklyWage × 52 × years × 1.2` — a full year of
- * wages up front for every year added, on top of the wages the club still
- * pays weekly. Renewing a €500K/week player for two years cost €62M, which
- * is why AI clubs bankrupted themselves the moment contracts came due.
- */
-export const RENEWAL_WEEKS_PER_YEAR = 12;
-
-export function renewalCostCents(weeklyWageCents: number, years: number): number {
-  return Math.round(weeklyWageCents * RENEWAL_WEEKS_PER_YEAR * years);
-}
-
-/** Wage inflation applied when a contract is renewed. */
-export const RENEWAL_WAGE_MULTIPLIER = 1.08;
-
-/**
  * A club this far in the red cannot make voluntary purchases. Wages are
  * still charged — going bust is a game state, not an error — but the board
  * stops signing cheques.
  */
-export const OVERDRAFT_FLOOR_CENTS = -5_000_000_000; // −€50M
+export const OVERDRAFT_FLOOR_CENTS = -1_500_000_000; // −€15M
 
 /**
  * What a club receives when it is forced to sell to balance the books: 70%

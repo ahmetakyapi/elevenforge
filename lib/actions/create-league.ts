@@ -24,7 +24,7 @@ import { roundRobin as sharedRoundRobin } from "@/lib/jobs/season";
 import { assignSeasonGoals } from "@/lib/jobs/board";
 import { generateCupBracket } from "@/lib/jobs/cup";
 import type { Position } from "@/types";
-import { marketValueCents, wageFromValueCents } from "@/lib/economy";
+import { marketValueCents, seasonBudgetCents } from "@/lib/economy";
 
 const SQUAD_COMPOSITION: Array<[Position, number]> = [
   ["GK", 2],
@@ -397,9 +397,7 @@ function generatePlayer(
     goalkeeping,
     fitness: 85 + Math.floor(r() * 15),
     morale: 3 + Math.floor(r() * 3),
-    wageCents: wageFromValueCents(valueCents),
     marketValueCents: valueCents,
-    contractYears: 1 + Math.floor(r() * 5),
     status: "active",
     lastRatings: JSON.stringify(
       Array.from({ length: 5 }, () => Number((6 + r() * 2.5).toFixed(1))),
@@ -513,8 +511,11 @@ export async function createStarterLeague(input: {
     // Budget + prestige follow pack order so Big-4 start richer / more
     // prestigious than the Anatolian clubs — board goals and transfer
     // fees feel right out of the box.
-    // Balances are scaled to lib/economy.ts STARTING_BALANCE_CENTS (€250M
-    // baseline); the spread keeps big clubs able to outbid smaller ones.
+    // Only `prestige` is read from the table now. The opening budget is
+    // derived from it by seasonBudgetCents, so a club's money and its standing
+    // can never drift apart — and so the number a club starts season one with
+    // is computed the same way as the one it starts season five with, rather
+    // than by a hand-kept table that only the league creator ever consulted.
     type TierMeta = { prestige: number; balance: number };
     // One entry per pack, in SQUAD_PACKS order. Derived rather than indexed
     // blindly: the league grew from 16 to 18 clubs and a fixed-length table
@@ -581,7 +582,7 @@ export async function createStarterLeague(input: {
           city: meta.city,
           color: meta.color,
           color2: meta.color2,
-          balanceCents: tier.balance,
+          balanceCents: seasonBudgetCents(tier.prestige),
           prestige: tier.prestige,
           formation: personality.formation,
           mentality: personality.mentality,
@@ -637,9 +638,7 @@ export async function createStarterLeague(input: {
           // silently, because a constant is a perfectly valid number. Falling
           // back to the curve means a missing field costs accuracy, not the
           // entire economy.
-          wageCents: p.wage != null ? p.wage * 100 : wageFromValueCents(packValue),
           marketValueCents: packValue,
-          contractYears: p.ctr ?? 3,
           status:
             p.status && p.status !== "listed"
               ? (p.status as "active" | "injured" | "suspended" | "training")

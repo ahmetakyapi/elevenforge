@@ -96,7 +96,7 @@ export function StaffWidget({ staffJson }: { staffJson: string | null }) {
                 <>
                   <div style={{ fontWeight: 600, fontSize: 13 }}>{member.name}</div>
                   <div style={{ fontSize: 11, color: "var(--muted)" }}>
-                    T{member.tier} · €{(member.weeklyWageCents / 100 / 1000).toFixed(0)}K/hafta
+                    T{member.tier} · sezonluk
                   </div>
                   <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
                     <button
@@ -214,8 +214,8 @@ export function StaffWidget({ staffJson }: { staffJson: string | null }) {
                     {s.bio}
                   </div>
                   <div style={{ fontSize: 12, marginTop: 6 }}>
-                    Bonus €{(s.hireCostCents / 100 / 1_000_000).toFixed(1)}M ·
-                    €{(s.weeklyWageCents / 100 / 1000).toFixed(0)}K/hafta
+                    €{(s.hireCostCents / 100 / 1_000_000).toFixed(1)}M · tek
+                    seferlik, sezon sonunda sözleşme biter
                   </div>
                   <button
                     type="button"

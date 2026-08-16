@@ -29,9 +29,7 @@ export function ComparePanel({
     stat("Yaş", a.age, b.age, "min"),
     stat("Form", a.fit ?? 0, b.fit ?? 0),
     stat("Moral", a.mor ?? 0, b.mor ?? 0),
-    stat("Maaş (€)", a.wage ?? 0, b.wage ?? 0, "min"),
     stat("Değer (€)", a.val ?? 0, b.val ?? 0),
-    stat("Kontrat (yıl)", a.ctr ?? 0, b.ctr ?? 0),
   ];
   return (
     <div

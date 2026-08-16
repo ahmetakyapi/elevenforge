@@ -20,7 +20,7 @@ import {
   findScoutCandidates,
   type ScoutPoolPlayer,
 } from "@/lib/scout-pool";
-import { marketValueCents, wageFromValueCents } from "@/lib/economy";
+import { marketValueCents } from "@/lib/economy";
 import { parseStaffJson } from "@/lib/staff";
 import {
   transferWindow,
@@ -60,7 +60,6 @@ type ScoutCandidate = {
    */
   real?: boolean;
   marketValueCents: number;
-  wageCents: number;
 };
 
 /**
@@ -110,7 +109,6 @@ function realCandidate(p: ScoutPoolPlayer): ScoutCandidate {
     ...attrs,
     real: true,
     marketValueCents: value,
-    wageCents: wageFromValueCents(value),
   };
 }
 
@@ -147,7 +145,6 @@ function inventedCandidate(
     goalkeeping: p.goalkeeping,
     real: false,
     marketValueCents: p.marketValueCents,
-    wageCents: p.wageCents,
   };
 }
 
@@ -434,7 +431,6 @@ export async function claimScoutPlayer(
         : attributesFor(c.overall, c.role)),
       secondaryRoles: JSON.stringify(c.secondaryRoles ?? []),
       marketValueCents: c.marketValueCents,
-      wageCents: c.wageCents,
     })
     .returning();
 

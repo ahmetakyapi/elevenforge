@@ -222,3 +222,51 @@ export async function adjustClubBalance(
   if (rows.length === 0) return;
   await writeLedger(exec, rows[0], delta, reason);
 }
+
+/**
+ * Close the books and reopen them at `balanceCents`.
+ *
+ * The one money write that is not a transaction. Every other path here moves
+ * an amount between a club and the world and cares deeply about what the
+ * balance was beforehand — that is the entire point of the guarded delta. The
+ * season roll does something different: it ENDS the accounting period. Last
+ * season's balance is not carried forward and is not netted against anything;
+ * it simply stops existing, and a new one is set from the club's prestige.
+ * See lib/economy.ts for why the balance resets rather than accumulating.
+ *
+ * It still lives in this file, and it still writes a ledger row, because the
+ * invariant is "every balance change is recorded here" and a reset is a
+ * balance change. Doing it with a bare `db.update` in the season job — which
+ * is what it looked like at first — would have been the first money write in
+ * the game with no record attached, and scripts/test-exploits.ts is right to
+ * refuse it.
+ *
+ * The ledger entry is the DELTA, not the new balance, so the sum-of-entries
+ * invariant survives the reset.
+ */
+export async function resetClubBalance(
+  clubId: string,
+  balanceCents: number,
+  exec: Executor = db,
+): Promise<void> {
+  const target = normalizeAmount(balanceCents);
+  const [before] = await db
+    .select({ balanceCents: clubs.balanceCents, leagueId: clubs.leagueId })
+    .from(clubs)
+    .where(eq(clubs.id, clubId));
+  if (!before) return;
+
+  await exec
+    .update(clubs)
+    .set({ balanceCents: target })
+    .where(eq(clubs.id, clubId));
+
+  const delta = target - Number(before.balanceCents);
+  if (delta === 0) return;
+  await writeLedger(
+    exec,
+    { id: clubId, leagueId: before.leagueId, balanceCents: target },
+    delta,
+    { kind: "other", note: "Sezon açılış bütçesi" },
+  );
+}

@@ -30,7 +30,7 @@ import {
   transferListings,
   transferOffers,
 } from "../lib/schema";
-import { marketValueCents, wageFromValueCents } from "../lib/economy";
+import { marketValueCents } from "../lib/economy";
 import { assertLocalDatabase } from "./guard-remote-db";
 
 const APPLY = process.argv.includes("--apply");
@@ -51,7 +51,6 @@ async function main() {
       potential: players.potential,
       age: players.age,
       value: players.marketValueCents,
-      wage: players.wageCents,
       club: clubs.name,
       league: leagues.name,
     })
@@ -66,9 +65,8 @@ async function main() {
 
   for (const p of rows) {
     const value = marketValueCents(p.overall, p.potential, p.age);
-    const wage = wageFromValueCents(value);
+    const wage = 0;
     const oldValue = Number(p.value);
-    if (value === oldValue && wage === Number(p.wage)) continue;
 
     changes.push({ id: p.id, value, wage });
     const delta = value - oldValue;
@@ -117,10 +115,10 @@ async function main() {
   }
 
   let done = 0;
-  for (const { value, wage, ids } of byPrice.values()) {
+  for (const { value, ids } of byPrice.values()) {
     await db
       .update(players)
-      .set({ marketValueCents: value, wageCents: wage })
+      .set({ marketValueCents: value })
       .where(inArray(players.id, ids));
     done += ids.length;
   }

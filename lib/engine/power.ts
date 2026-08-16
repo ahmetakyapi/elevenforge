@@ -128,6 +128,25 @@ export type TeamPower = {
   injuryRisk: number;
   /** Extra fitness burned per player, on top of the base match cost. */
   fatigue: number;
+
+  /*
+    How many bodies this shape commits to each zone.
+
+    These are the summed role weights, and they are what makes a FORMATION do
+    something. Every unit score above is a weighted MEAN, which is right for
+    "how good is my midfield" and completely blind to "how many midfielders do
+    I have" — so a 3-5-2's five midfielders scored exactly the same as a
+    4-3-3's three, and picking a shape changed nothing but a couple of
+    additive constants. Measured across the six formations, the entire
+    matchup matrix spanned 45.7% to 50.7% home wins: noise.
+
+    The caller compares these against the OPPONENT's, because numerical
+    superiority is inherently relative — five in midfield is an overload
+    against three and an even game against five.
+  */
+  attackWeight: number;
+  midWeight: number;
+  defWeight: number;
 };
 
 /**
@@ -211,14 +230,29 @@ export function teamPower(
   // the whole side, not just the line it came from.
   const shortfall = Math.max(0, 11 - starters.length) * 2.5;
 
-  const mentalityBoost = (tactics.mentality - 2) * 1.2;
-  const pressingBoost = (tactics.pressing - 2) * 0.9;
-  const tempoBoost = (tactics.tempo - 2) * 0.4;
+  /*
+    ── The dials are worth about three times what they were ───────────────
+
+    These were ±1.2, ±0.9, ±0.4. The unit scores they modify sit in the 60-90
+    range and the xG formula divides the attack-minus-defence difference by
+    24, so the entire seven-dial spread moved a match by under a tenth of a
+    goal. Measured: parking the bus versus going all-out changed the home win
+    rate from 43.3% to 48.5% and the goals conceded from 0.90 to 0.82. A
+    manager could set every dial to its worst value and barely notice.
+
+    A tactical choice should be worth roughly what a few rating points are
+    worth, so that reading the opponent correctly can beat being slightly
+    better — and getting it wrong can lose you a match you should have won.
+    That is the entire reason the screen exists.
+  */
+  const mentalityBoost = (tactics.mentality - 2) * 3.4;
+  const pressingBoost = (tactics.pressing - 2) * 2.6;
+  const tempoBoost = (tactics.tempo - 2) * 1.4;
   // A high line squeezes the pitch: your midfield plays in their half. What
   // it costs is applied by the caller, because the cost depends entirely on
   // how fast the opponent's forwards are.
-  const lineBoost = (tactics.defLine - 2) * 1.3;
-  const aggressionBoost = (tactics.aggression - 2) * 1.1;
+  const lineBoost = (tactics.defLine - 2) * 3.0;
+  const aggressionBoost = (tactics.aggression - 2) * 2.8;
 
   /*
     THE PASSING DECISION.
@@ -253,7 +287,7 @@ export function teamPower(
     tempoBoost +
     lineBoost +
     // Going direct means conceding the midfield; you gave up on winning it.
-    -Math.max(0, directness) * 2.6 +
+    -Math.max(0, directness) * 6.5 +
     moraleBoost * 0.5 +
     homeBoost * 0.4 -
     fitPenalty -
@@ -287,6 +321,9 @@ export function teamPower(
       Math.max(0, tactics.pressing - 2) * 1.6 +
       Math.max(0, tactics.tempo - 2) * 1.3 +
       Math.max(0, tactics.defLine - 2) * 0.6,
+    attackWeight: aW,
+    midWeight: mW,
+    defWeight: dW,
   };
 }
 
@@ -298,13 +335,46 @@ export function teamPower(
  * pace, which is why "park the bus against the fast team" has to be a real
  * option for it to be a real decision.
  */
+/**
+ * What committing more bodies to a zone than the opponent is worth.
+ *
+ * Returned in power points, to be added by the caller. This is the entire
+ * mechanical content of choosing a formation: five midfielders against three
+ * is an overload, three at the back against two strikers is a spare man, and
+ * a lone striker against a back five is a man on an island.
+ *
+ * Deliberately sub-linear. A straight multiple would make 5-3-2 versus 4-3-3
+ * a rout rather than an advantage, and the shape you pick should tilt a match
+ * rather than decide it — the players on the pitch still have to be good
+ * enough to use the extra man.
+ */
+export function zoneEdge(mine: number, theirs: number, scale = 4.6): number {
+  const diff = mine - theirs;
+  return Math.sign(diff) * Math.sqrt(Math.abs(diff)) * scale;
+}
+
 export function lineExposure(mine: TeamPower, theirs: TeamPower, defLine: number): number {
   const paceGap = theirs.attackPace - mine.defencePace;
   const lineHeight = defLine - 2; // −2 deep … +2 high
   if (lineHeight <= 0) {
-    // Dropping deep takes the space away; the faster they are, the more it
-    // is worth, but the benefit is capped so a bus is not a free win.
-    return -Math.min(4, Math.max(0, paceGap) * 0.22) * Math.abs(lineHeight) * 0.6;
+    /*
+      Dropping deep takes the space away.
+
+      Two parts, and the first one used to be missing. The pace-dependent term
+      is the interesting half — sitting back is worth most against a fast
+      front line — but on its own it meant that against an averagely-quick
+      opponent a low block bought almost nothing. Measured: parking the bus
+      conceded 0.58 goals against a neutral setup's 0.59, while giving up half
+      the attack. That is not a defensive option, it is a worse setting.
+
+      So a deep line also carries a flat solidity term. It is smaller than the
+      attacking output it costs, which is exactly the trade "park the bus"
+      should be: you will concede less and you will probably not win.
+    */
+    const depth = Math.abs(lineHeight);
+    const flat = depth * 2.6;
+    const versusPace = Math.min(4, Math.max(0, paceGap) * 0.22) * depth * 0.6;
+    return -(flat + versusPace);
   }
   return lineHeight * Math.max(-3, paceGap) * 0.55;
 }

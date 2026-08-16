@@ -28,7 +28,7 @@ import {
   transferListings,
 } from "../lib/schema";
 import { SQUAD_PACKS } from "../lib/squad-packs";
-import { marketValueCents, wageFromValueCents } from "../lib/economy";
+import { marketValueCents } from "../lib/economy";
 import { assertLocalDatabase } from "./guard-remote-db";
 
 // Per-role attribute offsets from overall (match seed.ts). Keeping a
@@ -180,13 +180,8 @@ async function main() {
         morale: p.mor ?? 4,
         // Derive from the curve rather than a constant — see the note in
         // create-league.ts. A flat fallback once priced every player at €1M.
-        wageCents:
-          p.wage != null
-            ? p.wage * 100
-            : wageFromValueCents(marketValueCents(p.ovr, p.pot, p.age)),
         marketValueCents:
           p.val != null ? p.val * 100 : marketValueCents(p.ovr, p.pot, p.age),
-        contractYears: p.ctr ?? 3,
         status:
           p.status && p.status !== "listed"
             ? (p.status as "active" | "injured" | "suspended" | "training")

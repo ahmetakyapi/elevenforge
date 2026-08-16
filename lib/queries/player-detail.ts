@@ -27,9 +27,7 @@ export type PlayerDetail = {
   fitness: number;
   morale: number;
   status: string;
-  contractYears: number;
   marketValueEur: number;
-  wageEur: number;
   goalsSeason: number;
   assistsSeason: number;
   yellowCardsSeason: number;
@@ -113,9 +111,7 @@ export async function loadPlayerDetail(
     fitness: p.fitness,
     morale: p.morale,
     status: p.status,
-    contractYears: p.contractYears,
     marketValueEur: Math.round(Number(p.marketValueCents) / 100),
-    wageEur: Math.round(Number(p.wageCents) / 100),
     goalsSeason: p.goalsSeason,
     assistsSeason: p.assistsSeason,
     yellowCardsSeason: p.yellowCardsSeason,

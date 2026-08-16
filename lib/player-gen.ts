@@ -17,7 +17,7 @@
  * old is a known quantity — which is the decision scouting is supposed to be.
  */
 import { attributesFor } from "@/lib/attributes";
-import { marketValueCents, wageFromValueCents } from "@/lib/economy";
+import { marketValueCents } from "@/lib/economy";
 import type { Position } from "@/types";
 
 /** Roles a position can hold, weighted the way real squads are shaped. */
@@ -148,7 +148,6 @@ export type GeneratedPlayer = {
   physical: number;
   goalkeeping: number;
   marketValueCents: number;
-  wageCents: number;
 };
 
 /**
@@ -184,7 +183,6 @@ export function generatePlayer(opts: {
     potential,
     ...attrs,
     marketValueCents: value,
-    wageCents: wageFromValueCents(value),
   };
 }
 

@@ -14,7 +14,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { players, type Club } from "@/lib/schema";
 import type { Position } from "@/types";
-import { marketValueCents, wageFromValueCents } from "@/lib/economy";
+import { marketValueCents } from "@/lib/economy";
 
 const TR_FIRST = [
   "Ahmet", "Mehmet", "Emre", "Burak", "Yusuf", "Kerem", "Efe", "Arda",
@@ -103,8 +103,6 @@ function makeProspect(
     // graduate is cheap because he is 17 and raw, not because of a separate
     // rule that would drift out of step with the transfer market.
     marketValueCents: youthValue,
-    wageCents: wageFromValueCents(youthValue),
-    contractYears: 3,
     fitness: 95,
     morale: 4,
   };

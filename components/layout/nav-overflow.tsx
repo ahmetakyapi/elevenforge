@@ -33,7 +33,7 @@ const ITEMS: Item[] = [
   { href: "/finances", label: "Finans", hint: "Gelir, gider, kasa geçmişi", Icon: Wallet },
   { href: "/crew", label: "Crew", hint: "Sohbet ve etkinlik akışı", Icon: Bell },
   { href: "/stats", label: "İstatistikler", hint: "Gol krallığı, form", Icon: BarChart2 },
-  { href: "/free-agents", label: "Serbest Oyuncular", hint: "Sözleşmesi bitenler", Icon: UserPlus },
+  { href: "/free-agents", label: "Serbest Oyuncular", hint: "Kulüpsüz oyuncular", Icon: UserPlus },
   { href: "/profile", label: "Menajer Profili", hint: "Kupalar ve geçmiş", Icon: User2 },
   { href: "/lobby", label: "Lig Kur / Katıl", hint: "Davet koduyla katıl", Icon: Users2 },
   { href: "/league-settings", label: "Lig Ayarları", hint: "Maç saati, yetkiler", Icon: Settings },

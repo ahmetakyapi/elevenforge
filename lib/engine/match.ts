@@ -32,7 +32,7 @@ import {
 } from "@/lib/lineup";
 import { DEFAULT_TACTICS, type Tactics } from "@/lib/tactics";
 import { buildCommentary } from "./commentary";
-import { lineExposure, teamPower, type TeamPower } from "./power";
+import { lineExposure, teamPower, zoneEdge, type TeamPower } from "./power";
 
 // ─── Types ────────────────────────────────────────────────────
 export type MatchEventType =
@@ -244,8 +244,48 @@ export function simulateMatch(input: SimInput): MatchResult {
   const homePower = teamPower(homeStarters, homeT, homeBoost);
   const awayPower = teamPower(awayStarters, awayT, 0);
 
-  // The defensive line is priced against the OPPONENT's pace, which is what
-  // makes it a bet rather than a setting. Applied after both sides are known.
+  /*
+    ── Where the two shapes meet ──────────────────────────────────────────
+
+    Both sides' strengths are now priced AGAINST EACH OTHER rather than in
+    isolation, which is what makes the formation a decision:
+
+      - midfield is contested, so committing more bodies there than the
+        opponent is worth something. Five midfielders against three is the
+        oldest tactical idea in football and the model was completely blind to
+        it, because every unit score is a weighted mean and a mean does not
+        care how many terms it has.
+      - an attack is priced against the DEFENCE it is running at: three
+        forwards against a back five is a different proposition from three
+        against a back three.
+      - the defensive line is priced against the opponent's PACE, which is
+        what makes playing high a bet rather than a setting.
+
+    Everything here is relative and symmetric, so no shape is strictly better
+    than another — each one gives up somewhere in exchange for what it takes.
+  */
+  const homeMidEdge = zoneEdge(homePower.midWeight, awayPower.midWeight, 1.8);
+  const awayMidEdge = -homeMidEdge;
+
+  const homeAttack =
+    homePower.attack + zoneEdge(homePower.attackWeight, awayPower.defWeight, 5.2);
+  const awayAttack =
+    awayPower.attack + zoneEdge(awayPower.attackWeight, homePower.defWeight, 5.2);
+
+  /*
+    The attack/defence overload is applied ONCE, to the attack.
+
+    It was applied to both — the attacker gained `zoneEdge(myAttack,
+    theirDefence)` and the defender gained `zoneEdge(theirDefence, myAttack)`,
+    which is the same quantity with the sign flipped. Since every formation
+    commits more bodies to defence than to attack (a back four plus a keeper
+    against two or three forwards), that meant BOTH sides got a net defensive
+    bonus and scoring collapsed: equal squads went from 2.24 goals a match to
+    1.51, and two defensive setups produced a 57% draw rate.
+
+    One term, on the side doing the attacking. The defence's own strength is
+    already in `defense`, and how deep it sits is priced by lineExposure.
+  */
   const homeDefense =
     homePower.defense - lineExposure(homePower, awayPower, homeT.defLine);
   const awayDefense =
@@ -261,18 +301,19 @@ export function simulateMatch(input: SimInput): MatchResult {
   // controls midfield. Divisors are deliberately large so a talent gap
   // shifts the odds rather than guaranteeing a rout — a 15-point power
   // advantage is worth about +0.6 xG, not +4.
-  const midEdge = (homePower.midfield - awayPower.midfield) / 40;
-  const baseHome = 1.42;
-  const baseAway = 1.14;
+  const midEdge =
+    (homePower.midfield + homeMidEdge - (awayPower.midfield + awayMidEdge)) / 40;
+  const baseHome = 1.68;
+  const baseAway = 1.62;
   const homeXG =
     Math.min(
       4.2,
-      Math.max(0.18, (homePower.attack - awayDefense) / 24 + baseHome + midEdge),
+      Math.max(0.18, (homeAttack - awayDefense) / 24 + baseHome + midEdge),
     ) * stakesMultiplier;
   const awayXG =
     Math.min(
       4.2,
-      Math.max(0.18, (awayPower.attack - homeDefense) / 24 + baseAway - midEdge),
+      Math.max(0.18, (awayAttack - homeDefense) / 24 + baseAway - midEdge),
     ) * stakesMultiplier;
 
   // Poisson realization, capped at 7 goals per side.
@@ -305,7 +346,7 @@ export function simulateMatch(input: SimInput): MatchResult {
   // Possession: midfield control plus what each side's passing style pulls.
   const homePoss = Math.round(
     50 +
-      (homePower.midfield - awayPower.midfield) * 1.1 +
+      (homePower.midfield + homeMidEdge - (awayPower.midfield + awayMidEdge)) * 1.1 +
       (homePower.possessionPull - awayPower.possessionPull) * 0.5,
   );
   const possessionHome = Math.max(28, Math.min(72, homePoss));

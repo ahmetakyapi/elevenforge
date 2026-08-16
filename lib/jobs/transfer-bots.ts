@@ -328,7 +328,6 @@ export async function runTransferBots(opts: { leagueId?: string } = {}) {
           physical: gen.physical,
           goalkeeping: gen.goalkeeping,
           marketValueCents: gen.marketValueCents,
-          wageCents: gen.wageCents,
         })
         .returning();
       if (!row) continue;

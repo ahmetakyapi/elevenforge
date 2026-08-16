@@ -110,7 +110,6 @@ export async function signFreeAgent(input: { playerId: string }) {
     .set({
       clubId: ctx.club.id,
       status: "active",
-      contractYears: 2,
       jerseyNumber: nextJersey ?? p.jerseyNumber,
     })
     .where(and(eq(players.id, p.id), isNull(players.clubId)))

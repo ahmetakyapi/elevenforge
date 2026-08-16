@@ -253,11 +253,17 @@ export const players = pgTable(
     trainingFocus: text("training_focus"),
     fitness: integer("fitness").notNull().default(90),
     morale: integer("morale").notNull().default(4),
-    wageCents: money("wage_cents").notNull().default(10_000_000),
+    // wage_cents / contract_years are deliberately ABSENT.
+    //
+    // Wages and contracts were removed from the game (see lib/economy.ts).
+    // The columns still exist in the database and still carry NOT NULL
+    // defaults, so every INSERT here keeps working without naming them — a
+    // drop would be irreversible on a live league for no gain, and neither
+    // column carries history worth keeping (transfer_history holds the money
+    // that actually changed hands).
     marketValueCents: money("market_value_cents")
       .notNull()
       .default(500_000_000),
-    contractYears: integer("contract_years").notNull().default(3),
     status: playerStatus("status").notNull().default("active"),
     injuryUntil: timestamp("injury_until", { withTimezone: true }),
     suspensionMatchesLeft: integer("suspension_matches_left")

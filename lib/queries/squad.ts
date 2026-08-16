@@ -38,10 +38,8 @@ export async function loadSquad(ctx: LeagueContext): Promise<Player[]> {
       nat: p.nationality,
       fit: p.fitness,
       mor: p.morale,
-      wage: Math.round(Number(p.wageCents) / 100),
       val: Math.round(Number(p.marketValueCents) / 100),
       form,
-      ctr: p.contractYears,
       status:
         p.status === "active" ? undefined : p.status,
       pace: p.pace,

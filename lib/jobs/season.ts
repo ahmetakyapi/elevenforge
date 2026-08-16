@@ -8,10 +8,10 @@ import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   marketValueCents,
+  seasonBudgetCents,
   SEASON_PRIZES_CENTS,
-  wageFromValueCents,
 } from "@/lib/economy";
-import { creditClub } from "@/lib/money";
+import { creditClub, resetClubBalance } from "@/lib/money";
 import {
   clubs,
   cupFixtures,
@@ -313,7 +313,6 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
     .from(players)
     .where(eq(players.leagueId, leagueId));
   let retired = 0;
-  let freeAgents = 0;
   for (const p of allPlayers) {
     const newAge = p.age + 1;
 
@@ -334,11 +333,6 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
     const newOvr = Math.max(50, p.overall + ovrDelta);
     const newPot = Math.max(newOvr, p.potential + potDelta);
 
-    // Contract ticks down. If it hits 0 the player becomes a free agent
-    // (clubId=null). Re-signing them is a future feature; for now they
-    // remain in the league pool so scouts can find them.
-    const newCtr = p.contractYears - 1;
-    const expiring = newCtr <= 0;
     // Re-price the player against what he has become. Nothing else in the
     // game ever updated market value after the row was inserted, so a
     // youngster who trained from 60 to 85 stayed priced as a 60 forever and
@@ -351,21 +345,15 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
         overall: newOvr,
         potential: newPot,
         marketValueCents: newValue,
-        // Wages track value on the same curve the generator uses — via the
-        // shared helper, because an inlined copy of "value ÷ 200, floor €12K"
-        // is exactly how four different valuation formulas drifted apart here
-        // once before.
-        wageCents: wageFromValueCents(newValue),
-        contractYears: expiring ? 0 : newCtr,
-        clubId: expiring ? null : p.clubId,
-        status: expiring ? "active" : p.status,
+        // No contract to tick down and nobody to lose for free. A player
+        // stays where he is until somebody buys him; the only way a squad
+        // changes between seasons is a transfer somebody chose to make.
         goalsSeason: 0,
         assistsSeason: 0,
         yellowCardsSeason: 0,
         redCardsSeason: 0,
       })
       .where(eq(players.id, p.id));
-    if (expiring) freeAgents++;
   }
   // Clear match-day state that must not survive the summer: nobody starts a
   // new season injured, banned or exhausted.
@@ -380,6 +368,48 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
     })
     .where(eq(players.leagueId, leagueId));
 
+  /*
+    ── The books are closed ────────────────────────────────────────────────
+
+    Every club opens the new season with a fresh, prestige-scaled budget, and
+    nobody carries a balance across.
+
+    This is what replaces the wage bill. Money used to flow both ways — gate
+    receipts in, wages out, roughly level — and removing wages left it flowing
+    only one way. Left alone, every club would be sitting on billions by
+    season five and the transfer market would stop meaning anything, which is
+    precisely the failure the economy was rebalanced to fix in the first
+    place. Now a season is a self-contained financial run: earn it, spend it,
+    start again.
+
+    What CARRIES is everything the money bought — the squad, the players you
+    developed, the facilities, the trophies, the prestige that decides next
+    season's budget. What does not carry is the cash pile, because a cash pile
+    is not an achievement.
+
+    Written per club rather than as one statement because the amount depends
+    on each club's prestige, which was just updated above. It goes through
+    lib/money.ts like every other balance change — a reset is still a balance
+    change, and it still owes the ledger a row.
+  */
+  const budgetRows = await db
+    .select({ id: clubs.id, prestige: clubs.prestige })
+    .from(clubs)
+    .where(eq(clubs.leagueId, leagueId));
+  for (const c of budgetRows) {
+    await resetClubBalance(c.id, seasonBudgetCents(c.prestige));
+    await db
+      .update(clubs)
+      .set({
+        // Staff contracts run for a season. Rehiring each year makes the
+        // choice a live one rather than something decided once, in season
+        // one, and never revisited.
+        staffJson: null,
+        lastEconomyRunAt: null,
+      })
+      .where(eq(clubs.id, c.id));
+  }
+
   // The market closes for the break. Every price above was just recomputed
   // from each player's new overall/potential/age, so every listing and every
   // open offer in this league is now quoting last season's valuation — see
@@ -392,12 +422,12 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
   const intake = await generateYouthIntake(leagueId, newSeason, clubRows);
   const backfilled = await backfillThinSquads(leagueId, clubRows);
 
-  if (retired > 0 || freeAgents > 0) {
+  if (retired > 0 || intake.academy + backfilled > 0) {
     await db.insert(feedEvents).values({
       leagueId,
       clubId: null,
       eventType: "paper",
-      text: `Sezon sonu: ${retired} oyuncu emekli oldu, ${freeAgents} oyuncu serbest kaldı, altyapıdan ${intake.academy + backfilled} genç çıktı.`,
+      text: `Sezon sonu: ${retired} oyuncu emekli oldu, altyapıdan ${intake.academy + backfilled} genç çıktı.`,
     });
   }
 

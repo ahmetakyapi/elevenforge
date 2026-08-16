@@ -3,6 +3,13 @@
  * (headCoach / physio / scout). Each tier costs more upfront and pays
  * dividends in a different subsystem.
  *
+ * ONE-OFF COST, NO SALARY. Staff used to draw a weekly wage alongside the
+ * players'. Wages are gone from the game entirely (see lib/economy.ts), so a
+ * hire is a single payment out of the season's budget — which makes it the
+ * same kind of decision as a signing, and competes with signings for the same
+ * money. Staff are released at the season roll and rehired, so the choice is
+ * made fresh each year rather than once, forever, in season one.
+ *
  * Effects (applied wherever the relevant subsystem reads the staff):
  *   - headCoach: morale +tier on weekly economy, +tier*0.2 mentality nudge
  *   - physio:    injury chance × (1 - tier*0.18), recovery × (1 + tier*0.25)
@@ -16,7 +23,6 @@ export type StaffMember = {
   name: string;
   tier: 1 | 2 | 3;
   hireCostCents: number;
-  weeklyWageCents: number;
   bio: string;
 };
 
@@ -28,7 +34,6 @@ export const STAFF: StaffMember[] = [
     name: "Sertaç Tekin",
     tier: 1,
     hireCostCents: 200_000_000,
-    weeklyWageCents: 5_000_000,
     bio: "Genç antrenör — moral + temel taktik desteği.",
   },
   {
@@ -37,7 +42,6 @@ export const STAFF: StaffMember[] = [
     name: "Hasan Aksoy",
     tier: 2,
     hireCostCents: 600_000_000,
-    weeklyWageCents: 12_000_000,
     bio: "Süper Lig deneyimi var, basın aralarında işe yarar.",
   },
   {
@@ -46,7 +50,6 @@ export const STAFF: StaffMember[] = [
     name: "Murat Yıldırım",
     tier: 3,
     hireCostCents: 1_500_000_000,
-    weeklyWageCents: 28_000_000,
     bio: "Şampiyonluk getirmiş veteran. Bütçeye ağır ama etkisi büyük.",
   },
   // Physio
@@ -56,7 +59,6 @@ export const STAFF: StaffMember[] = [
     name: "Dr. Eda Demir",
     tier: 1,
     hireCostCents: 100_000_000,
-    weeklyWageCents: 3_000_000,
     bio: "Sakatlıkları %18 azaltır, küçük yardım.",
   },
   {
@@ -65,7 +67,6 @@ export const STAFF: StaffMember[] = [
     name: "Dr. Mert Koç",
     tier: 2,
     hireCostCents: 300_000_000,
-    weeklyWageCents: 7_500_000,
     bio: "Sakatlık riski %36 ↓, iyileşme %50 ↑.",
   },
   {
@@ -74,7 +75,6 @@ export const STAFF: StaffMember[] = [
     name: "Prof. Tuna Erdem",
     tier: 3,
     hireCostCents: 800_000_000,
-    weeklyWageCents: 18_000_000,
     bio: "Sakatlık %54 ↓, hızlı dönüş garantisi.",
   },
   // Scout
@@ -84,7 +84,6 @@ export const STAFF: StaffMember[] = [
     name: "Cem Ünlü",
     tier: 1,
     hireCostCents: 80_000_000,
-    weeklyWageCents: 2_500_000,
     bio: "Her kaşif görevine +1 aday.",
   },
   {
@@ -93,7 +92,6 @@ export const STAFF: StaffMember[] = [
     name: "Volkan Bayram",
     tier: 2,
     hireCostCents: 240_000_000,
-    weeklyWageCents: 6_000_000,
     bio: "+2 aday, daha geniş ağ.",
   },
   {
@@ -102,7 +100,6 @@ export const STAFF: StaffMember[] = [
     name: "Sertaç Aydın",
     tier: 3,
     hireCostCents: 700_000_000,
-    weeklyWageCents: 14_000_000,
     bio: "+3 aday, gizli yetenekleri ortaya çıkarır.",
   },
 ];

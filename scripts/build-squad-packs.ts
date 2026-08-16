@@ -4,7 +4,7 @@ import "./load-env";
 import { writeFileSync } from "node:fs";
 import { RAW_CLUBS, RAW_DIVISION_2, type RawClub } from "./squad-source";
 import type { Position } from "../types";
-import { marketValueCents, wageFromValueCents } from "../lib/economy";
+import { marketValueCents } from "../lib/economy";
 
 /**
  * Generate lib/squad-packs.ts from scripts/squad-source.ts.
@@ -145,7 +145,7 @@ function priceOf(ovr: number, pot: number, age: number): { val: number; wage: nu
   const cents = marketValueCents(ovr, pot, age);
   return {
     val: Math.round(cents / 100),
-    wage: Math.round(wageFromValueCents(cents) / 100),
+    wage: Math.round(((v: number) => 0)(cents) / 100),
   };
 }
 

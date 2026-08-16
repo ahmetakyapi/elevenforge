@@ -10,11 +10,11 @@
  */
 import { and, eq, inArray, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { marketValueCents, weeklyInterestCents } from "@/lib/economy";
+import { marketValueCents } from "@/lib/economy";
 import { adjustClubBalance } from "@/lib/money";
 import { growthChance, type ProgressionContext } from "@/lib/progression";
 import { clubs, feedEvents, players } from "@/lib/schema";
-import { parseStaffJson, staffById } from "@/lib/staff";
+import { parseStaffJson } from "@/lib/staff";
 import { claimJob } from "./claim";
 import {
   PRIMARY_ATTR,
@@ -225,22 +225,27 @@ export async function runDailyTraining(
 }
 
 /**
- * The wage bill, staff salaries, bank interest and the sponsor tick — one
- * game week's worth.
+ * The sponsor tick — what is left of the weekly economy.
+ *
+ * This function used to charge the wage bill, staff salaries and bank
+ * interest, and pay the sponsor. Three of those four are gone: wages and
+ * contracts were removed from the game (see lib/economy.ts), staff are now a
+ * one-off hire, and interest paid the club doing the least with its money.
+ *
+ * What remains is the sponsor contract, which is the one part that was a
+ * decision — you chose the deal, and it pays out over a fixed number of match
+ * days with a bonus at the end.
  *
  * RUNS ONCE PER MATCH DAY, not once per calendar week. A round is played every
- * day, so a match day is this game's football week: it is what the fixture
- * list, the sponsor's `weeksLeft` and the league's `weekNumber` all count in.
- * Charging wages on a real calendar week instead meant a club banked seven
- * match fees against a single wage charge and ran a €23M/week surplus with
- * nothing to spend it on. Income and costs now share one clock.
+ * day, so in this game a match day *is* a football week: it is what the
+ * fixture list, the sponsor's `weeksLeft` and the league's `weekNumber` all
+ * count in.
  *
  * Idempotent per club. This job sweeps every club in the database, so it is
- * exactly the kind of long-running webhook QStash retries after a timeout —
- * and a retry used to charge the wage bill twice and burn two weeks off every
- * sponsor contract. Each club is claimed with a conditional UPDATE on
- * `lastEconomyRunAt` before any money moves; a second run inside the cooldown
- * matches no rows and skips.
+ * exactly the kind of long-running webhook a scheduler retries after a
+ * timeout — and a retry used to burn two weeks off every sponsor contract.
+ * Each club is claimed with a conditional UPDATE on `lastEconomyRunAt` before
+ * any money moves; a second run inside the cooldown matches no rows and skips.
  *
  * `force` bypasses the claim for tests that drive many weeks in a row.
  */
@@ -253,28 +258,15 @@ export async function runWeeklyEconomy(
   if (allClubs.length === 0) return { clubs: 0 };
 
   // A tick may not run twice within this window for the same club. Sized just
-  // under a day so the daily cron always claims, but a QStash retry minutes
-  // later never double-charges.
+  // under a day so the daily cron always claims, but a retry minutes later
+  // never double-pays.
   const COOLDOWN_MS = 20 * 3600 * 1000;
   const now = new Date();
   const cutoff = new Date(now.getTime() - COOLDOWN_MS);
 
-  // One query for every wage in scope instead of one per club.
-  const clubIds = allClubs.map((c) => c.id);
-  const wageRows = await db
-    .select({ clubId: players.clubId, wage: players.wageCents })
-    .from(players)
-    .where(inArray(players.clubId, clubIds));
-  const wageByClub = new Map<string, number>();
-  for (const r of wageRows) {
-    if (!r.clubId) continue;
-    wageByClub.set(r.clubId, (wageByClub.get(r.clubId) ?? 0) + Number(r.wage));
-  }
-
   let charged = 0;
   for (const c of allClubs) {
     if (!opts.force) {
-      // Claim the club for this week's tick before touching its balance.
       const claimed = await db
         .update(clubs)
         .set({ lastEconomyRunAt: now })
@@ -288,7 +280,7 @@ export async function runWeeklyEconomy(
           ),
         )
         .returning();
-      if (claimed.length === 0) continue; // already charged this week
+      if (claimed.length === 0) continue; // already ticked today
     } else {
       await db
         .update(clubs)
@@ -296,82 +288,45 @@ export async function runWeeklyEconomy(
         .where(eq(clubs.id, c.id));
     }
     charged++;
-    const weeklyWage = wageByClub.get(c.id) ?? 0;
-    // Interest only accrues on a positive balance — a club in the red does
-    // not earn money for being in the red — and is capped so hoarding cash
-    // never out-earns running the club.
-    const interest = weeklyInterestCents(c.balanceCents);
 
-    let staffWage = 0;
-    if (c.staffJson) {
-      try {
-        const raw = JSON.parse(c.staffJson) as Partial<{
-          headCoach: { id: string };
-          physio: { id: string };
-          scout: { id: string };
-        }>;
-        for (const ref of [raw.headCoach, raw.physio, raw.scout]) {
-          if (!ref?.id) continue;
-          const m = staffById(ref.id);
-          if (m) staffWage += m.weeklyWageCents;
-        }
-      } catch {
-        /* malformed staff JSON — treat as no staff */
-      }
-    }
-    let delta = -weeklyWage - staffWage + interest;
-
-    // Sponsor tick
+    if (!c.activeSponsorJson) continue;
     let nextSponsorJson: string | null = c.activeSponsorJson;
-    if (c.activeSponsorJson) {
-      try {
-        const sp = JSON.parse(c.activeSponsorJson) as {
-          name: string;
-          payPerMatchCents: number;
-          bonusPerWinCents: number;
-          seasonBonusCents: number;
-          weeksLeft: number;
-        };
-        const remaining = sp.weeksLeft - 1;
-        if (remaining <= 0) {
-          // Final tick — pay season bonus and clear sponsor.
-          delta += sp.seasonBonusCents;
-          nextSponsorJson = null;
-          await db.insert(feedEvents).values({
-            leagueId: c.leagueId,
-            clubId: c.id,
-            eventType: "morale",
-            text: `${c.name} ${sp.name} sponsorluk dönemini tamamladı — sezon bonusu €${(sp.seasonBonusCents / 100 / 1_000_000).toFixed(1)}M ödendi.`,
-          });
-        } else {
-          nextSponsorJson = JSON.stringify({ ...sp, weeksLeft: remaining });
-        }
-      } catch {
-        // malformed JSON — clear it
+    let payout = 0;
+    try {
+      const sp = JSON.parse(c.activeSponsorJson) as {
+        name: string;
+        payPerMatchCents: number;
+        bonusPerWinCents: number;
+        seasonBonusCents: number;
+        weeksLeft: number;
+      };
+      const remaining = sp.weeksLeft - 1;
+      if (remaining <= 0) {
+        // Final tick — pay the season bonus and clear the sponsor.
+        payout = sp.seasonBonusCents;
         nextSponsorJson = null;
+        await db.insert(feedEvents).values({
+          leagueId: c.leagueId,
+          clubId: c.id,
+          eventType: "morale",
+          text: `${c.name} ${sp.name} sponsorluk dönemini tamamladı — sezon bonusu €${(sp.seasonBonusCents / 100 / 1_000_000).toFixed(1)}M ödendi.`,
+        });
+      } else {
+        nextSponsorJson = JSON.stringify({ ...sp, weeksLeft: remaining });
       }
+    } catch {
+      // Malformed sponsor JSON — clear it rather than paying out a guess.
+      nextSponsorJson = null;
     }
 
-    // Signed SQL delta, not an absolute write: a transfer completing between
-    // the read above and this line must not be erased.
-    //
-    // The delta is four different things at once, so it carries a breakdown:
-    // a Finans page showing one lump labelled "ekonomi" would answer nothing,
-    // and the split is validated against the delta inside writeLedger so the
-    // lines can never quietly disagree with the balance they describe.
-    await adjustClubBalance(c.id, delta, undefined, {
-      kind: "wages",
-      split: [
-        { kind: "wages", amountCents: -weeklyWage, note: "Oyuncu maaşları" },
-        { kind: "staff", amountCents: -staffWage, note: "Teknik ekip" },
-        { kind: "interest", amountCents: interest, note: "Banka faizi" },
-        {
-          kind: "sponsor",
-          amountCents: delta + weeklyWage + staffWage - interest,
-          note: "Sponsor sezon bonusu",
-        },
-      ],
-    });
+    if (payout > 0) {
+      // A signed SQL delta, not an absolute write: a transfer completing
+      // between the read above and this line must not be erased.
+      await adjustClubBalance(c.id, payout, undefined, {
+        kind: "sponsor",
+        note: "Sponsor sezon bonusu",
+      });
+    }
     if (nextSponsorJson !== c.activeSponsorJson) {
       await db
         .update(clubs)

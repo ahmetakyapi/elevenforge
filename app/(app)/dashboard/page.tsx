@@ -21,7 +21,6 @@ import { StaffWidget } from "./staff-widget";
 import { UpgradeWidget } from "./upgrade-widget";
 import { AchievementsStrip } from "./achievements-strip";
 import { PressWidget } from "./press-widget";
-import { ExpiringContractsCard } from "./expiring-contracts";
 import { AutoPlayBanner } from "./auto-play-banner";
 import { NextMatchCountdown } from "./next-match-countdown";
 import { LiveRefresh } from "@/components/dashboard-auto-refresh";
@@ -685,7 +684,6 @@ export default async function DashboardPage() {
         />
         <PressWidget />
       </div>
-      <ExpiringContractsCard clubId={ctx.club.id} />
       <div
         style={{
           display: "grid",

@@ -27,7 +27,7 @@ import { asc, eq, sql } from "drizzle-orm";
 import { db } from "../lib/db";
 import { clubs, fixtures, leagues, players } from "../lib/schema";
 import { SQUAD_PACKS_D2 } from "../lib/squad-packs";
-import { marketValueCents, wageFromValueCents } from "../lib/economy";
+import { marketValueCents , seasonBudgetCents } from "../lib/economy";
 import { roundRobin } from "../lib/jobs/season";
 import { matchKickoff } from "../lib/match-time";
 import { assertLocalDatabase } from "./guard-remote-db";
@@ -36,7 +36,6 @@ const APPLY = process.argv.includes("--apply");
 
 /** Second-tier clubs are poorer and carry no standing. Mirrors create-league. */
 const D2_PRESTIGE = 24;
-const D2_BALANCE_CENTS = 12_000_000_000; // €120M
 
 /** Bot tactical presets, so the new clubs are not all 4-4-2 clones. */
 const PERSONALITIES = [
@@ -142,7 +141,7 @@ async function main() {
           city: meta.city,
           color: meta.color,
           color2: meta.color2,
-          balanceCents: D2_BALANCE_CENTS,
+          balanceCents: seasonBudgetCents(D2_PRESTIGE),
           prestige: D2_PRESTIGE,
           formation: persona.formation,
           mentality: persona.mentality,
@@ -180,9 +179,7 @@ async function main() {
           goalkeeping: rollAttr(p.ovr, off.goalkeeping, r),
           fitness: p.fit ?? 90,
           morale: p.mor ?? 4,
-          wageCents: p.wage != null ? p.wage * 100 : wageFromValueCents(value),
           marketValueCents: value,
-          contractYears: p.ctr ?? 3,
           status: "active",
           lastRatings: JSON.stringify(p.form ?? []),
         });

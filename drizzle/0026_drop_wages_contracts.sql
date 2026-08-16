@@ -1,0 +1,16 @@
+-- Wages and contracts were removed from the game (see lib/economy.ts for why).
+--
+-- The COLUMNS are deliberately left in place:
+--
+--   players.wage_cents      bigint  NOT NULL DEFAULT 10000000
+--   players.contract_years  integer NOT NULL DEFAULT 3
+--
+-- Both carry NOT NULL defaults, so every INSERT keeps working now that the
+-- Drizzle schema no longer names them, and nothing reads them any more.
+-- Dropping them would be irreversible against a live league in exchange for
+-- two dead columns' worth of storage, and neither holds history worth keeping
+-- — transfer_history records the money that actually changed hands.
+--
+-- If they are ever dropped, do it in its own migration with a backup taken
+-- first, not as a side effect of a gameplay change.
+SELECT 1;

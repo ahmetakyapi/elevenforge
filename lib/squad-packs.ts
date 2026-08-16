@@ -39,7 +39,13 @@ type Seed = {
   nat: string;
   /** Market value in EUR — consumed by create-league/seed as p.val. */
   val: number;
-  /** Weekly wage in EUR — consumed as p.wage. */
+  /**
+   * Weekly wage in EUR. DEAD FIELD — wages were removed from the game (see
+   * lib/economy.ts). It is still emitted by the generator and still present in
+   * the seed rows below; nothing reads it. Left in place because this file is
+   * generated and regenerating it to drop one unused number would rewrite
+   * eleven thousand lines for no behavioural change.
+   */
   wage: number;
   status?: PlayerStatus;
 };
@@ -57,7 +63,6 @@ function pack(club: ClubMeta, seeds: Seed[]): SquadPack {
       pot: s.pot,
       nat: s.nat,
       val: s.val,
-      wage: s.wage,
       status: s.status,
     })),
   };

@@ -30,8 +30,6 @@ import {
   DISTRESS_SALE_RATE,
   MAX_AI_PRICE_MULTIPLIER,
   MIN_AI_ASKING_MULTIPLIER,
-  RENEWAL_WAGE_MULTIPLIER,
-  renewalCostCents,
 } from "@/lib/economy";
 import { creditClub, debitClub, purchaseFacilityLevel } from "@/lib/money";
 import { cancelBidsForListings } from "@/lib/jobs/bids";
@@ -151,40 +149,13 @@ async function manageTeamSheet(
     .where(eq(clubs.id, club.id));
 }
 
-/** 3. Renew contracts that would otherwise lapse and empty the squad. */
-async function renewExpiringContracts(
-  club: Club,
-  squad: DBPlayer[],
-  trait: AiTrait,
-): Promise<number> {
-  // Only players worth keeping, and only when the club can pay.
-  const expiring = squad
-    .filter((p) => p.contractYears <= 1)
-    .sort((a, b) => valueToClub(b, trait) - valueToClub(a, trait));
-  let renewed = 0;
-  for (const p of expiring) {
-    // Let genuinely spent veterans go, but never below a safe squad size.
-    const worthKeeping = p.age < 34 || squad.length <= HARD_MIN_SQUAD + 2;
-    if (!worthKeeping) continue;
-    const cost = renewalCostCents(Number(p.wageCents), 2);
-    const paid = await debitClub(club.id, cost, undefined, {
-      kind: "contract_renewal",
-      note: p.name,
-    });
-    if (!paid) break; // out of money — stop trying
-    await db
-      .update(players)
-      .set({
-        contractYears: Math.min(5, p.contractYears + 2),
-        wageCents: Math.round(
-          Number(p.wageCents) * RENEWAL_WAGE_MULTIPLIER * RENEWAL_WAGE_MULTIPLIER,
-        ),
-      })
-      .where(eq(players.id, p.id));
-    renewed++;
-  }
-  return renewed;
-}
+/*
+ * Step 3 used to renew expiring contracts. Contracts and wages are gone from
+ * the game (see lib/economy.ts), so there is nothing to renew: a player stays
+ * at his club until somebody buys him. The step numbering below is left as it
+ * was rather than shifted, so the log lines and the comments in runAiManagers
+ * still line up with what they describe.
+ */
 
 /** 4. List surplus players so the market has real, club-owned stock. */
 async function listSurplus(
@@ -409,7 +380,7 @@ async function emergencySales(
 
     const moved = await db
       .update(players)
-      .set({ clubId: null, status: "active", contractYears: 0 })
+      .set({ clubId: null, status: "active" })
       .where(and(eq(players.id, p.id), eq(players.clubId, club.id)))
       .returning();
     if (moved.length === 0) continue;
@@ -596,7 +567,7 @@ async function signFreeAgents(
     if (!paid) break;
     const claimed = await db
       .update(players)
-      .set({ clubId: club.id, status: "active", contractYears: 2 })
+      .set({ clubId: club.id, status: "active" })
       .where(and(eq(players.id, p.id), isNull(players.clubId)))
       .returning();
     if (claimed.length === 0) {
@@ -1174,7 +1145,7 @@ async function emergencyCover(club: Club, squad: DBPlayer[]): Promise<number> {
     // Emergency signings are free — a club must never be unable to play.
     const claimed = await db
       .update(players)
-      .set({ clubId: club.id, status: "active", contractYears: 1 })
+      .set({ clubId: club.id, status: "active" })
       .where(and(eq(players.id, p.id), isNull(players.clubId)))
       .returning();
     if (claimed.length > 0) signed++;
@@ -1184,7 +1155,6 @@ async function emergencyCover(club: Club, squad: DBPlayer[]): Promise<number> {
 
 export type AiTickResult = {
   clubsManaged: number;
-  renewed: number;
   listed: number;
   bidsPlaced: number;
   signed: number;
@@ -1245,7 +1215,6 @@ export async function runAiManagers(
 
   const result: AiTickResult = {
     clubsManaged: 0,
-    renewed: 0,
     listed: 0,
     bidsPlaced: 0,
     signed: 0,
@@ -1306,7 +1275,6 @@ export async function runAiManagers(
     // only make them pile up.
     result.offersHandled += await respondToOffers(club, squad, trait, marketOpen);
     result.emergencySales += await emergencySales(club, squad, trait);
-    result.renewed += await renewExpiringContracts(club, squad, trait);
     if (marketOpen) {
       result.listed += await listSurplus(club, squad, trait, rng);
       result.listed += await listQualitySurplus(club, squad, trait, rng);

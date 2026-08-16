@@ -32,10 +32,8 @@ export type Player = {
   nat: string;
   fit?: number;
   mor?: number;
-  wage?: number;
   val?: number;
   form?: number[];
-  ctr?: number;
   status?: PlayerStatus;
   id?: string;
   // Position-aware attributes (0-99). Optional because landing-page

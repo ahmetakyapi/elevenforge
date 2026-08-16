@@ -4,6 +4,7 @@ import { ArrowLeft, ChevronRight } from "lucide-react";
 import { requireLeagueContext } from "@/lib/session";
 import { loadPlayerDetail } from "@/lib/queries/player-detail";
 import { fmtEUR } from "@/lib/utils";
+import { uuidSchema, validate } from "@/lib/validation";
 import MakeOffer from "./make-offer";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +30,11 @@ export default async function PlayerDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  // `id` comes straight off the URL, and the query below compares it to a
+  // uuid column — so /player/x reached Postgres as a bad cast and rendered a
+  // 500 error page for anything that was not a UUID. A malformed id is a
+  // missing player, not a server fault.
+  if (!validate(uuidSchema, id).ok) notFound();
   const ctx = await requireLeagueContext();
   const p = await loadPlayerDetail(ctx, id);
   if (!p) notFound();
@@ -133,7 +139,6 @@ export default async function PlayerDetailPage({
           </div>
           <div style={{ fontSize: 32, fontWeight: 700 }}>{p.name}</div>
           <div style={{ fontSize: 13, color: "var(--muted)" }}>
-            {p.nationality} · {p.age} yaş · {p.contractYears} yıl sözleşme
             {p.clubName && (
               <>
                 {" · "}
@@ -236,7 +241,6 @@ export default async function PlayerDetailPage({
         }}
       >
         <KV label="Piyasa değeri" value={fmtEUR(p.marketValueEur)} />
-        <KV label="Haftalık ücret" value={fmtEUR(p.wageEur)} />
       </div>
 
       {/* Recent ratings */}
