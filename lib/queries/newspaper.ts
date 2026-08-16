@@ -4,6 +4,10 @@ import { formatInZone } from "@/lib/match-time";
 import { clubs, newspapers } from "@/lib/schema";
 import type { LeagueContext } from "@/lib/session";
 import type { TotwEntry } from "@/lib/engine/totw";
+import {
+  EMPTY_SECTIONS,
+  type NewspaperSections,
+} from "@/lib/jobs/newspaper-sections";
 
 export type NewspaperCover = {
   heroHomeClubId: string;
@@ -29,6 +33,8 @@ export type NewspaperData = {
   scorers: Array<{ name: string; clubId: string; g: number }>;
   assists: Array<{ name: string; clubId: string; a: number }>;
   funFact: string;
+  /** Everything below the fold — see lib/jobs/newspaper-sections.ts. */
+  sections: NewspaperSections;
   publishedAt: Date;
   /** Pre-formatted in the league timezone — see formatInZone. */
   publishedAtLabel: string;
@@ -74,6 +80,24 @@ export async function loadLatestNewspaper(
   type ScorerRow = { name: string; clubId: string; g: number };
   type AssistRow = { name: string; clubId: string; a: number };
   const totw = safeParse<TotwEntry[]>(paper.totwJson, []);
+  // Papers published before the sections column existed default to `{}`, so
+  // every list has to survive being absent rather than throwing on `.map`.
+  const rawSections = safeParse<Partial<NewspaperSections>>(
+    paper.sectionsJson,
+    {},
+  );
+  const sections: NewspaperSections = {
+    ...EMPTY_SECTIONS,
+    ...rawSections,
+    results: rawSections.results ?? [],
+    table: rawSections.table ?? [],
+    transfers: rawSections.transfers ?? [],
+    discipline: rawSections.discipline ?? [],
+    upcoming: rawSections.upcoming ?? [],
+    quotes: rawSections.quotes ?? [],
+    weekStats: rawSections.weekStats ?? [],
+    managerOfWeek: rawSections.managerOfWeek ?? null,
+  };
   const scorers = safeParse<ScorerRow[]>(paper.scorersJson, []);
   const assists = safeParse<AssistRow[]>(paper.assistsJson, []);
 
@@ -109,6 +133,7 @@ export async function loadLatestNewspaper(
     scorers,
     assists,
     funFact: paper.funFact,
+    sections,
     publishedAt: new Date(paper.publishedAt),
     publishedAtLabel: formatInZone(
       new Date(paper.publishedAt),

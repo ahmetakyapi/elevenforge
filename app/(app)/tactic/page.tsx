@@ -4,6 +4,7 @@ import TacticUi from "./tactic-ui";
 import { parseLineup } from "@/lib/lineup";
 import type { TacticPreset } from "./actions";
 import type { Formation } from "@/types";
+import { tacticsFrom } from "@/lib/tactics";
 
 const ALLOWED_FORMATIONS: Formation[] = [
   "4-3-3",
@@ -51,12 +52,7 @@ export default async function TacticPage() {
     <div className="space-y-8">
       <TacticUi
         squad={squad}
-        initial={{
-          formation,
-          mentality: ctx.club.mentality,
-          pressing: ctx.club.pressing,
-          tempo: ctx.club.tempo,
-        }}
+        initial={{ ...tacticsFrom(ctx.club), formation }}
         presets={presets}
         subPlan={subPlan}
         savedXi={xi}

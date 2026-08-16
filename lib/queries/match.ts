@@ -90,6 +90,8 @@ export async function loadLatestMatch(
     crowdEnergy: 70,
     refereeName: "—",
     refereeStrictness: 3,
+    xgHome: 0,
+    xgAway: 0,
   };
   try {
     stats = JSON.parse(fixture.statsJson) as MatchStats;

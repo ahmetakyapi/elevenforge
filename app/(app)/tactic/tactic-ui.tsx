@@ -7,6 +7,14 @@ import { useToast } from "@/components/ui/toast";
 import { posColor } from "@/lib/utils";
 import type { Formation, Player, Position } from "@/types";
 import {
+  TACTIC_DIALS,
+  TACTIC_KEYS,
+  TACTIC_STYLES,
+  type TacticDial,
+  type TacticKey,
+} from "@/lib/tactics";
+import { teamPower, type PowerPlayer } from "@/lib/engine/power";
+import {
   loadTacticPreset,
   saveTacticPreset,
   type TacticPreset,
@@ -21,6 +29,10 @@ export type TacticUiProps = {
     mentality: number;
     pressing: number;
     tempo: number;
+    defLine: number;
+    passingStyle: number;
+    width: number;
+    aggression: number;
   };
   presets: Array<TacticPreset | null>;
   subPlan: Array<{ minute: number; outId: string; inId: string }>;
@@ -243,9 +255,27 @@ export default function TacticPage({
   savedBench,
 }: TacticUiProps) {
   const [formation, setFormation] = useState<Formation>(initial.formation);
-  const [mentality, setMentality] = useState(initial.mentality);
-  const [pressing, setPressing] = useState(initial.pressing);
-  const [tempo, setTempo] = useState(initial.tempo);
+  /*
+    One record, not seven useStates.
+
+    Seven dials as seven pieces of state means every save call, every preset
+    load and every style button has to name all seven — and the day an eighth
+    is added, the one place that forgot it silently writes a neutral value
+    over the manager's setting. A record is threaded whole.
+  */
+  const [dials, setDials] = useState<Record<TacticKey, number>>({
+    mentality: initial.mentality,
+    pressing: initial.pressing,
+    tempo: initial.tempo,
+    defLine: initial.defLine,
+    passingStyle: initial.passingStyle,
+    width: initial.width,
+    aggression: initial.aggression,
+  });
+  const setDial = (key: TacticKey, value: number) => {
+    setDials((prev) => ({ ...prev, [key]: value }));
+    setDirty(true);
+  };
   const [preset, setPreset] = useState(0);
   const [presetState, setPresetState] =
     useState<Array<TacticPreset | null>>(presets);
@@ -390,9 +420,15 @@ export default function TacticPage({
                     const res = await loadTacticPreset(i);
                     if (res.ok) {
                       setFormation(res.preset.formation);
-                      setMentality(res.preset.mentality);
-                      setPressing(res.preset.pressing);
-                      setTempo(res.preset.tempo);
+                      setDials({
+                        mentality: res.preset.mentality,
+                        pressing: res.preset.pressing,
+                        tempo: res.preset.tempo,
+                        defLine: res.preset.defLine ?? 2,
+                        passingStyle: res.preset.passingStyle ?? 2,
+                        width: res.preset.width ?? 2,
+                        aggression: res.preset.aggression ?? 2,
+                      });
                       toast({
                         icon: "↻",
                         title: `Preset ${l} yüklendi`,
@@ -440,9 +476,7 @@ export default function TacticPage({
                 const res = await saveTacticPreset({
                   slot: preset,
                   formation,
-                  mentality,
-                  pressing,
-                  tempo,
+                  ...dials,
                 });
                 // Persist the arranged eleven too. This pitch was purely
                 // decorative before: the engine re-picked by rating and threw
@@ -467,7 +501,7 @@ export default function TacticPage({
                 if (res.ok) {
                   setPresetState((prev) => {
                     const next = [...prev];
-                    next[preset] = { formation, mentality, pressing, tempo };
+                    next[preset] = { formation, ...dials };
                     return next;
                   });
                   toast({
@@ -539,24 +573,65 @@ export default function TacticPage({
               ))}
             </div>
           </div>
-          <SliderControl
-            label="MENTALİTE"
-            labels={["Defansif", "", "Denge", "", "Saldırgan"]}
-            value={mentality}
-            onChange={setMentality}
-          />
-          <SliderControl
-            label="PRESSING"
-            labels={["Düşük", "", "Orta", "", "Yüksek"]}
-            value={pressing}
-            onChange={setPressing}
-          />
-          <SliderControl
-            label="TEMPO"
-            labels={["Yavaş", "", "Normal", "", "Hızlı"]}
-            value={tempo}
-            onChange={setTempo}
-          />
+          {/* Named setups. Seven sliders is depth for the manager who wants
+              it and a wall for the one who does not — a style is the on-ramp:
+              tap "Otobüs" and you have a coherent defensive plan, then find
+              the sliders by seeing where it moved them. */}
+          <div>
+            <span className="t-label">HAZIR KURULUM</span>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 5,
+                marginTop: 9,
+              }}
+            >
+              {TACTIC_STYLES.map((st) => {
+                const active =
+                  formation === st.formation &&
+                  TACTIC_KEYS.every((k) => dials[k] === st.dials[k]);
+                return (
+                  <button
+                    key={st.id}
+                    type="button"
+                    className={`chip ${active ? "active" : ""}`}
+                    title={st.blurb}
+                    onClick={() => {
+                      setFormation(st.formation as Formation);
+                      setDials({ ...st.dials });
+                      setDirty(true);
+                    }}
+                    style={{ cursor: "pointer", fontSize: 11 }}
+                  >
+                    {st.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* The projection. A tactics screen that cannot tell you what your
+              tactics did is a form filled in blind — these are the same three
+              numbers the match engine will compute. */}
+          <PowerProjection squad={starters} dials={dials} formation={formation} />
+
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+            }}
+          >
+            {TACTIC_DIALS.map((d) => (
+              <DialControl
+                key={d.key}
+                dial={d}
+                value={dials[d.key]}
+                onChange={(n) => setDial(d.key, n)}
+              />
+            ))}
+          </div>
           <div
             style={{
               marginTop: "auto",
@@ -924,41 +999,80 @@ function PitchSlot({
   );
 }
 
-function SliderControl({
-  label,
-  labels,
+/**
+ * One tactic dial.
+ *
+ * The old control was five numbered buttons with the extreme labels printed
+ * underneath — so the manager knew the dial went from "Defansif" to
+ * "Saldırgan" and nothing about what any of that cost. A dial whose price is
+ * invisible always ends up at 5, which is how three sliders became three
+ * chores with a right answer.
+ *
+ * So each step names itself, and the gain and the cost are both on screen.
+ * The cost line is the one that makes the screen a decision.
+ */
+function DialControl({
+  dial,
   value,
   onChange,
 }: {
-  label: string;
-  labels: string[];
+  dial: TacticDial;
   value: number;
   onChange: (n: number) => void;
 }) {
   return (
     <div>
-      <span className="t-label">{label}</span>
-      <div style={{ display: "flex", gap: 4, marginTop: 10 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <span className="t-label">{dial.label}</span>
+        <span
+          className="t-mono"
+          style={{ fontSize: 10.5, color: "var(--accent)", fontWeight: 700 }}
+        >
+          {dial.steps[value]}
+        </span>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          gap: 3,
+          marginTop: 8,
+        }}
+        role="group"
+        aria-label={dial.label}
+      >
         {[0, 1, 2, 3, 4].map((i) => (
           <button
             key={i}
             type="button"
             onClick={() => onChange(i)}
+            title={dial.steps[i]}
+            aria-label={dial.steps[i]}
+            aria-pressed={i === value}
             style={{
               flex: 1,
-              height: 30,
+              height: 26,
               borderRadius: 6,
               cursor: "pointer",
               border: "1px solid var(--border)",
               background:
                 i === value
-                  ? "color-mix(in oklab, var(--accent) 30%, transparent)"
-                  : "var(--panel)",
+                  ? "color-mix(in oklab, var(--accent) 32%, transparent)"
+                  : i < value
+                    ? "color-mix(in oklab, var(--accent) 10%, var(--panel))"
+                    : "var(--panel)",
               color: i === value ? "var(--accent)" : "var(--muted)",
               fontFamily: "var(--font-jetbrains)",
-              fontWeight: 600,
-              fontSize: 12,
-              transition: "opacity var(--t) var(--ease), transform var(--t) var(--ease), color var(--t) var(--ease), background-color var(--t) var(--ease), border-color var(--t) var(--ease), box-shadow var(--t) var(--ease)",
+              fontWeight: 700,
+              fontSize: 11,
+              transition:
+                "color var(--t) var(--ease), background-color var(--t) var(--ease), border-color var(--t) var(--ease)",
             }}
           >
             {i + 1}
@@ -967,15 +1081,133 @@ function SliderControl({
       </div>
       <div
         style={{
+          marginTop: 7,
           display: "flex",
-          justifyContent: "space-between",
-          marginTop: 6,
+          flexDirection: "column",
+          gap: 3,
+          fontSize: 10.5,
+          lineHeight: 1.45,
+        }}
+      >
+        <span style={{ color: "var(--emerald)" }}>+ {dial.gain}</span>
+        <span style={{ color: "var(--warn)" }}>− {dial.cost}</span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * What this eleven, with these dials, is worth in each phase.
+ *
+ * Runs the ACTUAL engine model (lib/engine/power.ts) rather than an
+ * approximation of it, so the bars cannot drift away from what the simulation
+ * does on match day. `homeBoost` is zero here: this is the neutral strength of
+ * the setup, not a prediction of one specific fixture.
+ */
+function PowerProjection({
+  squad,
+  dials,
+  formation,
+}: {
+  squad: Array<Player | null>;
+  dials: Record<TacticKey, number>;
+  formation: Formation;
+}) {
+  const power = useMemo(() => {
+    const eleven: PowerPlayer[] = squad
+      .filter((p): p is Player => !!p)
+      .map((p) => ({
+        position: p.pos,
+        role: p.role,
+        // The landing-page mock players carry no attributes; falling back to
+        // the rating keeps the bars sane instead of rendering a squad of 0s.
+        pace: p.pace ?? p.ovr,
+        shooting: p.shooting ?? p.ovr,
+        passing: p.passing ?? p.ovr,
+        defending: p.defending ?? p.ovr,
+        physical: p.physical ?? p.ovr,
+        goalkeeping: p.goalkeeping ?? (p.pos === "GK" ? p.ovr : 30),
+        overall: p.ovr,
+        morale: p.mor ?? 3,
+        fitness: p.fit ?? 90,
+      }));
+    return teamPower(eleven, { formation, ...dials }, 0);
+  }, [squad, dials, formation]);
+
+  // The bars are scaled across 40-95, the band real elevens actually occupy.
+  // Scaling 0-99 would leave every side sitting between 60% and 85% full and
+  // moving a dial would look like it did nothing.
+  const pct = (v: number) => Math.max(2, Math.min(100, ((v - 40) / 55) * 100));
+  const rows: Array<[string, number, string]> = [
+    ["HÜCUM", power.attack, "var(--danger)"],
+    ["ORTA SAHA", power.midfield, "var(--accent)"],
+    ["DEFANS", power.defense, "var(--cyan)"],
+  ];
+
+  return (
+    <div
+      style={{
+        padding: "12px 14px",
+        borderRadius: 12,
+        background: "var(--panel-2)",
+        border: "1px solid var(--border)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}
+    >
+      <span className="t-label">TAKIM GÜCÜ</span>
+      {rows.map(([label, value, color]) => (
+        <div key={label}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: 4,
+            }}
+          >
+            <span className="t-caption" style={{ fontSize: 10.5 }}>
+              {label}
+            </span>
+            <span
+              className="t-mono"
+              style={{ fontSize: 11.5, fontWeight: 700, color }}
+            >
+              {Math.round(value)}
+            </span>
+          </div>
+          <div
+            style={{
+              height: 4,
+              borderRadius: 2,
+              background: "var(--border)",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                height: "100%",
+                background: color,
+                width: "100%",
+                transformOrigin: "left",
+                transform: `scaleX(${pct(value) / 100})`,
+                transition: "transform 320ms var(--ease)",
+              }}
+            />
+          </div>
+        </div>
+      ))}
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          flexWrap: "wrap",
           fontSize: 10,
           color: "var(--muted)",
         }}
       >
-        <span>{labels[0]}</span>
-        <span>{labels[4]}</span>
+        <span>Kondisyon yükü +{Math.round(power.fatigue)}</span>
+        <span>Kart riski ×{power.cardRisk.toFixed(2)}</span>
       </div>
     </div>
   );

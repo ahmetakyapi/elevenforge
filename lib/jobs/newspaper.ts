@@ -16,6 +16,7 @@ import {
   players,
 } from "@/lib/schema";
 import { buildTOTW, type WeekPerformance } from "@/lib/engine/totw";
+import { buildSections, EMPTY_SECTIONS } from "./newspaper-sections";
 import type { MatchEvent } from "@/lib/engine/match";
 
 // Hero-match headline template. Only the diff-scaled "UÇURDU / FARK ATTI /
@@ -205,6 +206,21 @@ export async function generateNewspaper(opts: {
 
   const funFact = `${winner.name} bu sezon ${diff}+ farkla kazandığı maç sayısını artırdı.`;
 
+  // Everything below the fold. Built after the cover so it can be skipped
+  // without losing the paper: a section that fails to compose should cost the
+  // reader a page, not the whole edition.
+  let sections = EMPTY_SECTIONS;
+  try {
+    sections = await buildSections({
+      leagueId,
+      seasonNumber,
+      weekNumber,
+      weekFixtures,
+    });
+  } catch {
+    /* keep the cover; the reader renders an empty section as absent */
+  }
+
   await db
     .insert(newspapers)
     .values({
@@ -215,6 +231,7 @@ export async function generateNewspaper(opts: {
       totwJson: JSON.stringify(totw),
       scorersJson: JSON.stringify(scorers),
       assistsJson: JSON.stringify(assists),
+      sectionsJson: JSON.stringify(sections),
       funFact,
     })
     .onConflictDoNothing();

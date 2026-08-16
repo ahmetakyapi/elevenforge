@@ -138,6 +138,14 @@ async function manageTeamSheet(
       mentality: clamp(trait.mentality + jitter()),
       pressing: clamp(trait.pressing + jitter()),
       tempo: clamp(trait.tempo + jitter()),
+      // The bots use the same seven dials a human has. Left out, every AI
+      // club played neutral on the four new ones while humans could push
+      // them to the extremes — a dial nobody on the other side ever moves is
+      // not a tactic, it is a handicap.
+      defLine: clamp(trait.defLine + jitter()),
+      passingStyle: clamp(trait.passingStyle + jitter()),
+      width: clamp(trait.width + jitter()),
+      aggression: clamp(trait.aggression + jitter()),
       lineupJson: JSON.stringify(lineup),
     })
     .where(eq(clubs.id, club.id));

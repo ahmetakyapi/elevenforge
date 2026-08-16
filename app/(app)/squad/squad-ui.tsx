@@ -24,19 +24,17 @@ import {
 import Link from "next/link";
 import { useToast } from "@/components/ui/toast";
 import { playFriendly, toggleTraining } from "./actions";
+import { FormationSwitcher } from "./formation-switcher";
 import { TrainingPanel } from "./training-panel";
 import { renewContract } from "./contract-actions";
 import { ComparePanel } from "./compare-panel";
 import {
-  AgePill,
-  Bar,
   Crest,
-  Currency,
-  OvrChip,
   PosBadge,
   RatingDot,
 } from "@/components/ui/primitives";
-import { fmtEUR, fmtWage, posColor, tierColor } from "@/lib/utils";
+import { fmtEUR, fmtWage, posColor } from "@/lib/utils";
+import { ATTR_LABEL, type TrainableAttr } from "@/lib/attributes";
 import type { Player, Position } from "@/types";
 
 export type SquadUiProps = {
@@ -44,6 +42,12 @@ export type SquadUiProps = {
   userClubId: string;
   userClubName: string;
   userClubCrest: { color: string; color2: string; short: string };
+  /** The club's current shape, for the one-tap switcher. */
+  formation: string;
+  /** clubs.trainingLevel, 1-5 — feeds the training preview. */
+  trainingLevel: number;
+  /** Head coach staff tier, 0-3. */
+  coachTier: number;
 };
 
 type PosFilter = Position | "ALL";
@@ -60,6 +64,9 @@ export default function SquadPage({
   userClubId,
   userClubName,
   userClubCrest,
+  formation,
+  trainingLevel,
+  coachTier,
 }: SquadUiProps) {
   const [filter, setFilter] = useState<PosFilter>("ALL");
   const [q, setQ] = useState("");
@@ -138,7 +145,13 @@ export default function SquadPage({
           Explains the rule so "2/4" isn't a mystery: each slot is 1 player
           per position group, and trained players pick up +1 overall on the
           daily tick (faster if ≤22 yaş). */}
-      <TrainingPanel squad={squad} />
+      <FormationSwitcher current={formation} />
+
+      <TrainingPanel
+        squad={squad}
+        trainingLevel={trainingLevel}
+        coachTier={coachTier}
+      />
 
       {/* Toolbar */}
       <div
@@ -1464,6 +1477,29 @@ function PlayerTable({
 
 
 // ─── Player sheet (modal detail) ─────────────────────────────
+/**
+ * The player detail sheet, rebuilt as a card.
+ *
+ * ─── Two things were wrong ──────────────────────────────────────────────
+ *
+ * 1. THE NUMBERS WERE FICTION. The attribute panel and the radar were built
+ *    from literals keyed off the position — `["Hız", 82]`, `["Dripling", 81]`,
+ *    `p.pos === "FWD" ? 84 : 72`. Every goalkeeper in the game showed the
+ *    same six figures, and none of them were his. The real attributes were
+ *    sitting on the row the whole time (the card grid reads them), so the one
+ *    screen dedicated to a single player was the only screen not showing him.
+ *
+ * 2. THE ATTRIBUTES WERE BELOW THE FOLD. A 120px shirt tile, a name at 42px,
+ *    a chip row, then a 220px radar and a contract panel — and only then, past
+ *    a tab bar, the attributes. You had to scroll a dialog to find the thing
+ *    you opened it for, and the sticky action bar covered the top of it.
+ *
+ * The fix for both is the same: make the card BE the detail. Six real
+ * attributes sit in the top-left, above the fold on any laptop, in the fixed
+ * FIFA order so this sheet and the squad grid read identically. The radar is
+ * gone — it was the same six numbers drawn a second time, and dropping 220px
+ * of duplicate is most of what makes this compact.
+ */
 function PlayerSheet({
   player: p,
   onClose,
@@ -1477,27 +1513,11 @@ function PlayerSheet({
   userClubName: string;
   userClubCrest: { color: string; color2: string; short: string };
 }) {
-  const [tab, setTab] = useState<"attr" | "form" | "hist">("attr");
-  const attrs: Record<string, Array<[string, number]>> = {
-    fiziksel: [
-      ["Hız", 82],
-      ["Güç", 78],
-      ["Dayanıklılık", 84],
-      ["Sıçrama", 71],
-    ],
-    teknik: [
-      ["Şut", p.pos === "FWD" ? 86 : 72],
-      ["Pas", p.pos === "MID" ? 85 : 74],
-      ["Dripling", 81],
-      ["Top kontrol", 82],
-    ],
-    mental: [
-      ["Karar", 79],
-      ["Agresyon", 73],
-      ["Vizyon", 81],
-      ["Liderlik", 70],
-    ],
-  };
+  const tier = tierPalette(p.ovr);
+  const growth = p.pot - p.ovr;
+  const form = p.form ?? [];
+  const fit = p.fit ?? 0;
+
   // Rendered into <body>, not in place.
   //
   // The bug this was written for is now fixed at its source: <main> carried
@@ -1524,544 +1544,296 @@ function PlayerSheet({
         zIndex: 200,
         display: "flex",
         justifyContent: "center",
-        // Centred, not docked to the bottom. As a bottom sheet the panel
-        // opened below the fold on a desktop viewport, so opening a player
-        // appeared to scroll the page away from where you clicked.
         alignItems: "center",
-        padding: 24,
+        padding: 20,
       }}
     >
       <div
         data-modal-sheet
         onClick={(e) => e.stopPropagation()}
         style={{
-          maxWidth: 920,
+          maxWidth: 860,
           width: "100%",
-          maxHeight: "88vh",
+          maxHeight: "90vh",
           overflowY: "auto",
-          borderRadius: 24,
+          borderRadius: 22,
           border: "1px solid var(--border-strong)",
           animation: "modal-in 260ms var(--ease)",
           background: `
-            radial-gradient(600px 300px at 10% 0%, color-mix(in oklab, ${posColor(
-              p.pos,
-            )} 16%, transparent), transparent 60%),
+            radial-gradient(560px 260px at 12% 0%, color-mix(in oklab, ${tier.accent} 14%, transparent), transparent 62%),
             var(--bg-2)`,
-            boxShadow: "0 30px 90px -20px rgba(0,0,0,0.6)",
+          boxShadow: "0 30px 90px -20px rgba(0,0,0,0.6)",
         }}
       >
+        {/* ── Identity strip. One line of meta, one name, nothing else. ── */}
         <div
           style={{
-            padding: "32px 32px 24px",
+            padding: "18px 22px 14px",
             borderBottom: "1px solid var(--border)",
-            display: "grid",
-            gridTemplateColumns: "auto 1fr auto",
-            gap: 24,
-            alignItems: "center",
             position: "relative",
           }}
         >
           <button
             type="button"
             className="btn btn-ghost btn-sm"
-            style={{ position: "absolute", top: 16, right: 16 }}
+            style={{ position: "absolute", top: 12, right: 12 }}
             onClick={onClose}
+            aria-label="Kapat"
           >
             <X size={16} strokeWidth={1.6} />
           </button>
-
-          <div
-            style={{
-              width: 120,
-              height: 120,
-              borderRadius: 20,
-              position: "relative",
-              overflow: "hidden",
-              background: `linear-gradient(135deg, ${posColor(
-                p.pos,
-              )} 0%, color-mix(in oklab, ${posColor(p.pos)} 30%, var(--bg-2)) 120%)`,
-              boxShadow: `0 12px 32px -8px color-mix(in oklab, ${posColor(
-                p.pos,
-              )} 50%, transparent)`,
-              border: "1px solid rgba(255,255,255,0.12)",
-            }}
-          >
-            <span
-              className="t-mono"
-              style={{
-                position: "absolute",
-                inset: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 64,
-                fontWeight: 800,
-                color: "rgba(255,255,255,0.95)",
-                letterSpacing: "-0.04em",
-                textShadow: "0 4px 16px rgba(0,0,0,0.4)",
-              }}
-            >
-              {p.num ?? "?"}
-            </span>
-            <div
-              style={{
-                position: "absolute",
-                top: 8,
-                left: 8,
-                fontSize: 10,
-                fontFamily: "var(--font-jetbrains)",
-                fontWeight: 700,
-                color: "rgba(255,255,255,0.7)",
-              }}
-            >
-              {p.pos}
-            </div>
-          </div>
-
-          <div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                marginBottom: 8,
-              }}
-            >
-              <Crest clubId={userClubId} size={20} club={userClubCrest} />
-              <span className="t-small">
-                {userClubName} · {p.nat} · {p.role}
-              </span>
-            </div>
-            <div
-              style={{
-                fontFamily: "var(--font-manrope)",
-                fontWeight: 800,
-                fontSize: "clamp(28px, 4vw, 42px)",
-                letterSpacing: "-0.03em",
-                lineHeight: 1,
-                color: "var(--text)",
-              }}
-            >
-              {p.n}
-            </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                marginTop: 14,
-                flexWrap: "wrap",
-              }}
-            >
-              <OvrChip ovr={p.ovr} size="lg" />
-              <PosBadge pos={p.pos} showLabel />
-              <AgePill age={p.age} />
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 4,
-                  padding: "4px 10px",
-                  borderRadius: 8,
-                  background:
-                    "color-mix(in oklab, var(--gold) 12%, transparent)",
-                  border:
-                    "1px solid color-mix(in oklab, var(--gold) 30%, transparent)",
-                }}
-              >
-                <span
-                  className="t-label"
-                  style={{ fontSize: 9, color: "var(--gold)" }}
-                >
-                  POT
-                </span>
-                <span
-                  className="t-mono"
-                  style={{
-                    fontSize: 13,
-                    color: "var(--gold)",
-                    fontWeight: 700,
-                  }}
-                >
-                  {p.pot}
-                </span>
-              </div>
-              <Currency value={p.val ?? 0} size={16} color="var(--emerald)" />
-            </div>
-          </div>
-
           <div
             style={{
               display: "flex",
-              flexDirection: "column",
+              alignItems: "center",
               gap: 8,
-              alignItems: "flex-end",
+              marginBottom: 6,
             }}
           >
-            <div style={{ textAlign: "right" }}>
-              <span className="t-label" style={{ fontSize: 9 }}>
-                SON 5 ORT.
-              </span>
-              <div
+            <Crest clubId={userClubId} size={18} club={userClubCrest} />
+            <span className="t-mono" style={{ fontSize: 10.5, color: "var(--muted)", letterSpacing: "0.06em" }}>
+              {userClubName} · {p.nat} · {p.role}
+              {p.num !== undefined && ` · #${p.num}`}
+            </span>
+            {p.status && STATUS_STYLE[p.status] && (
+              <span
                 className="t-mono"
                 style={{
-                  fontSize: 28,
+                  fontSize: 9,
                   fontWeight: 700,
-                  color:
-                    avgForm(p) >= 7.3 ? "var(--emerald)" : "var(--text)",
-                  letterSpacing: "-0.02em",
+                  padding: "2px 6px",
+                  borderRadius: 5,
+                  background: STATUS_STYLE[p.status].bg,
+                  color: STATUS_STYLE[p.status].c,
                 }}
               >
-                {avgForm(p).toFixed(2)}
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 3 }}>
-              {(p.form ?? []).map((r, i) => (
-                <RatingDot key={`s-${i}`} rating={r} size={26} />
-              ))}
-            </div>
+                {STATUS_STYLE[p.status].label}
+              </span>
+            )}
+          </div>
+          <div
+            style={{
+              fontFamily: "var(--font-manrope)",
+              fontWeight: 800,
+              fontSize: "clamp(24px, 3.4vw, 34px)",
+              letterSpacing: "-0.03em",
+              lineHeight: 1.05,
+              color: "var(--text)",
+              paddingRight: 44,
+            }}
+          >
+            {p.n}
           </div>
         </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 16,
-            padding: "20px 32px",
-          }}
-        >
-          <div className="glass" style={{ padding: 18 }}>
-            <span className="t-label">PROFİL RADARI</span>
-            <RadarChart p={p} />
-          </div>
+        {/* ── Card on the left, everything about him on the right ─────── */}
+        <div data-sheet-body style={{ display: "grid", gridTemplateColumns: "268px 1fr", gap: 16, padding: 18 }}>
+          {/* The card. This is the point of the screen, so it is first in
+              the DOM and first on the page. */}
           <div
-            className="glass"
             style={{
-              padding: 18,
-              display: "flex",
-              flexDirection: "column",
-              gap: 14,
+              borderRadius: 18,
+              overflow: "hidden",
+              border: `1px solid color-mix(in oklab, ${tier.accent} 35%, var(--border))`,
+              background: `linear-gradient(168deg,
+                color-mix(in oklab, ${tier.accent} 22%, var(--panel)) 0%,
+                var(--panel) 48%,
+                var(--panel-2) 100%)`,
+              alignSelf: "start",
             }}
           >
-            <span className="t-label">SÖZLEŞME</span>
-            <div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 6,
-                }}
-              >
-                <span className="t-caption">Kalan yıl</span>
+            <div style={{ display: "flex", gap: 12, padding: "16px 16px 12px", alignItems: "center" }}>
+              <div style={{ textAlign: "center", minWidth: 62 }}>
+                <div
+                  style={{
+                    fontFamily: "var(--font-manrope)",
+                    fontSize: 46,
+                    fontWeight: 800,
+                    lineHeight: 0.9,
+                    letterSpacing: "-0.05em",
+                    color: tier.accent,
+                  }}
+                >
+                  {p.ovr}
+                </div>
+                <div
+                  className="t-mono"
+                  style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.1em", color: tier.accent, marginTop: 3 }}
+                >
+                  {p.pos}
+                </div>
+              </div>
+              <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
                 <span
                   className="t-mono"
                   style={{
-                    fontSize: 16,
+                    fontSize: 9.5,
                     fontWeight: 700,
-                    color: (p.ctr ?? 0) <= 1 ? "var(--warn)" : "var(--text)",
+                    letterSpacing: "0.08em",
+                    padding: "3px 8px",
+                    borderRadius: 6,
+                    background: `color-mix(in oklab, ${tier.accent} 18%, transparent)`,
+                    color: tier.accent,
+                    alignSelf: "flex-start",
                   }}
                 >
-                  {p.ctr ?? 0} yıl
+                  {tier.label}
                 </span>
-              </div>
-              <div style={{ display: "flex", gap: 3, height: 8 }}>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      flex: 1,
-                      borderRadius: 3,
-                      background:
-                        i < (p.ctr ?? 0)
-                          ? (p.ctr ?? 0) <= 1
-                            ? "var(--warn)"
-                            : "var(--accent)"
-                          : "var(--panel-2)",
-                      transition: `all 500ms ${i * 80}ms var(--ease)`,
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 12,
-                paddingTop: 10,
-                borderTop: "1px solid var(--border)",
-              }}
-            >
-              <div>
-                <span
-                  className="t-caption"
-                  style={{ display: "block", marginBottom: 4 }}
-                >
-                  Haftalık
-                </span>
-                <span
-                  className="t-mono"
-                  style={{ fontSize: 15, fontWeight: 600 }}
-                >
-                  {fmtWage(p.wage ?? 0)}
-                </span>
-              </div>
-              <div>
-                <span
-                  className="t-caption"
-                  style={{ display: "block", marginBottom: 4 }}
-                >
-                  Bırakma
-                </span>
-                <span
-                  className="t-mono"
-                  style={{
-                    fontSize: 15,
-                    fontWeight: 600,
-                    color: "var(--text-2)",
-                  }}
-                >
-                  {fmtEUR((p.val ?? 0) * 1.8)}
-                </span>
-              </div>
-              <div>
-                <span
-                  className="t-caption"
-                  style={{ display: "block", marginBottom: 4 }}
-                >
-                  Kondisyon
-                </span>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
-                  <Bar
-                    value={p.fit ?? 0}
-                    height={4}
-                    color={
-                      (p.fit ?? 0) >= 90
-                        ? "var(--emerald)"
-                        : "var(--cyan)"
-                    }
-                  />
-                  <span className="t-mono" style={{ fontSize: 11 }}>
-                    {p.fit ?? 0}
+                <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                  <span className="t-label" style={{ fontSize: 9 }}>POT</span>
+                  <span
+                    className="t-mono"
+                    style={{ fontSize: 15, fontWeight: 800, color: growth > 0 ? "var(--emerald)" : "var(--text-2)" }}
+                  >
+                    {p.pot}
                   </span>
+                  {growth > 0 && (
+                    <span className="t-mono" style={{ fontSize: 10, color: "var(--emerald)" }}>
+                      +{growth}
+                    </span>
+                  )}
                 </div>
-              </div>
-              <div>
-                <span
-                  className="t-caption"
-                  style={{ display: "block", marginBottom: 4 }}
-                >
-                  Moral
-                </span>
-                <span style={{ fontSize: 14, letterSpacing: "-0.03em" }}>
-                  {"●".repeat(p.mor ?? 0)}
-                  <span style={{ color: "var(--muted-2)" }}>
-                    {"●".repeat(5 - (p.mor ?? 0))}
-                  </span>
+                <span className="t-mono" style={{ fontSize: 10, color: "var(--muted)" }}>
+                  {p.age} yaş
                 </span>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Tabs */}
-        <div style={{ padding: "0 32px 24px" }}>
-          <div
-            style={{
-              display: "flex",
-              gap: 4,
-              marginBottom: 16,
-              borderBottom: "1px solid var(--border)",
-            }}
-          >
-            {(
-              [
-                ["attr", "Nitelikler"],
-                ["form", "Form Geçmişi"],
-                ["hist", "Kariyer"],
-              ] as const
-            ).map(([k, l]) => (
-              <button
-                key={k}
-                type="button"
-                onClick={() => setTab(k)}
-                style={{
-                  padding: "10px 14px",
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  color: tab === k ? "var(--text)" : "var(--muted)",
-                  fontSize: 13,
-                  fontWeight: tab === k ? 600 : 500,
-                  borderBottom:
-                    tab === k
-                      ? "2px solid var(--accent)"
-                      : "2px solid transparent",
-                  marginBottom: -1,
-                  transition: "opacity 200ms var(--ease), transform 200ms var(--ease), color 200ms var(--ease), background-color 200ms var(--ease), border-color 200ms var(--ease), box-shadow 200ms var(--ease)",
-                }}
-              >
-                {l}
-              </button>
-            ))}
-          </div>
-          {tab === "attr" && (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: 14,
-              }}
-            >
-              {Object.entries(attrs).map(([grp, rows], gi) => (
-                <div
-                  key={grp}
-                  className="glass anim-slide-up"
-                  style={{ padding: 16, animationDelay: `${gi * 60}ms` }}
-                >
-                  <span className="t-label" style={{ textTransform: "uppercase" }}>
-                    {grp}
-                  </span>
-                  <div
-                    style={{
-                      marginTop: 12,
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 10,
-                    }}
-                  >
-                    {rows.map(([name, val], ri) => (
+            {/* Six real attributes, fixed FIFA order — identical to the
+                squad grid, so a card here and a card there are comparable. */}
+            <div style={{ padding: "0 16px 14px", display: "flex", flexDirection: "column", gap: 9 }}>
+              {SHEET_STATS.map(([key, label]) => {
+                const v = (p[key] as number | undefined) ?? 0;
+                return (
+                  <div key={key as string} style={{ display: "grid", gridTemplateColumns: "34px 26px 1fr", gap: 8, alignItems: "center" }}>
+                    <span className="t-label" style={{ fontSize: 9.5, letterSpacing: "0.1em" }}>{label}</span>
+                    <span
+                      className="t-mono"
+                      style={{ fontSize: 13, fontWeight: 800, color: attrTone(v), textAlign: "right" }}
+                    >
+                      {v}
+                    </span>
+                    <div style={{ height: 4, borderRadius: 2, background: "var(--panel-2)", overflow: "hidden" }}>
                       <div
-                        key={name}
                         style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr auto 80px",
-                          gap: 8,
-                          alignItems: "center",
+                          height: "100%",
+                          background: attrTone(v),
+                          width: "100%",
+                          transformOrigin: "left",
+                          transform: `scaleX(${Math.max(0, Math.min(1, v / 99))})`,
+                          transition: "transform 600ms var(--ease)",
                         }}
-                      >
-                        <span style={{ fontSize: 12.5, color: "var(--text-2)" }}>
-                          {name}
-                        </span>
-                        <span
-                          className="t-mono"
-                          style={{
-                            fontSize: 12,
-                            color: tierColor(val),
-                            fontWeight: 700,
-                            minWidth: 22,
-                            textAlign: "right",
-                          }}
-                        >
-                          {val}
-                        </span>
-                        <div
-                          style={{
-                            height: 4,
-                            borderRadius: 2,
-                            background: "var(--panel-2)",
-                            overflow: "hidden",
-                          }}
-                        >
-                          <div
-                            style={{
-                              height: "100%",
-                              background: tierColor(val),
-                              width: "100%",
-                              transformOrigin: "left",
-                              transform: `scaleX(${(val) / 100})`,
-                              transition: `transform 700ms ${200 + gi * 100 + ri * 50}ms var(--ease)`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ))}
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
-          )}
-          {tab === "form" && (
+
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(5, 1fr)",
-                gap: 12,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "10px 16px",
+                borderTop: "1px solid var(--border)",
+                background: "color-mix(in oklab, var(--bg-2) 55%, transparent)",
               }}
             >
-              {(p.form ?? []).map((r, i) => (
-                <div
-                  key={`ft-${i}`}
-                  className="glass anim-slide-up"
-                  style={{
-                    padding: 14,
-                    textAlign: "center",
-                    animationDelay: `${i * 80}ms`,
-                  }}
-                >
-                  <span className="t-label" style={{ fontSize: 10 }}>
-                    M-{5 - i}
-                  </span>
-                  <div style={{ marginTop: 10 }}>
-                    <RatingDot rating={r} size={48} />
-                  </div>
-                  <div
-                    className="t-caption"
-                    style={{ marginTop: 8, fontSize: 11 }}
-                  >
-                    {r >= 8
-                      ? "Maç Adamı"
-                      : r >= 7.3
-                        ? "Güçlü"
-                        : r >= 6.5
-                          ? "Ortalama"
-                          : "Zayıf"}
-                  </div>
-                </div>
-              ))}
+              <span className="t-mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--emerald)" }}>
+                {fmtEUR(p.val ?? 0)}
+              </span>
+              <span className="t-mono" style={{ fontSize: 10.5, color: "var(--muted)" }}>
+                {fmtWage(p.wage ?? 0)}
+              </span>
             </div>
-          )}
-          {tab === "hist" && (
-            <div className="glass" style={{ padding: 20 }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  marginBottom: 14,
-                }}
-              >
-                <Crest clubId={userClubId} size={32} club={userClubCrest} />
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600 }}>
-                    {userClubName}
-                  </div>{/* Career tab: same user club */}
-                  <span className="t-caption">
-                    Altyapı · Sezon 1&apos;den beri
-                  </span>
+          </div>
+
+          {/* ── Right column: condition, contract, form, career ───────── */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+              <StatTile
+                label="KONDİSYON"
+                value={String(fit)}
+                tone={fit >= 90 ? "var(--emerald)" : fit >= 75 ? "var(--cyan)" : "var(--warn)"}
+                bar={fit / 100}
+              />
+              <StatTile
+                label="MORAL"
+                value={`${p.mor ?? 0}/5`}
+                tone={(p.mor ?? 0) >= 4 ? "var(--emerald)" : (p.mor ?? 0) >= 3 ? "var(--cyan)" : "var(--warn)"}
+                bar={(p.mor ?? 0) / 5}
+              />
+              <StatTile
+                label="SON 5 ORT."
+                value={form.length ? avgForm(p).toFixed(2) : "—"}
+                tone={avgForm(p) >= 7.3 ? "var(--emerald)" : "var(--text)"}
+                bar={form.length ? Math.min(1, avgForm(p) / 10) : 0}
+              />
+            </div>
+
+            <div className="glass" style={{ padding: 14 }}>
+              <span className="t-label">SÖZLEŞME</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+                <span className="t-mono" style={{ fontSize: 20, fontWeight: 800 }}>
+                  {p.ctr ?? 0}
+                </span>
+                <span className="t-caption" style={{ fontSize: 11 }}>yıl kaldı</span>
+                <div style={{ display: "flex", gap: 3, marginLeft: "auto" }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <span
+                      key={`c-${i}`}
+                      style={{
+                        width: 16,
+                        height: 5,
+                        borderRadius: 3,
+                        background: i < (p.ctr ?? 0) ? "var(--accent)" : "var(--panel-2)",
+                      }}
+                    />
+                  ))}
                 </div>
               </div>
-              <div
-                style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.6 }}
-              >
-                Bu oyuncu kulübünde yetişti. Transfer geçmişi bulunmuyor. Kulüp
-                efsanesi yolunda.
-              </div>
+              {(p.ctr ?? 0) <= 1 && (
+                <p className="t-caption" style={{ fontSize: 11, marginTop: 8, color: "var(--warn)" }}>
+                  Sözleşme bitmek üzere — yenilemezsen bedelsiz gider.
+                </p>
+              )}
             </div>
-          )}
+
+            <div className="glass" style={{ padding: 14 }}>
+              <span className="t-label">FORM GEÇMİŞİ</span>
+              {form.length ? (
+                <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+                  {form.map((r, i) => (
+                    <div key={`f-${i}`} style={{ textAlign: "center" }}>
+                      <RatingDot rating={r} size={36} />
+                      <div className="t-mono" style={{ fontSize: 9, color: "var(--muted)", marginTop: 4 }}>
+                        M-{form.length - i}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="t-caption" style={{ fontSize: 12, marginTop: 10 }}>
+                  Henüz maça çıkmadı.
+                </p>
+              )}
+            </div>
+
+            {p.trainingFocus && (
+              <div className="glass" style={{ padding: 14 }}>
+                <span className="t-label">ANTRENMAN ODAĞI</span>
+                <div className="t-mono" style={{ fontSize: 14, fontWeight: 700, marginTop: 8, color: "var(--accent)" }}>
+                  {ATTR_LABEL[p.trainingFocus as TrainableAttr] ?? p.trainingFocus}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div
           style={{
-            padding: "16px 32px",
+            padding: "14px 22px",
             borderTop: "1px solid var(--border)",
             display: "flex",
             gap: 10,
@@ -2076,6 +1848,49 @@ function PlayerSheet({
       </div>
     </div>,
     document.body,
+  );
+}
+
+/** Fixed order, shared with the squad grid so two cards can be read against each other. */
+const SHEET_STATS: Array<[keyof Player, string]> = [
+  ["pace", "HIZ"],
+  ["shooting", "ŞUT"],
+  ["passing", "PAS"],
+  ["defending", "DEF"],
+  ["physical", "FİZ"],
+  ["goalkeeping", "KAL"],
+];
+
+function StatTile({
+  label,
+  value,
+  tone,
+  bar,
+}: {
+  label: string;
+  value: string;
+  tone: string;
+  bar: number;
+}) {
+  return (
+    <div className="glass" style={{ padding: "10px 12px" }}>
+      <span className="t-label" style={{ fontSize: 9 }}>{label}</span>
+      <div className="t-mono" style={{ fontSize: 18, fontWeight: 800, color: tone, marginTop: 4 }}>
+        {value}
+      </div>
+      <div style={{ height: 3, borderRadius: 2, background: "var(--panel-2)", overflow: "hidden", marginTop: 6 }}>
+        <div
+          style={{
+            height: "100%",
+            background: tone,
+            width: "100%",
+            transformOrigin: "left",
+            transform: `scaleX(${Math.max(0, Math.min(1, bar))})`,
+            transition: "transform 600ms var(--ease)",
+          }}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -2207,105 +2022,3 @@ function PlayerSheetActions({
 }
 
 // ─── Radar chart ─────────────────────────────────────────────
-function RadarChart({ p }: { p: Player }) {
-  const stats: Array<[string, number]> = [
-    ["PAC", p.pos === "FWD" ? 84 : p.pos === "MID" ? 78 : 72],
-    ["SHO", p.pos === "FWD" ? 82 : p.pos === "MID" ? 72 : p.pos === "GK" ? 40 : 55],
-    ["PAS", p.pos === "MID" ? 85 : p.pos === "DEF" ? 74 : 72],
-    ["DRI", p.pos === "FWD" ? 82 : p.pos === "MID" ? 84 : 68],
-    ["DEF", p.pos === "DEF" ? 85 : p.pos === "MID" ? 72 : p.pos === "GK" ? 78 : 55],
-    ["PHY", p.pos === "DEF" ? 82 : p.pos === "FWD" ? 78 : p.pos === "GK" ? 80 : 74],
-  ];
-  const cx = 110;
-  const cy = 110;
-  const r = 80;
-  const pts = stats.map(([, v], i) => {
-    const a = ((i * 60 - 90) * Math.PI) / 180;
-    const rr = (v / 99) * r;
-    return [cx + rr * Math.cos(a), cy + rr * Math.sin(a)] as const;
-  });
-  return (
-    <svg width="100%" viewBox="0 0 220 220" style={{ marginTop: 10 }}>
-      <defs>
-        <radialGradient id="radarFill">
-          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.45" />
-          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.1" />
-        </radialGradient>
-      </defs>
-      {[0.33, 0.66, 1].map((s, i) => {
-        const pp = Array.from({ length: 6 })
-          .map((_, k) => {
-            const a = ((k * 60 - 90) * Math.PI) / 180;
-            return `${cx + s * r * Math.cos(a)},${cy + s * r * Math.sin(a)}`;
-          })
-          .join(" ");
-        return (
-          <polygon
-            key={i}
-            points={pp}
-            fill={i === 2 ? "var(--panel-2)" : "none"}
-            stroke="var(--border)"
-            strokeWidth="1"
-            opacity={i === 2 ? 0.5 : 1}
-          />
-        );
-      })}
-      {stats.map((_, i) => {
-        const a = ((i * 60 - 90) * Math.PI) / 180;
-        return (
-          <line
-            key={`ax-${i}`}
-            x1={cx}
-            y1={cy}
-            x2={cx + r * Math.cos(a)}
-            y2={cy + r * Math.sin(a)}
-            stroke="var(--border)"
-            strokeWidth="1"
-          />
-        );
-      })}
-      <polygon
-        points={pts.map((pt) => pt.join(",")).join(" ")}
-        fill="url(#radarFill)"
-        stroke="var(--accent)"
-        strokeWidth="2.5"
-      />
-      {pts.map((pt, i) => (
-        <circle key={`pt-${i}`} cx={pt[0]} cy={pt[1]} r="4" fill="var(--accent)" />
-      ))}
-      {stats.map(([l, v], i) => {
-        const a = ((i * 60 - 90) * Math.PI) / 180;
-        const tx = cx + (r + 18) * Math.cos(a);
-        const ty = cy + (r + 18) * Math.sin(a);
-        return (
-          <g key={`lab-${i}`}>
-            <text
-              x={tx}
-              y={ty}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fontFamily="var(--font-jetbrains)"
-              fontSize="11"
-              fill="var(--muted)"
-              fontWeight="700"
-            >
-              {l}
-            </text>
-            <text
-              x={tx}
-              y={ty + 12}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fontFamily="var(--font-jetbrains)"
-              fontSize="10"
-              fill={tierColor(v)}
-              fontWeight="700"
-            >
-              {v}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}

@@ -4,41 +4,70 @@
  * Deterministic when given a seed; otherwise uses Math.random.
  * Takes two clubs + their squads + tactics and produces:
  *  - scoreline
- *  - minute-by-minute event timeline with Turkish AI-style commentary
- *  - per-player ratings, goals, assists, cards, injury risks
+ *  - a minute-by-minute timeline that reads like a match, not a results table
+ *  - per-player ratings, goals, assists, cards, injuries, fitness cost
  *  - match stats (possession, shots, corners, cards)
+ *
+ * ─── The timeline ───────────────────────────────────────────────────────
+ *
+ * Events used to be emitted only for things that changed the scoreline or
+ * the card count: a 1-0 produced four lines, three of which were furniture.
+ * The replay screen therefore had nothing to play back.
+ *
+ * The stats are now computed BEFORE the timeline, and the timeline is
+ * DERIVED FROM THEM — six shots on target and one goal means five saves to
+ * narrate, and the feed adds up to the stat panel underneath it because both
+ * come from the same numbers. Previously the two were generated independently
+ * and openly disagreed: a match could show 9 shots and describe none of them.
  *
  * Home advantage: ~5-8% power boost, capped so it never overrides a much
  * stronger away side (gameplay-fair).
  */
 import type { DBPlayer } from "@/lib/schema";
-import { parseFormation } from "./formation";
 import {
   EMPTY_LINEUP,
   isAvailable,
   resolveLineup,
   type SavedLineup,
 } from "@/lib/lineup";
+import { DEFAULT_TACTICS, type Tactics } from "@/lib/tactics";
 import { buildCommentary } from "./commentary";
+import { lineExposure, teamPower, type TeamPower } from "./power";
 
 // ─── Types ────────────────────────────────────────────────────
+export type MatchEventType =
+  | "start"
+  | "goal"
+  | "chance"
+  | "save"
+  | "miss"
+  | "corner"
+  | "duel"
+  | "card"
+  | "sub"
+  | "injury"
+  | "analysis"
+  | "half"
+  | "end";
+
 export type MatchEvent = {
   minute: number;
   icon: string;
-  type:
-    | "start"
-    | "goal"
-    | "shot"
-    | "card"
-    | "sub"
-    | "analysis"
-    | "half"
-    | "end";
+  type: MatchEventType;
   text: string;
   scorerId?: string;
   assisterId?: string;
   cardPlayerId?: string;
   side?: "home" | "away";
+  /**
+   * How much this moment matters, 0-3. The replay reads it to decide how
+   * long to hold on a line and whether to celebrate — a goal is a different
+   * event from a throw-in and the playback should feel that.
+   */
+  weight?: number;
+  /** Running score after this event, so the replay can show a live scoreboard. */
+  scoreHome?: number;
+  scoreAway?: number;
 };
 
 export type MatchStats = {
@@ -55,6 +84,9 @@ export type MatchStats = {
   crowdEnergy: number;
   refereeName: string;
   refereeStrictness: number; // 1 (lenient) – 5 (strict)
+  /** Expected goals, rounded to one decimal — the honest version of the score. */
+  xgHome: number;
+  xgAway: number;
 };
 
 /**
@@ -91,6 +123,12 @@ export type PlayerUpdate = {
   yellow: number;
   red: number;
   injuredMinutes?: number; // if > 0, injury
+  /**
+   * Fitness burned in this match. Pressing and a high tempo are paid for
+   * here — without it the stamina cost printed on the tactic screen was a
+   * label with nothing behind it.
+   */
+  fitnessDrain?: number;
 };
 
 export type MatchResult = {
@@ -103,12 +141,8 @@ export type MatchResult = {
   playerUpdates: PlayerUpdate[];
 };
 
-export type TacticInput = {
-  formation: string;
-  mentality: number; // 0-4 (def → att)
-  pressing: number; // 0-4
-  tempo: number; // 0-4
-};
+/** Kept as an alias so existing call sites read naturally. */
+export type TacticInput = Tactics;
 
 export type SimInput = {
   homeClubId: string;
@@ -164,142 +198,25 @@ function pickStarters(
   return resolveLineup(squad, formation, saved).starters;
 }
 
-// Attribute-aware unit power. Instead of averaging `overall`, each unit
-// uses the attributes most relevant to its job: attackers score with
-// shooting, defenders block with defending, midfielders distribute with
-// passing. Falls back to `overall` if an attribute is missing (legacy rows
-// from pre-0012).
-function teamPower(
-  starters: DBPlayer[],
-  tactics: TacticInput,
-  homeBoost: number,
-): { attack: number; midfield: number; defense: number; overall: number } {
-  const byPos = (pos: DBPlayer["position"]) =>
-    starters.filter((p) => p.position === pos);
-  // An empty line means nobody is playing there — it must be *terrible*, not
-  // league-average. The old value of 70 meant a club with no defenders (or no
-  // squad at all) defended like a mid-table side, which let drained bot
-  // squads stay competitive and made having no goalkeeper better than having
-  // a bad one.
-  const EMPTY_LINE = 30;
-  const avgAttr = (arr: DBPlayer[], pick: (p: DBPlayer) => number) =>
-    arr.length === 0
-      ? EMPTY_LINE
-      : arr.reduce((s, p) => s + pick(p), 0) / arr.length;
-
-  const defs = byPos("DEF");
-  const mids = byPos("MID");
-  const fwds = byPos("FWD");
-  const gk = byPos("GK")[0];
-
-  // Attackers: shooting leads, pace + physical help, overall as a floor.
-  const fwdShoot = avgAttr(fwds, (p) => p.shooting);
-  const fwdPace = avgAttr(fwds, (p) => p.pace);
-  const fwdPhys = avgAttr(fwds, (p) => p.physical);
-  const fwdOvr = avgAttr(fwds, (p) => p.overall);
-  const attackCore =
-    fwdShoot * 0.55 + fwdPace * 0.2 + fwdPhys * 0.1 + fwdOvr * 0.15;
-
-  // Midfielders: passing leads, physical + pace support.
-  const midPass = avgAttr(mids, (p) => p.passing);
-  const midPhys = avgAttr(mids, (p) => p.physical);
-  const midPace = avgAttr(mids, (p) => p.pace);
-  const midOvr = avgAttr(mids, (p) => p.overall);
-  const midCore =
-    midPass * 0.5 + midPhys * 0.2 + midPace * 0.15 + midOvr * 0.15;
-
-  // Defenders: defending leads, physical helps, pace for full-backs.
-  const defDef = avgAttr(defs, (p) => p.defending);
-  const defPhys = avgAttr(defs, (p) => p.physical);
-  const defPace = avgAttr(defs, (p) => p.pace);
-  const defOvr = avgAttr(defs, (p) => p.overall);
-  const defCore =
-    defDef * 0.5 + defPhys * 0.2 + defPace * 0.1 + defOvr * 0.2;
-
-  // GK: goalkeeping is king. Playing without one is a disaster, not a
-  // league-average performance — the old fallback of 70 meant an empty net
-  // defended better than a poor keeper.
-  const gkPwr = gk ? gk.goalkeeping * 0.75 + gk.overall * 0.25 : EMPTY_LINE;
-
-  // Morale 1-5, 3 neutral. ±3 at extremes.
-  const avgMorale =
-    starters.length === 0
-      ? 3
-      : starters.reduce((s, p) => s + p.morale, 0) / starters.length;
-  const moraleBoost = (avgMorale - 3) * 1.5;
-
-  // Fitness penalty: starters with <75 avg fitness tire visibly.
-  const avgFit =
-    starters.length === 0
-      ? 90
-      : starters.reduce((s, p) => s + p.fitness, 0) / starters.length;
-  const fitPenalty = avgFit < 75 ? (75 - avgFit) * 0.05 : 0;
-
-  // Mentality 0-4: 0=defensive, 2=balanced, 4=attacking
-  const mentalityBoost = (tactics.mentality - 2) * 1.2;
-  const pressingBoost = (tactics.pressing - 2) * 0.6;
-  const tempoBoost = (tactics.tempo - 2) * 0.4;
-
-  // Formation shifts effort between the lines. These are ADDITIVE, not
-  // multiplicative: a formation should trade attack for defence, never
-  // create or destroy team strength outright. The previous version scaled
-  // each unit by count/ideal — so a lone striker in 4-2-3-1 kept only 50% of
-  // the attack score (roughly 0.1 expected goals, a near-guaranteed loss)
-  // while 4-3-3 got a 150% multiplier and produced 6-7 goal scorelines.
-  const { def: defCount, mid: midCount, fwd: fwdCount } = parseFormation(
-    tactics.formation,
-  );
-  const defShift = (defCount - 4) * 1.6;
-  const midShift = (midCount - 4) * 1.6;
-  const fwdShift = (fwdCount - 2) * 2.2;
-
-  // Fielding fewer than eleven is a real handicap — each empty shirt costs
-  // the whole side, not just the line it came from.
-  const shortfall = Math.max(0, 11 - starters.length) * 2.5;
-
-  const attack =
-    attackCore * 0.75 +
-    midCore * 0.25 +
-    fwdShift +
-    mentalityBoost +
-    moraleBoost +
-    homeBoost * 0.6 -
-    fitPenalty -
-    shortfall;
-  const midfield =
-    midCore +
-    midShift +
-    pressingBoost +
-    tempoBoost +
-    moraleBoost * 0.5 +
-    homeBoost * 0.4 -
-    fitPenalty -
-    shortfall;
-  const defense =
-    defCore * 0.7 +
-    gkPwr * 0.3 +
-    defShift -
-    mentalityBoost * 0.5 +
-    moraleBoost * 0.5 +
-    homeBoost * 0.4 -
-    fitPenalty -
-    shortfall;
-  const overall = attack * 0.4 + midfield * 0.3 + defense * 0.3;
-
-  return { attack, midfield, defense, overall };
+/** Fill in any dial a caller left out, so the engine always sees seven. */
+function normalizeTactics(t: Partial<Tactics> | undefined): Tactics {
+  return { ...DEFAULT_TACTICS, ...(t ?? {}) };
 }
 
 // ─── Simulate ─────────────────────────────────────────────────
 export function simulateMatch(input: SimInput): MatchResult {
   const rng = createRng(input.seed);
+  const homeTacticsIn = normalizeTactics(input.homeTactics);
+  const awayTacticsIn = normalizeTactics(input.awayTactics);
+
   const homeStarters = pickStarters(
     input.homeSquad,
-    input.homeTactics.formation,
+    homeTacticsIn.formation,
     input.homeLineup ?? EMPTY_LINEUP,
   );
   const awayStarters = pickStarters(
     input.awaySquad,
-    input.awayTactics.formation,
+    awayTacticsIn.formation,
     input.awayLineup ?? EMPTY_LINEUP,
   );
 
@@ -309,30 +226,35 @@ export function simulateMatch(input: SimInput): MatchResult {
   const refStrict = referee.strictness;
 
   // Stadium boost: base 2.5 + 0.5 per level above 1 (so L5 = +4.5 home).
-  // Clamped to [1, 5] in case a malformed value gets through.
   const stadiumLevel = Math.max(1, Math.min(5, input.homeStadiumLevel ?? 1));
   const homeBoost = 2.5 + (stadiumLevel - 1) * 0.5;
 
-  // Strict refs nudge both sides one tick down on the aggression dial
-  // (mentality + pressing). Soft refs (1-2) nudge them up. Effect is small
-  // — it should reshape risk-taking, not flip results.
-  const refMentalityShift = refStrict >= 4 ? -0.4 : refStrict <= 2 ? 0.3 : 0;
-  const homeT = {
-    ...input.homeTactics,
-    mentality: input.homeTactics.mentality + refMentalityShift,
-    pressing: input.homeTactics.pressing + refMentalityShift,
-  };
-  const awayT = {
-    ...input.awayTactics,
-    mentality: input.awayTactics.mentality + refMentalityShift,
-    pressing: input.awayTactics.pressing + refMentalityShift,
-  };
+  // Strict refs nudge both sides one tick down on the aggression dials. Effect
+  // is small — it should reshape risk-taking, not flip results.
+  const refShift = refStrict >= 4 ? -0.4 : refStrict <= 2 ? 0.3 : 0;
+  const shift = (t: Tactics): Tactics => ({
+    ...t,
+    mentality: t.mentality + refShift,
+    pressing: t.pressing + refShift,
+    aggression: t.aggression + refShift,
+  });
+  const homeT = shift(homeTacticsIn);
+  const awayT = shift(awayTacticsIn);
 
   const homePower = teamPower(homeStarters, homeT, homeBoost);
   const awayPower = teamPower(awayStarters, awayT, 0);
 
-  const sameCityDerby = input.homeCity && input.awayCity
-    && input.homeCity === input.awayCity;
+  // The defensive line is priced against the OPPONENT's pace, which is what
+  // makes it a bet rather than a setting. Applied after both sides are known.
+  const homeDefense =
+    homePower.defense - lineExposure(homePower, awayPower, homeT.defLine);
+  const awayDefense =
+    awayPower.defense - lineExposure(awayPower, homePower, awayT.defLine);
+
+  const sameCityDerby =
+    Boolean(input.homeCity) &&
+    Boolean(input.awayCity) &&
+    input.homeCity === input.awayCity;
   const stakesMultiplier = sameCityDerby ? 1.15 : 1.0;
 
   // Expected goals: attack against the opponent's defence, nudged by who
@@ -345,17 +267,16 @@ export function simulateMatch(input: SimInput): MatchResult {
   const homeXG =
     Math.min(
       4.2,
-      Math.max(0.18, (homePower.attack - awayPower.defense) / 24 + baseHome + midEdge),
+      Math.max(0.18, (homePower.attack - awayDefense) / 24 + baseHome + midEdge),
     ) * stakesMultiplier;
   const awayXG =
     Math.min(
       4.2,
-      Math.max(0.18, (awayPower.attack - homePower.defense) / 24 + baseAway - midEdge),
+      Math.max(0.18, (awayPower.attack - homeDefense) / 24 + baseAway - midEdge),
     ) * stakesMultiplier;
 
   // Poisson realization, capped at 7 goals per side.
   const drawGoals = (lambda: number): number => {
-    // Knuth-style Poisson
     const L = Math.exp(-lambda);
     let k = 0;
     let p = 1;
@@ -369,110 +290,90 @@ export function simulateMatch(input: SimInput): MatchResult {
   const homeScore = drawGoals(homeXG);
   const awayScore = drawGoals(awayXG);
 
-  // Build goal minutes — distribute uniformly 5..88 with light bias to 2nd half
-  const goalMinutes = (count: number): number[] => {
-    const out: number[] = [];
-    for (let i = 0; i < count; i++) {
-      const m = Math.floor(5 + rng() * 83);
-      out.push(m);
-    }
-    return out.sort((a, b) => a - b);
-  };
-  const homeMins = goalMinutes(homeScore);
-  const awayMins = goalMinutes(awayScore);
+  // ─── Stats first, timeline second ──────────────────────────
+  // Both must describe the same match, so there is exactly one source for
+  // "how many shots were there" and the feed narrates that number.
+  const shotCount = (xg: number, score: number, volume: number) =>
+    Math.max(score, Math.round((xg * 3.4 + 2 + rng() * 4) * volume));
+  const shotsHome = shotCount(homeXG, homeScore, homePower.shotVolume);
+  const shotsAway = shotCount(awayXG, awayScore, awayPower.shotVolume);
+  const onTarget = (shots: number, score: number) =>
+    Math.max(score, Math.min(shots, score + Math.round(rng() * 3 + shots * 0.22)));
+  const shotsOnHome = onTarget(shotsHome, homeScore);
+  const shotsOnAway = onTarget(shotsAway, awayScore);
 
-  // Choose scorers biased to FWDs > MIDs > DEFs. Within each tier, weight
-  // by `shooting` so a 90-shooting striker scores far more often than a
-  // 65-shooting one, and a midfielder with sharp shooting can outscore a
-  // weak striker.
-  const pickScorer = (
-    starters: DBPlayer[],
-    r: () => number,
-  ): DBPlayer | undefined => {
+  // Possession: midfield control plus what each side's passing style pulls.
+  const homePoss = Math.round(
+    50 +
+      (homePower.midfield - awayPower.midfield) * 1.1 +
+      (homePower.possessionPull - awayPower.possessionPull) * 0.5,
+  );
+  const possessionHome = Math.max(28, Math.min(72, homePoss));
+
+  // Wide play produces corners; a narrow side wins fewer.
+  const cornerCount = (shots: number, width: number) =>
+    Math.max(0, Math.round(shots * 0.45 + (width - 2) * 0.8 + rng() * 2));
+  const cornersHome = cornerCount(shotsHome, homeTacticsIn.width);
+  const cornersAway = cornerCount(shotsAway, awayTacticsIn.width);
+
+  // Cards scale with the referee AND with how hard each side is going in.
+  const sideCards = (risk: number) =>
+    Math.max(
+      0,
+      Math.min(5, Math.round(((refStrict - 1) / 2 + rng() * 1.6) * risk)),
+    );
+  const cardsHomeCount = sideCards(homePower.cardRisk);
+  const cardsAwayCount = sideCards(awayPower.cardRisk);
+
+  // ─── Who does what ─────────────────────────────────────────
+  // Choose scorers biased to FWDs > MIDs > DEFs, weighted by `shooting` so a
+  // 90-shooting striker scores far more often than a 65-shooting one.
+  const pickScorer = (starters: DBPlayer[]): DBPlayer | undefined => {
     if (starters.length === 0) return undefined;
     const weighted = starters.flatMap((p) => {
       const posWeight =
-        p.position === "FWD"
-          ? 6
-          : p.position === "MID"
-            ? 3
-            : p.position === "DEF"
-              ? 1
-              : 0;
+        p.position === "FWD" ? 6 : p.position === "MID" ? 3 : p.position === "DEF" ? 1 : 0;
       const copies = Math.max(1, Math.round((posWeight * p.shooting) / 70));
-      return Array(copies).fill(p);
+      return Array(copies).fill(p) as DBPlayer[];
     });
     if (weighted.length === 0) return starters[0];
-    return weighted[Math.floor(r() * weighted.length)] ?? starters[0];
+    return weighted[Math.floor(rng() * weighted.length)] ?? starters[0];
   };
 
-  // Assisters favor high-passing midfielders; forwards assist less often.
+  // Assisters favour high-passing midfielders; forwards assist less often.
   const pickAssister = (
     starters: DBPlayer[],
     excludeId: string,
-    r: () => number,
   ): DBPlayer | undefined => {
-    if (r() < 0.25) return undefined; // solo goal
-    const pool = starters.filter(
-      (p) => p.id !== excludeId && p.position !== "GK",
-    );
+    if (rng() < 0.25) return undefined; // solo goal
+    const pool = starters.filter((p) => p.id !== excludeId && p.position !== "GK");
     if (pool.length === 0) return undefined;
     const weighted = pool.flatMap((p) => {
       const posWeight = p.position === "MID" ? 4 : p.position === "FWD" ? 2 : 1;
       const copies = Math.max(1, Math.round((posWeight * p.passing) / 70));
-      return Array(copies).fill(p);
+      return Array(copies).fill(p) as DBPlayer[];
     });
     if (weighted.length === 0) return undefined;
-    return weighted[Math.floor(r() * weighted.length)];
+    return weighted[Math.floor(rng() * weighted.length)];
   };
 
-  // Card events — frequency scales with referee strictness:
-  //   strictness 1 → ~1 card avg, strictness 5 → ~5 cards avg.
-  const cardMinutes = (count: number): number[] => {
-    const out: number[] = [];
-    for (let i = 0; i < count; i++) out.push(Math.floor(10 + rng() * 78));
-    return out.sort((a, b) => a - b);
-  };
-  // Base = strictness ± 1 random card, clamped 0..7
-  const totalCards = Math.max(
-    0,
-    Math.min(7, refStrict - 1 + Math.floor(rng() * 3)),
-  );
-  const cardMins = cardMinutes(totalCards);
+  const keeperOf = (starters: DBPlayer[]) =>
+    starters.find((p) => p.position === "GK");
 
-  // Assemble events timeline
-  type Ev = {
-    minute: number;
-    side: "home" | "away";
-    kind: "goal" | "card" | "sub";
-    scorer?: DBPlayer;
-    assister?: DBPlayer;
-    cardPlayer?: DBPlayer;
-    cardKind?: "yellow" | "red";
-    subOut?: DBPlayer;
-    subIn?: DBPlayer;
-  };
-
-  // Compute who's on the pitch for `side` at `minute`, applying every
-  // valid sub up to that point. Subs are validated (target on pitch + sub
-  // not already used). Lets goal/card events post-sub use the right pool.
-  const computePoolAt = (
-    side: "home" | "away",
-    minute: number,
-  ): DBPlayer[] => {
+  // Compute who's on the pitch for `side` at `minute`, applying every valid
+  // sub up to that point.
+  const computePoolAt = (side: "home" | "away", minute: number): DBPlayer[] => {
     const original = side === "home" ? homeStarters : awayStarters;
     const squad = side === "home" ? input.homeSquad : input.awaySquad;
-    const plan = side === "home" ? input.homeSubPlan ?? [] : input.awaySubPlan ?? [];
+    const plan =
+      side === "home" ? (input.homeSubPlan ?? []) : (input.awaySubPlan ?? []);
     const pool = [...original];
-    const sorted = [...plan].sort((a, b) => a.minute - b.minute);
-    for (const sub of sorted) {
+    for (const sub of [...plan].sort((a, b) => a.minute - b.minute)) {
       if (sub.minute > minute) break;
       const inP = squad.find((p) => p.id === sub.inId);
       if (!inP) continue;
       // A sub plan is written days before kick-off. By match day the player
-      // named may have been injured or banned, and the plan would happily
-      // put him on the pitch — where he could score and pick up cards while
-      // formally unavailable.
+      // named may have been injured or banned.
       if (!isAvailable(inP)) continue;
       if (pool.some((p) => p.id === inP.id)) continue;
       const idx = pool.findIndex((p) => p.id === sub.outId);
@@ -482,59 +383,360 @@ export function simulateMatch(input: SimInput): MatchResult {
     return pool;
   };
 
-  // Sort all event minutes; pick scorers/cards using post-sub pool.
-  const allEventMins: Array<{
-    minute: number;
-    kind: "goalHome" | "goalAway" | "card";
-  }> = [
-    ...homeMins.map((m) => ({ minute: m, kind: "goalHome" as const })),
-    ...awayMins.map((m) => ({ minute: m, kind: "goalAway" as const })),
-    ...cardMins.map((m) => ({ minute: m, kind: "card" as const })),
-  ].sort((a, b) => a.minute - b.minute);
+  // ─── Moment assembly ───────────────────────────────────────
+  type Moment =
+    | { minute: number; kind: "goal"; side: "home" | "away" }
+    | { minute: number; kind: "save" | "miss" | "chance" | "corner" | "duel"; side: "home" | "away" }
+    | { minute: number; kind: "card"; side: "home" | "away" }
+    | { minute: number; kind: "injury"; side: "home" | "away" }
+    | { minute: number; kind: "analysis" };
 
-  const raw: Ev[] = [];
-  // Strict refs increase the chance a card is red (0.05 + 0.04*strict)
+  const moments: Moment[] = [];
+  const minuteIn = (lo: number, hi: number) =>
+    Math.floor(lo + rng() * (hi - lo));
+
+  // Goals, spread across the 90 with a light second-half bias.
+  for (let i = 0; i < homeScore; i++)
+    moments.push({ minute: minuteIn(3, 92), kind: "goal", side: "home" });
+  for (let i = 0; i < awayScore; i++)
+    moments.push({ minute: minuteIn(3, 92), kind: "goal", side: "away" });
+
+  // Saves = shots on target that were not goals. Misses = the rest of the
+  // shots. Narrate a readable subset rather than all of them: a feed with
+  // fourteen identical "shot off target" lines is noise, not drama.
+  const addMany = (
+    n: number,
+    kind: "save" | "miss" | "corner" | "duel",
+    side: "home" | "away",
+  ) => {
+    for (let i = 0; i < n; i++)
+      moments.push({ minute: minuteIn(2, 91), kind, side });
+  };
+  addMany(Math.min(4, shotsOnHome - homeScore), "save", "home");
+  addMany(Math.min(4, shotsOnAway - awayScore), "save", "away");
+  addMany(Math.min(3, shotsHome - shotsOnHome), "miss", "home");
+  addMany(Math.min(3, shotsAway - shotsOnAway), "miss", "away");
+  addMany(Math.min(2, cornersHome), "corner", "home");
+  addMany(Math.min(2, cornersAway), "corner", "away");
+  addMany(1 + Math.floor(rng() * 2), "duel", rng() < 0.5 ? "home" : "away");
+
+  for (let i = 0; i < cardsHomeCount; i++)
+    moments.push({ minute: minuteIn(8, 90), kind: "card", side: "home" });
+  for (let i = 0; i < cardsAwayCount; i++)
+    moments.push({ minute: minuteIn(8, 90), kind: "card", side: "away" });
+
+  // Two tactical beats, one per half, so the feed has a pulse between events.
+  moments.push({ minute: minuteIn(20, 38), kind: "analysis" });
+  moments.push({ minute: minuteIn(55, 76), kind: "analysis" });
+
+  // Injuries: rolled here so the moment appears in the feed at the minute it
+  // happened rather than being a silent status change after full time.
+  const injured: Array<{ player: DBPlayer; days: number }> = [];
+  const rollInjury = (
+    starters: DBPlayer[],
+    physioTier: number,
+    risk: number,
+    side: "home" | "away",
+  ) => {
+    if (starters.length === 0) return;
+    const incidenceScale = Math.max(0.1, 1 - physioTier * 0.18) * risk;
+    const durationScale = Math.max(0.4, 1 - physioTier * 0.25);
+    if (rng() >= 0.07 * incidenceScale) return;
+    const p = starters[Math.floor(rng() * starters.length)];
+    if (!p) return;
+    injured.push({ player: p, days: Math.max(1, Math.ceil(rng() * 10 * durationScale)) });
+    moments.push({ minute: minuteIn(15, 85), kind: "injury", side });
+  };
+  rollInjury(homeStarters, input.homePhysioTier ?? 0, homePower.injuryRisk, "home");
+  rollInjury(awayStarters, input.awayPhysioTier ?? 0, awayPower.injuryRisk, "away");
+
+  moments.sort((a, b) => a.minute - b.minute);
+
+  // ─── Resolve moments into events ───────────────────────────
+  type GoalRecord = {
+    minute: number;
+    side: "home" | "away";
+    scorer: DBPlayer;
+    assister?: DBPlayer;
+  };
+  type CardRecord = {
+    minute: number;
+    side: "home" | "away";
+    player: DBPlayer;
+    kind: "yellow" | "red";
+  };
+  const goalRecords: GoalRecord[] = [];
+  const cardRecords: CardRecord[] = [];
+
   // Share of cards that are red. Real football sends someone off in roughly
-  // one match in eight; at 0.04 + 0.03×strictness this was producing about
-  // half a red card *per match* (nearly one with the strictest referee),
-  // which wrecked squads and the suspension ledger.
+  // one match in eight.
   const redChance = 0.012 + 0.006 * refStrict;
 
-  for (const ev of allEventMins) {
-    if (ev.kind === "goalHome") {
-      const pool = computePoolAt("home", ev.minute);
-      const scorer = pickScorer(pool, rng);
+  const events: MatchEvent[] = [];
+  events.push({
+    minute: 0,
+    icon: "🎬",
+    type: "start",
+    weight: 1,
+    scoreHome: 0,
+    scoreAway: 0,
+    text: buildCommentary.kickoff({
+      homeClubName: input.homeClubName,
+      awayClubName: input.awayClubName,
+      referee: referee.name,
+      strictness: refStrict,
+      derby: sameCityDerby,
+      crowd: 50 + (stadiumLevel - 1) * 6 + ((input.homePrestige ?? 50) - 50) * 0.15,
+    }),
+  });
+
+  let runningHome = 0;
+  let runningAway = 0;
+  let halfInserted = false;
+
+  const clubName = (side: "home" | "away") =>
+    side === "home" ? input.homeClubName : input.awayClubName;
+  const tacticsOf = (side: "home" | "away") =>
+    side === "home" ? homeTacticsIn : awayTacticsIn;
+
+  /** How the goal arrived — read off the scoring side's own tactics. */
+  const rollOrigin = (side: "home" | "away"): GoalCtxOrigin => {
+    const t = tacticsOf(side);
+    const table: Array<[GoalCtxOrigin, number]> = [
+      ["cross", 0.1 + t.width * 0.05],
+      ["long", 0.04 + t.passingStyle * 0.045],
+      ["counter", 0.08 + (4 - t.mentality) * 0.025 + (4 - t.defLine) * 0.02],
+      ["corner", 0.12],
+      ["solo", 0.1],
+      ["open", 0.28],
+    ];
+    const total = table.reduce((s, [, w]) => s + w, 0);
+    let r = rng() * total;
+    for (const [k, w] of table) {
+      r -= w;
+      if (r <= 0) return k;
+    }
+    return "open";
+  };
+
+  for (const m of moments) {
+    // Half-time goes in at the right point in the narrative, not appended
+    // after the loop — where it used to report the FULL-TIME score.
+    if (!halfInserted && m.minute > 45) {
+      events.push({
+        minute: 45,
+        icon: "⏸",
+        type: "half",
+        weight: 1,
+        scoreHome: runningHome,
+        scoreAway: runningAway,
+        text: buildCommentary.halfTime({
+          homeClubName: input.homeClubName,
+          awayClubName: input.awayClubName,
+          home: runningHome,
+          away: runningAway,
+        }),
+      });
+      halfInserted = true;
+    }
+
+    if (m.kind === "analysis") {
+      const gap = homePower.midfield - awayPower.midfield;
+      const mood =
+        Math.abs(gap) >= 6 ? "dominant" : homeXG + awayXG >= 3.2 ? "open" : "tight";
+      events.push({
+        minute: m.minute,
+        icon: "🧠",
+        type: "analysis",
+        weight: 0,
+        scoreHome: runningHome,
+        scoreAway: runningAway,
+        text: buildCommentary.analysis(
+          { mood, clubName: gap >= 0 ? input.homeClubName : input.awayClubName },
+          rng,
+        ),
+      });
+      continue;
+    }
+
+    const pool = computePoolAt(m.side, m.minute);
+    if (pool.length === 0) continue;
+
+    if (m.kind === "goal") {
+      const scorer = pickScorer(pool);
       if (!scorer) continue;
-      const assister = pickAssister(pool, scorer.id, rng);
-      raw.push({ minute: ev.minute, side: "home", kind: "goal", scorer, assister });
-    } else if (ev.kind === "goalAway") {
-      const pool = computePoolAt("away", ev.minute);
-      const scorer = pickScorer(pool, rng);
-      if (!scorer) continue;
-      const assister = pickAssister(pool, scorer.id, rng);
-      raw.push({ minute: ev.minute, side: "away", kind: "goal", scorer, assister });
+      const assister = pickAssister(pool, scorer.id);
+      if (m.side === "home") runningHome++;
+      else runningAway++;
+      goalRecords.push({ minute: m.minute, side: m.side, scorer, assister });
+
+      const forSide = m.side === "home" ? runningHome : runningAway;
+      const againstSide = m.side === "home" ? runningAway : runningHome;
+      const state =
+        forSide === 1 && againstSide === 0
+          ? "opened"
+          : forSide === againstSide
+            ? "equalised"
+            : forSide === againstSide + 1
+              ? "ahead"
+              : forSide > againstSide
+                ? "extended"
+                : "consolation";
+
+      events.push({
+        minute: m.minute,
+        icon: "⚽",
+        type: "goal",
+        weight: 3,
+        side: m.side,
+        scorerId: scorer.id,
+        assisterId: assister?.id,
+        scoreHome: runningHome,
+        scoreAway: runningAway,
+        text: buildCommentary.goal(
+          {
+            scorer: scorer.name,
+            assister: assister?.name,
+            minute: m.minute,
+            scoringClubName: clubName(m.side),
+            concedingClubName: clubName(m.side === "home" ? "away" : "home"),
+            runningHome,
+            runningAway,
+            derby: sameCityDerby,
+            origin: rollOrigin(m.side),
+            state,
+          },
+          rng,
+        ),
+      });
+      continue;
+    }
+
+    if (m.kind === "card") {
+      const eligible = pool.filter((p) => p.position !== "GK");
+      if (eligible.length === 0) continue;
+      // Hard tacklers are the ones who get booked: weight by how much of the
+      // player's game is physical contact.
+      const weighted = eligible.flatMap((p) => {
+        const w = p.position === "DEF" ? 3 : p.position === "MID" ? 3 : 1;
+        return Array(w).fill(p) as DBPlayer[];
+      });
+      const victim = weighted[Math.floor(rng() * weighted.length)];
+      const kind: "yellow" | "red" = rng() < redChance ? "red" : "yellow";
+      cardRecords.push({ minute: m.minute, side: m.side, player: victim, kind });
+      events.push({
+        minute: m.minute,
+        icon: kind === "red" ? "🟥" : "🟨",
+        type: "card",
+        weight: kind === "red" ? 2 : 1,
+        side: m.side,
+        cardPlayerId: victim.id,
+        scoreHome: runningHome,
+        scoreAway: runningAway,
+        text: buildCommentary.card(
+          { player: victim.name, minute: m.minute, kind },
+          rng,
+        ),
+      });
+      continue;
+    }
+
+    if (m.kind === "injury") {
+      const hurt = injured.find((i) =>
+        pool.some((p) => p.id === i.player.id),
+      );
+      if (!hurt) continue;
+      events.push({
+        minute: m.minute,
+        icon: "🩹",
+        type: "injury",
+        weight: 2,
+        side: m.side,
+        scoreHome: runningHome,
+        scoreAway: runningAway,
+        text: buildCommentary.injury({ player: hurt.player.name }, rng),
+      });
+      continue;
+    }
+
+    if (m.kind === "corner") {
+      events.push({
+        minute: m.minute,
+        icon: "🚩",
+        type: "corner",
+        weight: 0,
+        side: m.side,
+        scoreHome: runningHome,
+        scoreAway: runningAway,
+        text: buildCommentary.corner({ clubName: clubName(m.side) }, rng),
+      });
+      continue;
+    }
+
+    if (m.kind === "duel") {
+      const p = pool[Math.floor(rng() * pool.length)];
+      events.push({
+        minute: m.minute,
+        icon: "⚔",
+        type: "duel",
+        weight: 0,
+        side: m.side,
+        scoreHome: runningHome,
+        scoreAway: runningAway,
+        text: buildCommentary.duel(
+          { player: p.name, clubName: clubName(m.side) },
+          rng,
+        ),
+      });
+      continue;
+    }
+
+    // save / miss — the shots that did not go in.
+    const shooter = pickScorer(pool);
+    if (!shooter) continue;
+    if (m.kind === "save") {
+      const keeper = keeperOf(
+        computePoolAt(m.side === "home" ? "away" : "home", m.minute),
+      );
+      events.push({
+        minute: m.minute,
+        icon: "🧤",
+        type: "save",
+        weight: 2,
+        side: m.side,
+        scoreHome: runningHome,
+        scoreAway: runningAway,
+        text: keeper
+          ? buildCommentary.save({ player: shooter.name, keeper: keeper.name }, rng)
+          : buildCommentary.chance(
+              { player: shooter.name, clubName: clubName(m.side) },
+              rng,
+            ),
+      });
     } else {
-      const side: "home" | "away" = rng() < 0.5 ? "home" : "away";
-      const pool = computePoolAt(side, ev.minute).filter((p) => p.position !== "GK");
-      if (pool.length === 0) continue;
-      const victim = pool[Math.floor(rng() * pool.length)];
-      const cardKind: "yellow" | "red" = rng() < redChance ? "red" : "yellow";
-      raw.push({ minute: ev.minute, side, kind: "card", cardPlayer: victim, cardKind });
+      events.push({
+        minute: m.minute,
+        icon: "↗",
+        type: "miss",
+        weight: 1,
+        side: m.side,
+        scoreHome: runningHome,
+        scoreAway: runningAway,
+        text: buildCommentary.miss(
+          { player: shooter.name, clubName: clubName(m.side) },
+          rng,
+        ),
+      });
     }
   }
 
-  // Inject sub events into the raw timeline so they show up in commentary.
-  //
-  // Only the swaps that ACTUALLY happened are announced. The previous
-  // version emitted a "X comes on for Y" line for every planned swap, even
-  // ones the engine had rejected — an unavailable player, someone already on
-  // the pitch, or an outgoing player who was never in the eleven. The report
-  // then described a substitution that did not affect the match at all.
+  // Substitutions. Only the swaps that ACTUALLY happened are announced — the
+  // previous version narrated every planned swap, including ones the engine
+  // had rejected, so the report described a change that never took place.
   for (const side of ["home", "away"] as const) {
-    const plan = side === "home" ? input.homeSubPlan ?? [] : input.awaySubPlan ?? [];
+    const plan = side === "home" ? (input.homeSubPlan ?? []) : (input.awaySubPlan ?? []);
     const squad = side === "home" ? input.homeSquad : input.awaySquad;
-    const original = side === "home" ? homeStarters : awayStarters;
-    const pool = [...original];
+    const pool = [...(side === "home" ? homeStarters : awayStarters)];
     for (const sub of [...plan].sort((a, b) => a.minute - b.minute)) {
       const subIn = squad.find((p) => p.id === sub.inId);
       const subOut = squad.find((p) => p.id === sub.outId);
@@ -544,123 +746,76 @@ export function simulateMatch(input: SimInput): MatchResult {
       const idx = pool.findIndex((p) => p.id === sub.outId);
       if (idx < 0) continue;
       pool[idx] = subIn;
-      raw.push({ minute: sub.minute, side, kind: "sub", subOut, subIn });
-    }
-  }
-  raw.sort((a, b) => a.minute - b.minute);
-
-  // Commentary-enrich
-  const events: MatchEvent[] = [];
-  events.push({
-    minute: 0,
-    icon: "⚽",
-    type: "start",
-    text: `Düdük çaldı. ${input.homeClubName} sahasında ${input.awayClubName}'yı ağırlıyor. Hakem ${referee.name}${refStrict >= 4 ? " — kart yağmuru bekleniyor." : refStrict <= 2 ? " — yumuşak elli, oyuncular rahat." : ""}. ${sameCityDerby ? "Derbi. Stat kükrüyor." : "Stat enerjisi yüksek."}`,
-  });
-  let runningHome = 0;
-  let runningAway = 0;
-  for (const e of raw) {
-    if (e.kind === "goal" && e.scorer) {
-      if (e.side === "home") runningHome++;
-      else runningAway++;
       events.push({
-        minute: e.minute,
-        icon: "⚽",
-        type: "goal",
-        scorerId: e.scorer.id,
-        assisterId: e.assister?.id,
-        side: e.side,
-        text: buildCommentary.goal({
-          scorer: e.scorer.name,
-          assister: e.assister?.name,
-          minute: e.minute,
-          homeClubName: input.homeClubName,
-          awayClubName: input.awayClubName,
-          scoringClubName:
-            e.side === "home" ? input.homeClubName : input.awayClubName,
-          runningHome,
-          runningAway,
-          derby: Boolean(sameCityDerby),
-        }, rng),
-      });
-    } else if (e.kind === "card" && e.cardPlayer) {
-      events.push({
-        minute: e.minute,
-        icon: e.cardKind === "red" ? "🟥" : "🟨",
-        type: "card",
-        cardPlayerId: e.cardPlayer.id,
-        side: e.side,
-        text: buildCommentary.card(
-          {
-            player: e.cardPlayer.name,
-            minute: e.minute,
-            kind: e.cardKind ?? "yellow",
-          },
-          rng,
-        ),
-      });
-    } else if (e.kind === "sub" && e.subOut && e.subIn) {
-      events.push({
-        minute: e.minute,
+        minute: sub.minute,
         icon: "🔄",
         type: "sub",
-        side: e.side,
-        text: `${e.minute}'  Değişiklik: ${e.subOut.name} yerine ${e.subIn.name} sahaya çıktı.`,
+        weight: 1,
+        side,
+        text: `Değişiklik: ${subOut.name} çıktı, ${subIn.name} oyuna girdi.`,
       });
     }
   }
-  // Halftime marker. This is pushed after the event loop has finished, so
-  // `runningHome`/`runningAway` hold the FULL-TIME score by now — the half
-  // time line was reporting the final result. Count the goals actually
-  // scored in the first half instead.
-  const halfHome = homeMins.filter((m) => m <= 45).length;
-  const halfAway = awayMins.filter((m) => m <= 45).length;
-  events.push({
-    minute: 45,
-    icon: "⏱",
-    type: "half",
-    text: `İlk yarı sonu. ${input.homeClubName} ${halfHome}, ${input.awayClubName} ${halfAway}.`,
-  });
-  // Reorder by minute after insertion
+
+  if (!halfInserted) {
+    events.push({
+      minute: 45,
+      icon: "⏸",
+      type: "half",
+      weight: 1,
+      scoreHome: runningHome,
+      scoreAway: runningAway,
+      text: buildCommentary.halfTime({
+        homeClubName: input.homeClubName,
+        awayClubName: input.awayClubName,
+        home: goalRecords.filter((g) => g.side === "home" && g.minute <= 45).length,
+        away: goalRecords.filter((g) => g.side === "away" && g.minute <= 45).length,
+      }),
+    });
+  }
+
   events.sort((a, b) => a.minute - b.minute);
   events.push({
     minute: 90,
     icon: "🏁",
     type: "end",
-    text: `Maç bitti. Skor: ${homeScore} - ${awayScore}.`,
+    weight: 2,
+    scoreHome: homeScore,
+    scoreAway: awayScore,
+    text: buildCommentary.fullTime({
+      homeClubName: input.homeClubName,
+      awayClubName: input.awayClubName,
+      home: homeScore,
+      away: awayScore,
+    }),
   });
 
-  // Stats
-  const homePoss = Math.round(
-    50 + (homePower.midfield - awayPower.midfield) * 1.2,
-  );
   const stats: MatchStats = {
-    possessionHome: Math.max(30, Math.min(70, homePoss)),
-    possessionAway: 100 - Math.max(30, Math.min(70, homePoss)),
-    shotsHome: homeScore * 2 + Math.floor(4 + rng() * 8),
-    shotsAway: awayScore * 2 + Math.floor(3 + rng() * 7),
-    shotsOnHome: homeScore + Math.floor(rng() * 4),
-    shotsOnAway: awayScore + Math.floor(rng() * 3),
-    cornersHome: Math.floor(3 + rng() * 8),
-    cornersAway: Math.floor(2 + rng() * 6),
-    cardsHome: raw.filter((e) => e.kind === "card" && e.side === "home")
-      .length,
-    cardsAway: raw.filter((e) => e.kind === "card" && e.side === "away")
-      .length,
+    possessionHome,
+    possessionAway: 100 - possessionHome,
+    shotsHome,
+    shotsAway,
+    shotsOnHome,
+    shotsOnAway,
+    cornersHome,
+    cornersAway,
+    cardsHome: cardRecords.filter((c) => c.side === "home").length,
+    cardsAway: cardRecords.filter((c) => c.side === "away").length,
     crowdEnergy: Math.round(
-      // Bigger stadia + higher prestige = louder crowds. Clamp 0-100.
       Math.min(
         100,
         50 +
           (stadiumLevel - 1) * 6 +
           ((input.homePrestige ?? 50) - 50) * 0.15 +
           rng() * 25 +
-          (runningHome > runningAway ? 8 : 0) +
+          (homeScore > awayScore ? 8 : 0) +
           (sameCityDerby ? 10 : 0),
       ),
     ),
     refereeName: referee.name,
     refereeStrictness: refStrict,
+    xgHome: Number(homeXG.toFixed(1)),
+    xgAway: Number(awayXG.toFixed(1)),
   };
 
   // Side updates
@@ -683,13 +838,9 @@ export function simulateMatch(input: SimInput): MatchResult {
     points: awayResult === "W" ? 3 : awayResult === "D" ? 1 : 0,
   };
 
-  // Per-player updates.
-  //
-  // Every patch is a DELTA applied on top of BASE_RATING. Previously the
-  // create branch used `patch.rating ?? 6.5`, so anyone who was not a starter
-  // — a substitute — was created with the delta itself as their whole rating:
-  // a sub who scored got 1.1, clamped up to the 4.0 floor, and then lost
-  // morale for a match-winning goal.
+  // ─── Per-player updates ────────────────────────────────────
+  // Every patch is a DELTA applied on top of BASE_RATING, so a substitute who
+  // scores is created at 6.5 + 1.1 rather than at 1.1.
   const BASE_RATING = 6.5;
   const playerUpdates: PlayerUpdate[] = [];
   const upsert = (id: string, patch: Partial<PlayerUpdate>) => {
@@ -703,6 +854,9 @@ export function simulateMatch(input: SimInput): MatchResult {
       if (patch.injuredMinutes !== undefined) {
         existing.injuredMinutes = patch.injuredMinutes;
       }
+      if (patch.fitnessDrain !== undefined) {
+        existing.fitnessDrain = patch.fitnessDrain;
+      }
     } else {
       playerUpdates.push({
         playerId: id,
@@ -712,29 +866,44 @@ export function simulateMatch(input: SimInput): MatchResult {
         yellow: patch.yellow ?? 0,
         red: patch.red ?? 0,
         injuredMinutes: patch.injuredMinutes,
+        fitnessDrain: patch.fitnessDrain,
       });
     }
   };
-  // Seed the starters with a small spread around the base. Substitutes are
-  // created on first contribution and pick the base up from `upsert`.
-  for (const p of [...homeStarters, ...awayStarters]) {
-    upsert(p.id, { rating: (rng() - 0.5) * 0.6 });
+
+  // Starters carry the tactical stamina cost; a manager who presses at 4 all
+  // season arrives at the weekend with a tired squad.
+  const BASE_DRAIN = 10;
+  for (const p of homeStarters) {
+    upsert(p.id, {
+      rating: (rng() - 0.5) * 0.6,
+      fitnessDrain: Math.round(BASE_DRAIN + homePower.fatigue),
+    });
   }
-  for (const e of raw) {
-    if (e.kind === "goal" && e.scorer) {
-      upsert(e.scorer.id, { rating: 1.1, goals: 1 });
-      if (e.assister) upsert(e.assister.id, { rating: 0.55, assists: 1 });
-    } else if (e.kind === "card" && e.cardPlayer) {
-      upsert(e.cardPlayer.id, {
-        rating: e.cardKind === "red" ? -1.5 : -0.4,
-        yellow: e.cardKind === "yellow" ? 1 : 0,
-        red: e.cardKind === "red" ? 1 : 0,
-      });
-    }
+  for (const p of awayStarters) {
+    upsert(p.id, {
+      rating: (rng() - 0.5) * 0.6,
+      fitnessDrain: Math.round(BASE_DRAIN + awayPower.fatigue),
+    });
   }
-  // Keeper rating — hit per goal conceded, but a world-class keeper
-  // (goalkeeping ≥ 85) eats the blame less than a rookie. Clean sheet
-  // awards a bonus scaled by the opponent's attacking pressure.
+
+  for (const g of goalRecords) {
+    upsert(g.scorer.id, { rating: 1.1, goals: 1 });
+    if (g.assister) upsert(g.assister.id, { rating: 0.55, assists: 1 });
+  }
+  for (const c of cardRecords) {
+    upsert(c.player.id, {
+      rating: c.kind === "red" ? -1.5 : -0.4,
+      yellow: c.kind === "yellow" ? 1 : 0,
+      red: c.kind === "red" ? 1 : 0,
+    });
+  }
+  for (const i of injured) {
+    upsert(i.player.id, { injuredMinutes: i.days * 24 * 60 });
+  }
+
+  // Keeper rating — hit per goal conceded, but a world-class keeper eats the
+  // blame less than a rookie. A clean sheet is worth a bonus.
   const gkAdjust = (gk: DBPlayer | undefined, conceded: number) => {
     if (!gk) return;
     const gkFactor = Math.max(0.5, 1 - (gk.goalkeeping - 70) * 0.015);
@@ -742,32 +911,9 @@ export function simulateMatch(input: SimInput): MatchResult {
       rating: -0.3 * conceded * gkFactor + (conceded === 0 ? 0.5 : 0.15),
     });
   };
-  gkAdjust(
-    homeStarters.find((p) => p.position === "GK"),
-    awayScore,
-  );
-  gkAdjust(
-    awayStarters.find((p) => p.position === "GK"),
-    homeScore,
-  );
+  gkAdjust(keeperOf(homeStarters), awayScore);
+  gkAdjust(keeperOf(awayStarters), homeScore);
 
-  // Small chance of injury per match per side (~7% baseline). A hired
-  // physio scales both incidence and duration down by tier × 18% / 25%.
-  const maybeInjure = (starters: DBPlayer[], physioTier: number) => {
-    if (starters.length === 0) return;
-    const incidenceScale = Math.max(0.1, 1 - physioTier * 0.18);
-    const durationScale = Math.max(0.4, 1 - physioTier * 0.25);
-    if (rng() < 0.07 * incidenceScale) {
-      const p = starters[Math.floor(rng() * starters.length)];
-      if (!p) return;
-      const days = Math.max(1, Math.ceil(rng() * 10 * durationScale));
-      upsert(p.id, { injuredMinutes: days * 24 * 60 });
-    }
-  };
-  maybeInjure(homeStarters, input.homePhysioTier ?? 0);
-  maybeInjure(awayStarters, input.awayPhysioTier ?? 0);
-
-  // Clamp ratings to [4.0, 9.9]
   for (const u of playerUpdates) {
     u.rating = Math.max(4.0, Math.min(9.9, Number(u.rating.toFixed(1))));
   }
@@ -782,3 +928,9 @@ export function simulateMatch(input: SimInput): MatchResult {
     playerUpdates,
   };
 }
+
+type GoalCtxOrigin = "open" | "counter" | "corner" | "cross" | "solo" | "long";
+
+/** Re-exported so the tactic screen can render the same numbers the engine uses. */
+export type { TeamPower };
+export { teamPower };

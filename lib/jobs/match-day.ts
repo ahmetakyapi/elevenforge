@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { clubs, fixtures, leagues, players } from "@/lib/schema";
 import { applyMatchResult } from "@/lib/engine/apply-match";
 import { simulateMatch, type TacticInput } from "@/lib/engine/match";
+import { tacticsFrom } from "@/lib/tactics";
 import { parseLineup, resolveLineup } from "@/lib/lineup";
 import { rollSeasonIfDone } from "./season";
 import { runCupRound } from "./cup";
@@ -136,18 +137,8 @@ export async function runMatchDay(opts: {
       const homeSquad = squadByClub.get(home.id) ?? [];
       const awaySquad = squadByClub.get(away.id) ?? [];
 
-      const homeTactics: TacticInput = {
-        formation: home.formation,
-        mentality: home.mentality,
-        pressing: home.pressing,
-        tempo: home.tempo,
-      };
-      const awayTactics: TacticInput = {
-        formation: away.formation,
-        mentality: away.mentality,
-        pressing: away.pressing,
-        tempo: away.tempo,
-      };
+      const homeTactics: TacticInput = tacticsFrom(home);
+      const awayTactics: TacticInput = tacticsFrom(away);
 
       // Deterministic seed: stored on the fixture row at first sim and
       // reused thereafter. Replays produce identical scorelines.

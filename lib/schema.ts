@@ -171,6 +171,13 @@ export const clubs = pgTable(
     mentality: integer("mentality").notNull().default(3),
     pressing: integer("pressing").notNull().default(3),
     tempo: integer("tempo").notNull().default(2),
+    // The four dials that make the set two-sided — each is answered by
+    // something the opponent does, so none of them has a right answer.
+    // See lib/tactics.ts for what each one buys and what it costs.
+    defLine: integer("def_line").notNull().default(2),
+    passingStyle: integer("passing_style").notNull().default(2),
+    width: integer("width").notNull().default(2),
+    aggression: integer("aggression").notNull().default(2),
     // JSON array of 7 slots [{ label:'A', formation, mentality, pressing, tempo }]
     tacticPresets: text("tactic_presets").notNull().default("[]"),
     // 3 conditional in-match substitutions: [{ outId, inId, minute }]
@@ -477,6 +484,13 @@ export const newspapers = pgTable(
     scorersJson: text("scorers_json").notNull(),
     assistsJson: text("assists_json").notNull(),
     funFact: text("fun_fact").notNull().default(""),
+    // Everything the paper carries below the fold: every result with its own
+    // short report, the league table at press time, form guide, transfer
+    // desk, discipline, manager of the week, fan quotes, next week's
+    // fixtures. Kept as one JSON blob rather than eleven columns because it
+    // is read whole, written whole, and the shape will keep growing — see
+    // NewspaperSections in lib/queries/newspaper.ts for the contract.
+    sectionsJson: text("sections_json").notNull().default("{}"),
     publishedAt: createdAt(),
   },
   (t) => [

@@ -22,6 +22,7 @@ import { runDailyTraining } from "../lib/jobs/training";
 import { runWeeklyNewspaper } from "../lib/jobs/newspaper";
 import { rollSeasonIfDone } from "../lib/jobs/season";
 import { simulateMatch } from "../lib/engine/match";
+import { tacticsFrom } from "../lib/tactics";
 import { parseLineup } from "../lib/lineup";
 import { assertLocalDatabase } from "./guard-remote-db";
 
@@ -382,18 +383,8 @@ async function checkDeterminism(leagueId: string): Promise<number> {
     awayClubName: away.name,
     homeSquad,
     awaySquad,
-    homeTactics: {
-      formation: home.formation,
-      mentality: home.mentality,
-      pressing: home.pressing,
-      tempo: home.tempo,
-    },
-    awayTactics: {
-      formation: away.formation,
-      mentality: away.mentality,
-      pressing: away.pressing,
-      tempo: away.tempo,
-    },
+    homeTactics: tacticsFrom(home),
+    awayTactics: tacticsFrom(away),
     homeCity: home.city,
     awayCity: away.city,
     homeLineup: parseLineup(home.lineupJson),

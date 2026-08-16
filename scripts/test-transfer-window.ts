@@ -13,7 +13,7 @@
  * own listing, is a rule that breaks the game rather than shaping it.
  */
 import "./load-env";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../lib/db";
 import { assertLocalDatabase } from "./guard-remote-db";
 import {
@@ -238,6 +238,133 @@ async function main() {
       `+${afterOpen.offers - beforeOpen.offers} teklif, ` +
       `+${afterOpen.bids - beforeOpen.bids} artırma)`,
   );
+
+  /*
+    ── The market gets better as the calendar advances ────────────────────
+
+    Two failures this catches, both measured on a seeded league before the
+    fix and both invisible from the outside:
+
+      1. Free agents were filling the ENTIRE shelf, and an expired listing
+         puts its player back in that pool — so after a few ticks the market
+         recycled the same faces forever and no new player was ever invented.
+         Week 2 and week 16 produced byte-identical shelves.
+
+      2. The quality curve was scaled against the whole season, but the window
+         is only open for about the first 58% of it. The top half of the band
+         was unreachable: the strong players could only have arrived in weeks
+         when nothing could be bought.
+
+    So this asserts the OUTCOME a manager would notice — the mid-season
+    window offers better players than preseason — rather than that some
+    function was called.
+  */
+  console.log("\n=== Market quality across the calendar ===");
+  {
+    const refillOnce = async (week: number): Promise<number[]> => {
+      await db
+        .update(leagues)
+        .set({ weekNumber: week })
+        .where(eq(leagues.id, league.id));
+      await db
+        .update(transferListings)
+        .set({ status: "withdrawn" })
+        .where(
+          and(
+            eq(transferListings.leagueId, league.id),
+            eq(transferListings.status, "active"),
+          ),
+        );
+      for (let i = 0; i < 6; i++) await runTransferBots({ leagueId: league.id });
+      const rows = await db
+        .select({ playerId: transferListings.playerId })
+        .from(transferListings)
+        .where(
+          and(
+            eq(transferListings.leagueId, league.id),
+            eq(transferListings.status, "active"),
+          ),
+        );
+      if (rows.length === 0) return [];
+      const ps = await db
+        .select({ overall: players.overall })
+        .from(players)
+        .where(
+          inArray(
+            players.id,
+            rows.map((r) => r.playerId),
+          ),
+        );
+      return ps.map((p) => p.overall);
+    };
+
+    /*
+      Pooled over several refills, not measured from one.
+
+      The headline-signing branch fires on roughly one invented player in
+      eight, and a single shelf only invents about eleven — so the top of one
+      shelf is largely a coin flip, and asserting on it made this test fail
+      about a third of the time for no reason. Three refills is ~35 invented
+      players per phase, which is enough for the band to show through the
+      noise while still being an end-to-end measurement of what a manager
+      would actually be offered.
+    */
+    const shelfAt = async (week: number): Promise<number[]> => {
+      const pooled: number[] = [];
+      for (let i = 0; i < 3; i++) pooled.push(...(await refillOnce(week)));
+      return pooled;
+    };
+    const mean = (xs: number[]) =>
+      xs.length === 0 ? 0 : xs.reduce((a, b) => a + b, 0) / xs.length;
+
+    // Week 2 is preseason; the middle of the season is the second window.
+    const preseason = await shelfAt(2);
+    const midWindow = await shelfAt(Math.round(league.seasonLength * 0.5));
+
+    ok(preseason.length >= 12, `preseason market is stocked (${preseason.length} ilan)`);
+    ok(midWindow.length >= 12, `mid-season market is stocked (${midWindow.length} ilan)`);
+    ok(
+      mean(midWindow) > mean(preseason),
+      `mid-season stock outranks preseason ` +
+        `(ort ${mean(preseason).toFixed(1)} → ${mean(midWindow).toFixed(1)})`,
+    );
+    /*
+      And fresh players genuinely arrive.
+
+      This is the half of the fix the averages above cannot see. Half the
+      shelf is drawn from the league's existing free agents — players the AI
+      released, whose ratings have nothing to do with what week it is — so a
+      market that had stopped inventing anything could still post a
+      respectable average by recycling the same castoffs forever. Which is
+      exactly what it did: measured before the fix, week 2 and week 16
+      produced byte-identical shelves.
+
+      Names that did not exist anywhere in the league before the refill are
+      unambiguous evidence that new stock was created.
+      (Deliberately not asserted on the top of the shelf: the strongest few
+      listings are usually recycled free agents rather than invented players,
+      so that end of the distribution measures a mixture and flakes.)
+    */
+    const namesBefore = new Set(
+      (
+        await db
+          .select({ name: players.name })
+          .from(players)
+          .where(eq(players.leagueId, league.id))
+      ).map((r) => r.name),
+    );
+    await shelfAt(Math.round(league.seasonLength * 0.5));
+    const namesAfter = await db
+      .select({ name: players.name })
+      .from(players)
+      .where(eq(players.leagueId, league.id));
+    const fresh = namesAfter.filter((r) => !namesBefore.has(r.name)).length;
+    ok(
+      fresh > 0,
+      `the market invents new players rather than recycling the pool ` +
+        `(${fresh} yeni oyuncu)`,
+    );
+  }
 
   console.log(bad === 0 ? "\n✅ TRANSFER WINDOW CHECKS PASS" : `\n✗ ${bad} VIOLATIONS`);
   process.exit(bad === 0 ? 0 : 1);

@@ -1,6 +1,6 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { players } from "@/lib/schema";
+import { players, transferListings } from "@/lib/schema";
 import type { LeagueContext } from "@/lib/session";
 import { FREE_AGENT_FEE_RATE } from "@/lib/economy";
 
@@ -31,7 +31,37 @@ export async function loadFreeAgents(
     .where(
       and(eq(players.leagueId, ctx.league.id), isNull(players.clubId)),
     );
+
+  /*
+    A player who is ON THE MARKET is not a free agent.
+
+    Both screens read "unowned", but they charge completely different prices:
+    the market asks 95-130% of market value, this screen asks
+    FREE_AGENT_FEE_RATE — 40%. So every listing created from the unowned pool
+    was simultaneously purchasable here at well under half the asking price,
+    and could be relisted immediately at up to 180%. That is a money printer,
+    and it got far more valuable when the market started stocking genuinely
+    good players rather than only leftovers.
+
+    Filtering here keeps the screen honest; the refusal that actually matters
+    is in signFreeAgent, because a stale page can still submit.
+  */
+  const listed = new Set(
+    (
+      await db
+        .select({ playerId: transferListings.playerId })
+        .from(transferListings)
+        .where(
+          and(
+            eq(transferListings.leagueId, ctx.league.id),
+            eq(transferListings.status, "active"),
+          ),
+        )
+    ).map((r) => r.playerId),
+  );
+
   return rows
+    .filter((p) => !listed.has(p.id))
     .map((p) => {
       const valEur = Math.round(Number(p.marketValueCents) / 100);
       return {

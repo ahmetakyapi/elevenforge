@@ -330,13 +330,25 @@ export default function TransferMarketUi({ data }: { data: TransferPageData }) {
               )}
             </div>
           </GlassCard>
-          {data.activeScout && (
+          {data.activeScouts.length > 0 && (
             <GlassCard pad={16} hover={false}>
               <SectionHead
-                label="AKTİF KAŞİF"
-                title={<span style={{ fontSize: 16 }}>1 görevde</span>}
+                label="SAHADAKİ KAŞİFLER"
+                title={
+                  <span style={{ fontSize: 16 }}>
+                    {data.activeScouts.length} / 3 görevde
+                  </span>
+                }
               />
-              <ScoutActiveCard scout={data.activeScout} />
+              {/* All three, not just the newest. Three may be out at once and
+                  the panel showed one, so the other two were invisible until
+                  they came back — there was no way to tell whether you had one
+                  running or your full allowance. */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {data.activeScouts.map((sc) => (
+                  <ScoutActiveCard key={sc.id} scout={sc} />
+                ))}
+              </div>
             </GlassCard>
           )}
         </div>
@@ -412,8 +424,7 @@ function ReturnedScoutsBanner({
           KAŞİF DÖNDÜ
         </span>
         <span className="t-small" style={{ color: "var(--text-2)" }}>
-          {scouts.reduce((s, x) => s + x.candidates.length, 0)} aday ·{" "}
-          {scouts.length} görev
+          {scouts.length} rapor · her raporda 3 aday, birini imzalarsın
         </span>
         <div style={{ flex: 1 }} />
         {scouts.length > 1 && (
@@ -471,14 +482,92 @@ function ReturnedScoutsBanner({
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
                     }}
+                    title={c.name}
                   >
                     {c.name}
                   </div>
-                  <div className="t-caption" style={{ fontSize: 11, marginTop: 2 }}>
-                    {c.role} · {c.age}y · {c.nat}
+                  <div
+                    className="t-caption"
+                    style={{
+                      fontSize: 11,
+                      marginTop: 2,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <span>
+                      {c.role} · {c.age}y · {c.nat}
+                    </span>
+                    {/* Real footballers carry their actual age, position and
+                        club career (lib/scout-pool.ts); invented ones are
+                        generated. Saying which is which is the difference
+                        between a name you can trust and one you cannot. */}
+                    {c.real && (
+                      <span
+                        className="t-mono"
+                        title="Gerçek oyuncu — yaş ve mevki bilgisi doğru"
+                        style={{
+                          fontSize: 8.5,
+                          fontWeight: 700,
+                          letterSpacing: "0.08em",
+                          padding: "1px 5px",
+                          borderRadius: 4,
+                          background: "color-mix(in oklab, var(--gold) 18%, transparent)",
+                          color: "var(--gold)",
+                        }}
+                      >
+                        GERÇEK
+                      </span>
+                    )}
                   </div>
                 </div>
                 <OvrChip ovr={c.overall} size="sm" />
+              </div>
+
+              {/* Six attributes, same fixed order as the squad card, so a
+                  scout report can be read against a player you already own. */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr 1fr",
+                  gap: "4px 8px",
+                }}
+              >
+                {(
+                  [
+                    ["pace", "HIZ"],
+                    ["shooting", "ŞUT"],
+                    ["passing", "PAS"],
+                    ["defending", "DEF"],
+                    ["physical", "FİZ"],
+                    ["goalkeeping", "KAL"],
+                  ] as const
+                ).map(([key, label]) => {
+                  const v = c[key];
+                  return (
+                    <div
+                      key={key}
+                      style={{ display: "flex", alignItems: "baseline", gap: 5 }}
+                    >
+                      <span
+                        className="t-mono"
+                        style={{
+                          fontSize: 11.5,
+                          fontWeight: 800,
+                          minWidth: 18,
+                          color: scoutAttrTone(v),
+                        }}
+                      >
+                        {v}
+                      </span>
+                      <span className="t-label" style={{ fontSize: 8.5, letterSpacing: "0.1em" }}>
+                        {label}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
               <div
                 style={{
@@ -520,6 +609,15 @@ function ReturnedScoutsBanner({
       )}
     </div>
   );
+}
+
+/** Same colour bands as the squad card, so 78 means one thing app-wide. */
+function scoutAttrTone(v: number): string {
+  if (v >= 88) return "var(--gold)";
+  if (v >= 78) return "var(--emerald)";
+  if (v >= 68) return "var(--cyan)";
+  if (v >= 55) return "var(--text-2)";
+  return "var(--muted)";
 }
 
 function ModeTabs({

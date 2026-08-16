@@ -13,6 +13,7 @@ import {
   type TrainableAttr,
 } from "@/lib/attributes";
 import type { Player, Position } from "@/types";
+import { growthLabel, weeklyGain } from "@/lib/progression";
 
 const GROUPS: Array<{ pos: Position; label: string }> = [
   { pos: "GK", label: "Kaleci" },
@@ -21,12 +22,41 @@ const GROUPS: Array<{ pos: Position; label: string }> = [
   { pos: "FWD", label: "Forvet" },
 ];
 
-/** Daily progression multiplier, mirroring runDailyTraining's age curve. */
-function speedFor(age: number): { mult: string; tone: string } {
-  if (age <= 19) return { mult: "3×", tone: "var(--emerald)" };
-  if (age <= 22) return { mult: "2×", tone: "var(--cyan, #22d3ee)" };
-  if (age <= 26) return { mult: "1×", tone: "var(--muted)" };
-  return { mult: "0.5×", tone: "var(--warn, #f59e0b)" };
+/**
+ * What this player will actually gain, per week, in this club.
+ *
+ * The panel used to print a bare "3×" / "2×" / "1×" / "0.5×" multiplier
+ * copied by hand from the training job's age check. Two problems: a
+ * multiplier of an unstated base is not a number a manager can act on, and
+ * the copy drifted the moment the job's curve changed — the panel went on
+ * quoting an age rule the simulation had stopped using.
+ *
+ * It now calls the same `weeklyGain` the job rolls against, with the club's
+ * real training level and coach tier, and states the result in the unit the
+ * decision is made in: rating points per week.
+ */
+function previewFor(
+  p: Player,
+  ctx: { trainingLevel: number; coachTier: number },
+): { perWeek: number; label: string; tone: string } {
+  const perWeek = weeklyGain(
+    {
+      age: p.age,
+      overall: p.ovr,
+      potential: p.pot,
+      morale: p.mor ?? 3,
+      fitness: p.fit ?? 90,
+    },
+    ctx,
+  );
+  const { label, tone } = growthLabel(perWeek);
+  const TONE: Record<typeof tone, string> = {
+    gold: "var(--gold)",
+    emerald: "var(--emerald)",
+    cyan: "var(--cyan)",
+    muted: "var(--muted)",
+  };
+  return { perWeek, label, tone: TONE[tone] };
 }
 
 /**
@@ -38,7 +68,16 @@ function speedFor(age: number): { mult: string; tone: string } {
  * without hunting for the right card further down the page. Four slots is the
  * whole mechanic, so it earns four real slots.
  */
-export function TrainingPanel({ squad }: { squad: Player[] }) {
+export function TrainingPanel({
+  squad,
+  trainingLevel,
+  coachTier,
+}: {
+  squad: Player[];
+  trainingLevel: number;
+  coachTier: number;
+}) {
+  const progressCtx = { trainingLevel, coachTier };
   const [pending, startTransition] = useTransition();
   const pushToast = useToast();
 
@@ -53,7 +92,17 @@ export function TrainingPanel({ squad }: { squad: Player[] }) {
     return map;
   }, [squad]);
 
-  /** Best untrained candidate for an empty slot: most headroom, then youngest. */
+  /**
+   * Best untrained candidate for an empty slot.
+   *
+   * Ranked by what the slot would actually be worth — the same weekly gain
+   * the card prints — rather than by raw headroom. A 33-year-old twelve
+   * points off his ceiling gains almost nothing; an 18-year-old four points
+   * off gains far more, and the old `b.pot - b.ovr` ordering recommended the
+   * veteran. The `p.ovr < p.pot` filter is gone with it: potential is a brake,
+   * not a wall, so a player at his ceiling is a poor suggestion rather than an
+   * ineligible one.
+   */
   const suggestionFor = (pos: Position): Player | undefined =>
     squad
       .filter(
@@ -61,10 +110,12 @@ export function TrainingPanel({ squad }: { squad: Player[] }) {
           p.pos === pos &&
           p.status !== "training" &&
           p.status !== "injured" &&
-          p.status !== "suspended" &&
-          p.ovr < p.pot,
+          p.status !== "suspended",
       )
-      .sort((a, b) => b.pot - b.ovr - (a.pot - a.ovr) || a.age - b.age)[0];
+      .sort(
+        (a, b) =>
+          previewFor(b, progressCtx).perWeek - previewFor(a, progressCtx).perWeek,
+      )[0];
 
   const focus = (playerId: string, attr: TrainableAttr, name: string) => {
     startTransition(async () => {
@@ -140,7 +191,8 @@ export function TrainingPanel({ squad }: { squad: Player[] }) {
           className="t-caption"
           style={{ fontSize: 11, marginLeft: "auto", color: "var(--muted)" }}
         >
-          Her mevkiden bir oyuncu · günlük +1 OVR şansı, tavanına kadar
+          Her mevkiden bir oyuncu · gençler hızlı gelişir, potansiyelin üstünde
+          gelişim durmaz ama çok yavaşlar
         </span>
       </div>
 
@@ -190,7 +242,10 @@ export function TrainingPanel({ squad }: { squad: Player[] }) {
                   >
                     <Plus size={13} strokeWidth={1.8} />
                     <span style={{ fontSize: 12 }}>
-                      {pick.n} <span className="t-mono">+{pick.pot - pick.ovr}</span>
+                      {pick.n}{" "}
+                      <span className="t-mono">
+                        +{previewFor(pick, progressCtx).perWeek.toFixed(1)}/hf
+                      </span>
                     </span>
                   </button>
                 ) : (
@@ -205,7 +260,7 @@ export function TrainingPanel({ squad }: { squad: Player[] }) {
           const room = p.pot - p.ovr;
           const atCeiling = room <= 0;
           const pct = p.pot > 0 ? Math.round((p.ovr / p.pot) * 100) : 100;
-          const speed = speedFor(p.age);
+          const speed = previewFor(p, progressCtx);
           return (
             <div
               key={pos}
@@ -367,10 +422,10 @@ export function TrainingPanel({ squad }: { squad: Player[] }) {
                         color: "var(--warn, #f59e0b)",
                         fontWeight: 700,
                       }}
-                      title={`${p.n} potansiyelinin tavanında (${p.pot}) — bu slot boşa gidiyor.`}
+                      title={`${p.n} potansiyelinin (${p.pot}) üstünde çalışıyor — gelişim çok yavaş ama durmuş değil.`}
                     >
                       <AlertTriangle size={10} strokeWidth={2.2} />
-                      TAVANDA · SLOT BOŞA GİDİYOR
+                      TAVANIN ÜSTÜNDE · ÇOK YAVAŞ
                     </span>
                   ) : (
                     <span>
@@ -380,16 +435,16 @@ export function TrainingPanel({ squad }: { squad: Player[] }) {
                   )}
                   <span
                     style={{
-                      color: atCeiling ? "var(--muted)" : speed.tone,
+                      color: speed.tone,
                       display: "inline-flex",
                       alignItems: "center",
                       gap: 3,
                       flexShrink: 0,
+                      fontWeight: 700,
                     }}
-                    title={`${p.age} yaş — gelişim hızı ${speed.mult}`}
+                    title={`${p.age} yaş · tesis ${trainingLevel} · antrenör ${coachTier} — haftada yaklaşık +${speed.perWeek.toFixed(1)} (${speed.label})`}
                   >
-                    <Zap size={9} strokeWidth={2.2} />
-                    {speed.mult}
+                    <Zap size={9} strokeWidth={2.2} />+{speed.perWeek.toFixed(1)}/hf
                   </span>
                 </div>
               </div>

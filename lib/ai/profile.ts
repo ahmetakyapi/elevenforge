@@ -26,6 +26,18 @@ export type AiTrait = {
   mentality: number;
   pressing: number;
   tempo: number;
+  /**
+   * The four dials from lib/tactics.ts, per personality.
+   *
+   * Without these every bot in the league played neutral on all four while
+   * humans could push them to the extremes — so the dials were a one-sided
+   * advantage rather than a shared language. A gegenpress side should defend
+   * high and press; a bus should sit deep and go long.
+   */
+  defLine: number;
+  passingStyle: number;
+  width: number;
+  aggression: number;
 };
 
 export const AI_TRAITS: AiTrait[] = [
@@ -41,6 +53,10 @@ export const AI_TRAITS: AiTrait[] = [
     mentality: 3,
     pressing: 3,
     tempo: 3,
+    defLine: 3,
+    passingStyle: 1,
+    width: 2,
+    aggression: 1,
   },
   {
     id: "spender",
@@ -54,6 +70,10 @@ export const AI_TRAITS: AiTrait[] = [
     mentality: 4,
     pressing: 4,
     tempo: 3,
+    defLine: 3,
+    passingStyle: 1,
+    width: 3,
+    aggression: 2,
   },
   {
     id: "pragmatist",
@@ -67,6 +87,10 @@ export const AI_TRAITS: AiTrait[] = [
     mentality: 2,
     pressing: 2,
     tempo: 2,
+    defLine: 2,
+    passingStyle: 2,
+    width: 2,
+    aggression: 2,
   },
   {
     id: "fortress",
@@ -80,6 +104,10 @@ export const AI_TRAITS: AiTrait[] = [
     mentality: 1,
     pressing: 2,
     tempo: 1,
+    defLine: 0,
+    passingStyle: 3,
+    width: 1,
+    aggression: 3,
   },
   {
     id: "gambler",
@@ -93,6 +121,10 @@ export const AI_TRAITS: AiTrait[] = [
     mentality: 4,
     pressing: 4,
     tempo: 4,
+    defLine: 4,
+    passingStyle: 2,
+    width: 4,
+    aggression: 3,
   },
   {
     id: "accountant",
@@ -106,6 +138,10 @@ export const AI_TRAITS: AiTrait[] = [
     mentality: 2,
     pressing: 1,
     tempo: 2,
+    defLine: 2,
+    passingStyle: 2,
+    width: 2,
+    aggression: 1,
   },
 ];
 

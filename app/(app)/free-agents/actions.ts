@@ -3,7 +3,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { feedEvents, players } from "@/lib/schema";
+import { feedEvents, players, transferListings } from "@/lib/schema";
 import { FREE_AGENT_FEE_RATE } from "@/lib/economy";
 import { creditClub, debitClub } from "@/lib/money";
 import { requireLeagueContext } from "@/lib/session";
@@ -42,6 +42,28 @@ export async function signFreeAgent(input: { playerId: string }) {
   }
   if (p.clubId !== null) {
     return { ok: false as const, error: "Bu oyuncu serbest değil." };
+  }
+
+  // On the market ≠ free. This screen charges FREE_AGENT_FEE_RATE (40% of
+  // value); the market charges 95-130% for the same player and lets him be
+  // relisted at up to 180%. Without this check every unowned listing was
+  // buyable here at well under half its asking price — a risk-free round trip,
+  // repeatable as often as the market restocked.
+  const [openListing] = await db
+    .select({ id: transferListings.id })
+    .from(transferListings)
+    .where(
+      and(
+        eq(transferListings.playerId, p.id),
+        eq(transferListings.status, "active"),
+      ),
+    )
+    .limit(1);
+  if (openListing) {
+    return {
+      ok: false as const,
+      error: "Bu oyuncu transfer listesinde — pazardan teklif vermelisin.",
+    };
   }
 
   // A signing-on fee, not a bargain bin. At FREE_AGENT_FEE_RATE of market value a free agent

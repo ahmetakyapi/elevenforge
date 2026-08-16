@@ -10,10 +10,11 @@
  */
 import { and, eq, inArray, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { weeklyInterestCents } from "@/lib/economy";
+import { marketValueCents, weeklyInterestCents } from "@/lib/economy";
 import { adjustClubBalance } from "@/lib/money";
+import { growthChance, type ProgressionContext } from "@/lib/progression";
 import { clubs, feedEvents, players } from "@/lib/schema";
-import { staffById } from "@/lib/staff";
+import { parseStaffJson, staffById } from "@/lib/staff";
 import { claimJob } from "./claim";
 import {
   PRIMARY_ATTR,
@@ -73,16 +74,45 @@ export async function runDailyTraining(
   // 3. Training progression — genuinely per-player because it is a dice roll,
   //    but only the winners are written, and they go out as a single batched
   //    UPDATE ... WHERE id IN (...).
+  //
+  //    No `overall < potential` filter any more. Potential is a brake, not a
+  //    wall (see lib/progression.ts): a player at his ceiling still improves,
+  //    four times more slowly. Filtering him out here would have silently
+  //    overruled that.
   const trainees = await db
     .select()
     .from(players)
     .where(
       and(
         eq(players.status, "training"),
-        sql`${players.overall} < ${players.potential}`,
         ...(leagueFilter ? [leagueFilter] : []),
       ),
     );
+
+  // The training ground and the head coach are what a club spends money on to
+  // develop players, so they have to be readable here. One query for every
+  // club with a trainee, rather than one per trainee.
+  const traineeClubIds = [
+    ...new Set(trainees.map((t) => t.clubId).filter((v): v is string => !!v)),
+  ];
+  const ctxByClub = new Map<string, ProgressionContext>();
+  if (traineeClubIds.length > 0) {
+    const rows = await db
+      .select({
+        id: clubs.id,
+        trainingLevel: clubs.trainingLevel,
+        staffJson: clubs.staffJson,
+      })
+      .from(clubs)
+      .where(inArray(clubs.id, traineeClubIds));
+    for (const r of rows) {
+      const coach = parseStaffJson(r.staffJson).headCoach;
+      ctxByClub.set(r.id, {
+        trainingLevel: r.trainingLevel,
+        coachTier: coach?.tier ?? 0,
+      });
+    }
+  }
   /*
     A won roll now raises the attribute the manager chose, not just `overall`.
 
@@ -109,10 +139,12 @@ export async function runDailyTraining(
   type Bucket = { ids: string[]; attr: TrainableAttr; bumpOverall: boolean };
   const buckets = new Map<string, Bucket>();
   let promoted = 0;
+  /** Winners whose `overall` moved, so their valuation has to move with it. */
+  const repriced: Array<{ id: string; overall: number; potential: number; age: number }> = [];
 
   for (const p of trainees) {
-    const ageBonus = p.age <= 19 ? 3 : p.age <= 22 ? 2 : p.age <= 26 ? 1 : 0.5;
-    if (Math.random() >= (0.35 * ageBonus) / 2) continue;
+    const ctx = (p.clubId && ctxByClub.get(p.clubId)) || undefined;
+    if (Math.random() >= growthChance(p, ctx)) continue;
 
     // No focus set means the manager never opened the panel; default to the
     // position's primary attribute so an untouched squad still develops the
@@ -126,6 +158,18 @@ export async function runDailyTraining(
     bucket.ids.push(p.id);
     buckets.set(key, bucket);
     promoted++;
+    if (bumpOverall && p.overall < 99) {
+      const overall = p.overall + 1;
+      repriced.push({
+        id: p.id,
+        overall,
+        // Keep potential ≥ overall. The UI reads `potential − overall` as
+        // remaining growth everywhere; letting it go negative would print
+        // "−2 gelişim" on a player who had just improved.
+        potential: Math.max(p.potential, overall),
+        age: p.age,
+      });
+    }
   }
 
   for (const { ids, attr, bumpOverall } of buckets.values()) {
@@ -136,10 +180,45 @@ export async function runDailyTraining(
         // Attributes are capped at 99 like every other roll (see rollAttr).
         [attr]: sql`LEAST(99, ${column} + 1)`,
         ...(bumpOverall
-          ? { overall: sql`LEAST(${players.potential}, ${players.overall} + 1)` }
+          ? {
+              // 99, not `potential`. The ceiling is a brake in the growth
+              // curve, not a clamp here — see lib/progression.ts.
+              overall: sql`LEAST(99, ${players.overall} + 1)`,
+              potential: sql`GREATEST(${players.potential}, LEAST(99, ${players.overall} + 1))`,
+            }
           : {}),
       })
       .where(inArray(players.id, ids));
+  }
+
+  /*
+    Reprice whoever's rating moved.
+
+    Nothing used to do this, so a youngster who trained from 60 to 85 was
+    still listed, offered for and sold at his 60-rated price forever — the
+    single most profitable exploit in the game, and the reason
+    scripts/reprice-players.ts had to exist as a manual repair.
+
+    Wages are deliberately NOT touched. A player who improves becomes more
+    valuable immediately but is still on the contract he signed; his wage
+    moves when it is renewed (RENEWAL_WAGE_MULTIPLIER). Raising it here would
+    let a club be bankrupted by its own successful academy.
+
+    One statement, not one per player: a CASE over the winners keeps this at a
+    single round-trip no matter how many clubs trained today. This file's
+    header exists because per-row writes timed out against Neon.
+  */
+  if (repriced.length > 0) {
+    const cases = repriced.map(
+      (r) =>
+        sql`WHEN ${players.id} = ${r.id} THEN ${marketValueCents(r.overall, r.potential, r.age)}::bigint`,
+    );
+    await db
+      .update(players)
+      .set({
+        marketValueCents: sql`CASE ${sql.join(cases, sql` `)} ELSE ${players.marketValueCents} END`,
+      })
+      .where(inArray(players.id, repriced.map((r) => r.id)));
   }
 
   return { promoted, healed, fitnessBumped };

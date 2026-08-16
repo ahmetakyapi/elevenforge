@@ -1,25 +1,53 @@
 "use client";
 
-import { useState } from "react";
-import { MessageSquare, Newspaper as NewspaperIcon } from "lucide-react";
+/**
+ * ElevenForge Spor — the weekly paper.
+ *
+ * ─── What was wrong with the old one ────────────────────────────────────
+ *
+ * Five tabs: cover, team of the week, scorers, press room, a fun fact. Four of
+ * the five were a single list each, and the cover was one match. So the paper
+ * carried less than the standings page did, hid most of it behind tabs, and
+ * gave the reader nothing to do but click through four short lists and leave.
+ * Tabs are the wrong shape for a newspaper anyway — a paper is something you
+ * scroll down through, not something you file.
+ *
+ * ─── What this is ───────────────────────────────────────────────────────
+ *
+ * One continuous broadsheet. Masthead, then a lead story, then every other
+ * result with its own report, then the table as it stood at press time, the
+ * team of the week, both scoring charts, the transfer desk, the discipline
+ * column, manager of the week, the fans, the numbers, and next week's card.
+ * You read it downwards and it keeps going, which is the point.
+ *
+ * ─── On the colours ─────────────────────────────────────────────────────
+ *
+ * The page is deliberately NOT theme-aware. Every other surface in the app
+ * follows the reader's light/dark choice; this one is newsprint in both,
+ * because the joke only works if it looks like a paper. The palette is
+ * therefore local constants rather than tokens — the one place in the app
+ * where hard-coded colour is the correct answer, and it is confined to this
+ * file so it cannot leak into anything that should be themed.
+ */
+
 import Link from "next/link";
-import { Crest, EmptyState, GlassCard } from "@/components/ui/primitives";
-import { useToast } from "@/components/ui/toast";
+import { Newspaper as NewspaperIcon } from "lucide-react";
+import { EmptyState, GlassCard } from "@/components/ui/primitives";
 import type { NewspaperData } from "@/lib/queries/newspaper";
 
-type Tab = "cover" | "totw" | "stats" | "press" | "fun";
+// ─── Newsprint palette ──────────────────────────────────────────────────
+const PAPER = "#ece5d6";
+const PAPER_2 = "#e2d9c6";
+const INK = "#17110b";
+const INK_2 = "#4a3f33";
+const INK_3 = "#6f6152";
+const RULE = "rgba(23,17,11,0.22)";
+const RULE_SOFT = "rgba(23,17,11,0.11)";
+const RED = "#a51c1c";
 
-const TABS: Array<[Tab, string]> = [
-  ["cover", "Kapak"],
-  ["totw", "Haftanın 11'i"],
-  ["stats", "Gol & Asist"],
-  ["press", "Basın Odası"],
-  ["fun", "Köşe"],
-];
+const SERIF = "Georgia, 'Times New Roman', serif";
 
 export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
-  const [tab, setTab] = useState<Tab>("cover");
-
   if (!paper) {
     return (
       <div style={{ maxWidth: 720, margin: "80px auto", padding: "0 24px" }}>
@@ -27,7 +55,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
           <EmptyState
             Icon={NewspaperIcon}
             title="Henüz gazete çıkmadı"
-            description="İlk haftanın maçları oynandıktan sonra ElevenForge Spor'un manşeti, Haftanın 11'i ve basın odası burada yayımlanır."
+            description="İlk haftanın maçları oynandıktan sonra ElevenForge Spor'un manşeti, haftanın bütün maç raporları, puan durumu ve transfer borsası burada yayımlanır."
             tint="var(--gold)"
             action={
               <Link
@@ -44,645 +72,798 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
     );
   }
 
-  return (
-    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "20px 24px" }}>
-      <div
-        style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}
-      >
-        {TABS.map(([k, l]) => (
-          <button
-            key={k}
-            type="button"
-            className={`chip ${tab === k ? "active" : ""}`}
-            onClick={() => setTab(k)}
-            style={{ cursor: "pointer", padding: "8px 14px", fontSize: 13 }}
-          >
-            {l}
-          </button>
-        ))}
-      </div>
+  const { cover, sections } = paper;
 
-      {tab === "cover" && <CoverPage paper={paper} />}
-      {tab === "totw" && <TOTWPage paper={paper} />}
-      {tab === "stats" && <ScorersPage paper={paper} />}
-      {tab === "press" && <PressRoom />}
-      {tab === "fun" && <FunPage paper={paper} />}
-    </div>
-  );
-}
-
-function CoverPage({ paper }: { paper: NonNullable<NewspaperData> }) {
-  const { cover } = paper;
-  const winnerIsHome = cover.homeScore > cover.awayScore;
-  const winner = winnerIsHome ? cover.heroHomeClubName : cover.heroAwayClubName;
-  const winnerClubId = winnerIsHome
-    ? cover.heroHomeClubId
-    : cover.heroAwayClubId;
-  const loser = winnerIsHome ? cover.heroAwayClubName : cover.heroHomeClubName;
   return (
-    <div
-      style={{
-        background: "#e8e0cf",
-        color: "#1a0f08",
-        borderRadius: 14,
-        overflow: "hidden",
-        boxShadow: "0 30px 60px -20px rgba(0,0,0,0.6)",
-        border: "1px solid rgba(0,0,0,0.2)",
-        fontFamily: "Georgia, serif",
-      }}
-    >
-      <div
+    <div style={{ maxWidth: 1120, margin: "0 auto", padding: "16px 20px 48px" }}>
+      <article
+        data-newspaper
         style={{
-          padding: "20px 28px",
-          borderBottom: "3px double #1a0f08",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
+          background: PAPER,
+          color: INK,
+          fontFamily: SERIF,
+          borderRadius: 10,
+          overflow: "hidden",
+          boxShadow: "0 30px 70px -24px rgba(0,0,0,0.55)",
+          border: "1px solid rgba(0,0,0,0.25)",
         }}
       >
-        <span
-          style={{
-            fontSize: 11,
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
-          }}
-        >
-          Sezon {cover.seasonNumber} · Hafta {cover.weekNumber}
-        </span>
-        <div
-          style={{
-            fontFamily: "var(--font-manrope)",
-            fontWeight: 900,
-            fontSize: 32,
-            letterSpacing: "-0.02em",
-          }}
-        >
-          ElevenForge <span style={{ color: "#b91c1c" }}>SPOR</span>
-        </div>
-        <span
-          style={{
-            fontSize: 11,
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
-          }}
-        >
-          {paper.publishedAtLabel}
-        </span>
-      </div>
-      <div
-        style={{
-          padding: "32px 28px 20px",
-          background: "linear-gradient(180deg, #dc2626 0%, #7f1d1d 120%)",
-          color: "#fff",
-          borderBottom: "2px solid #1a0f08",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            marginBottom: 12,
-          }}
-        >
-          <Crest
-            clubId={winnerClubId}
-            size={28}
-            club={paper.crestLookup[winnerClubId]}
-          />
-          <span
-            style={{
-              fontSize: 12,
-              letterSpacing: "0.15em",
-              textTransform: "uppercase",
-              opacity: 0.9,
-            }}
-          >
-            {winner} {cover.homeScore} – {cover.awayScore} {loser}
-          </span>
-        </div>
-        <div
-          style={{
-            fontFamily: "var(--font-manrope)",
-            fontWeight: 900,
-            fontSize: "clamp(48px, 8vw, 88px)",
-            lineHeight: 0.9,
-            letterSpacing: "-0.03em",
-            marginBottom: 10,
-          }}
-        >
-          {cover.headline}
-        </div>
-        <div
-          style={{
-            fontSize: 20,
-            fontStyle: "italic",
-            opacity: 0.92,
-            fontWeight: 400,
-          }}
-        >
-          {cover.subhead}
-        </div>
-      </div>
-      <div
-        style={{
-          padding: "24px 28px",
-          display: "grid",
-          gridTemplateColumns: "2fr 1fr",
-          gap: 24,
-          borderBottom: "1px solid rgba(0,0,0,0.15)",
-        }}
-      >
-        <div style={{ fontSize: 14, lineHeight: 1.7 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>
-            Stat doldu, skor {Math.abs(cover.homeScore - cover.awayScore)}{" "}
-            farkla kapandı.
-          </div>
-          <p style={{ marginTop: 0 }}>
-            Hafta {cover.weekNumber}&apos;nin en dikkat çekici maçında{" "}
-            {winner}, rakibine {cover.homeScore} - {cover.awayScore}
-            &apos;lik bir skor kabul ettirdi. İki takımın da taktikleri sahada
-            konuştu — ancak günün sonunda fark bariz netleşti.
-          </p>
-          <p>
-            Kazanan taraftaki moral beklendiği üzere tavana vururken, rakip
-            cephesi maç sonu basın toplantısında susmayı tercih etti. Haftanın
-            11&apos;i (yandaki sayfada) bu maçtan dört oyuncuyu da listeye ekledi.
-          </p>
-        </div>
-        <aside
-          style={{
-            borderLeft: "1px solid rgba(0,0,0,0.15)",
-            paddingLeft: 16,
-            fontSize: 13,
-          }}
-        >
-          <div
-            style={{
-              fontWeight: 700,
-              fontSize: 12,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              marginBottom: 10,
-              color: "#b91c1c",
-            }}
-          >
-            Gol Krallığı (Sezon)
-          </div>
-          {paper.scorers.slice(0, 5).map((s, i) => (
-            <div
-              key={s.name}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                padding: "6px 0",
-                borderBottom: "1px dotted rgba(0,0,0,0.2)",
-              }}
-            >
-              <span>
-                {i + 1}. {s.name}
-              </span>
-              <span
-                style={{
-                  fontFamily: "var(--font-jetbrains)",
-                  fontWeight: 600,
-                }}
-              >
-                {s.g}
-              </span>
-            </div>
-          ))}
-          {paper.scorers.length === 0 && (
-            <div style={{ fontSize: 12, opacity: 0.7 }}>Henüz gol yok.</div>
+        <Masthead paper={paper} />
+
+        <div style={{ padding: "0 clamp(16px, 3.5vw, 40px) 36px" }}>
+          <LeadStory paper={paper} />
+
+          {sections.results.length > 1 && (
+            <Section title="Haftanın Diğer Maçları" kicker="Raporlar">
+              <div data-paper-grid style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "22px 34px" }}>
+                {sections.results
+                  .filter((r) => r.homeClubId !== cover.heroHomeClubId)
+                  .map((r, i) => (
+                    <MatchReport key={`${r.homeClubId}-${i}`} r={r} />
+                  ))}
+              </div>
+            </Section>
           )}
-        </aside>
-      </div>
-      <div
-        style={{
-          padding: "14px 28px",
-          fontSize: 11,
-          display: "flex",
-          justifyContent: "space-between",
-          color: "#4a3420",
-          fontStyle: "italic",
-        }}
-      >
-        <span>Devam sayfalarında: Haftanın 11&apos;i · Gol &amp; Asist</span>
-        <span>Sayı {cover.weekNumber}</span>
-      </div>
-    </div>
-  );
-}
 
-function TOTWPage({ paper }: { paper: NonNullable<NewspaperData> }) {
-  const totw = paper.totw;
-  if (totw.length === 0) {
-    return (
-      <GlassCard pad={40} hover={false}>
-        <div className="t-h3">Henüz haftanın 11&apos;i yok</div>
-      </GlassCard>
-    );
-  }
-  const rows = [
-    totw.slice(0, 1),
-    totw.slice(1, 5),
-    totw.slice(5, 9),
-    totw.slice(9, 11),
-  ];
+          {sections.table.length > 0 && (
+            <Section title="Puan Durumu" kicker="Baskıya girerken">
+              <StandingsTable rows={sections.table} />
+            </Section>
+          )}
 
-  return (
-    <GlassCard
-      pad={28}
-      hover={false}
-      style={{
-        background: "linear-gradient(180deg, #0a1e14 0%, #051a10 100%)",
-        border:
-          "1px solid color-mix(in oklab, var(--emerald) 30%, var(--border))",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-end",
-          marginBottom: 24,
-        }}
-      >
-        <div>
-          <span className="t-label" style={{ color: "var(--gold)" }}>
-            HAFTANIN 11&apos;İ
-          </span>
-          <div className="t-h1" style={{ marginTop: 8, color: "#fff" }}>
-            Team of the Week
+          {paper.totw.length > 0 && (
+            <Section title="Haftanın On Biri" kicker="Seçki">
+              <TotwStrip paper={paper} />
+            </Section>
+          )}
+
+          <div data-paper-grid style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 34 }}>
+            <ChartList
+              title="Gol Krallığı"
+              rows={paper.scorers.map((s) => [s.name, s.g])}
+              unit="gol"
+            />
+            <ChartList
+              title="Asist Krallığı"
+              rows={paper.assists.map((a) => [a.name, a.a])}
+              unit="asist"
+            />
           </div>
-        </div>
-        <span className="t-mono" style={{ fontSize: 13, color: "var(--gold)" }}>
-          Hafta {paper.cover.weekNumber} · Sezon {paper.cover.seasonNumber}
-        </span>
-      </div>
-      <div
-        style={{
-          background: "rgba(255,255,255,0.05)",
-          padding: "40px 30px",
-          borderRadius: 16,
-          display: "flex",
-          flexDirection: "column",
-          gap: 32,
-          border: "1px solid rgba(255,255,255,0.1)",
-        }}
-      >
-        {rows.map((row, i) => (
-          <div
-            key={`row-${i}`}
-            style={{ display: "flex", justifyContent: "space-around", gap: 20 }}
-          >
-            {row.filter(Boolean).map((p) => (
+
+          {sections.weekStats.length > 0 && (
+            <Section title="Rakamlarla Hafta" kicker="İstatistik">
               <div
-                key={p.playerId}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 6,
-                }}
+                data-paper-grid
+                style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}
               >
-                <div
-                  style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: "50%",
-                    background: "linear-gradient(135deg, var(--gold), #ca8a04)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    border: "2px solid var(--gold)",
-                    boxShadow:
-                      "0 0 20px color-mix(in oklab, var(--gold) 40%, transparent)",
-                  }}
-                >
-                  <span
-                    className="t-mono"
+                {sections.weekStats.map((s) => (
+                  <div
+                    key={s.label}
                     style={{
-                      fontSize: 18,
-                      fontWeight: 700,
-                      color: "#1a0f08",
+                      borderTop: `2px solid ${INK}`,
+                      paddingTop: 10,
                     }}
                   >
-                    {p.rating}
-                  </span>
-                </div>
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: "#fff",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {p.name}
-                </span>
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <Crest
-                    clubId={p.clubId}
-                    size={14}
-                    club={paper.crestLookup[p.clubId]}
-                  />
-                  <span
-                    className="t-caption"
-                    style={{ fontSize: 10, color: "rgba(255,255,255,0.6)" }}
-                  >
-                    {p.position}
-                  </span>
-                </div>
+                    <div style={{ fontSize: 34, fontWeight: 700, lineHeight: 1 }}>
+                      {s.value}
+                    </div>
+                    <div style={{ fontSize: 13, marginTop: 6, fontWeight: 700 }}>
+                      {s.label}
+                    </div>
+                    {s.note && (
+                      <div style={{ fontSize: 12, color: INK_3, marginTop: 3 }}>
+                        {s.note}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        ))}
-      </div>
-    </GlassCard>
-  );
-}
+            </Section>
+          )}
 
-function ScorersPage({ paper }: { paper: NonNullable<NewspaperData> }) {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-      <GlassCard pad={24} hover={false}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            marginBottom: 16,
-          }}
-        >
-          <div style={{ fontSize: 24 }}>⚽</div>
-          <div>
-            <span className="t-label" style={{ color: "var(--gold)" }}>
-              GOL KRALLIĞI
-            </span>
-            <div className="t-h2" style={{ fontSize: 18 }}>
-              Top scorers
+          {(sections.transfers.length > 0 || sections.discipline.length > 0) && (
+            <div data-paper-grid style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 34 }}>
+              {sections.transfers.length > 0 && (
+                <Section title="Transfer Borsası" kicker="Piyasa">
+                  <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+                    {sections.transfers.map((t, i) => (
+                      <li
+                        key={`${t.player}-${i}`}
+                        style={{
+                          padding: "9px 0",
+                          borderBottom: `1px solid ${RULE_SOFT}`,
+                        }}
+                      >
+                        <div style={{ fontWeight: 700, fontSize: 14 }}>{t.player}</div>
+                        <div style={{ fontSize: 12.5, color: INK_2, marginTop: 2 }}>
+                          {t.fromName} → {t.toName} ·{" "}
+                          <span style={{ color: RED, fontWeight: 700 }}>
+                            €{(t.priceEur / 1_000_000).toFixed(1)}M
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </Section>
+              )}
+              {sections.discipline.length > 0 && (
+                <Section title="Disiplin" kicker="Kart cetveli">
+                  <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+                    {sections.discipline.map((d, i) => (
+                      <li
+                        key={`${d.name}-${i}`}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "9px 0",
+                          borderBottom: `1px solid ${RULE_SOFT}`,
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 14 }}>
+                            {d.name}
+                            {d.banned && (
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  color: PAPER,
+                                  background: RED,
+                                  padding: "1px 6px",
+                                  borderRadius: 3,
+                                  marginLeft: 8,
+                                  verticalAlign: "middle",
+                                }}
+                              >
+                                CEZALI
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 12.5, color: INK_3 }}>
+                            {d.clubName}
+                          </div>
+                        </div>
+                        <CardPips yellows={d.yellows} reds={d.reds} />
+                      </li>
+                    ))}
+                  </ul>
+                </Section>
+              )}
             </div>
-          </div>
-        </div>
-        {paper.scorers.map((s, i) => (
-          <div
-            key={s.name}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              padding: "10px 0",
-              borderBottom:
-                i < paper.scorers.length - 1
-                  ? "1px solid var(--border)"
-                  : "none",
-            }}
-          >
-            <span
-              className="t-mono"
+          )}
+
+          {sections.managerOfWeek && (
+            <Section title="Haftanın Teknik Direktörü" kicker="Övgü">
+              <blockquote
+                style={{
+                  margin: 0,
+                  borderLeft: `4px solid ${RED}`,
+                  paddingLeft: 18,
+                }}
+              >
+                <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.2 }}>
+                  {sections.managerOfWeek.clubName}
+                </div>
+                <p style={{ fontSize: 15, lineHeight: 1.65, color: INK_2, margin: "8px 0 0" }}>
+                  {sections.managerOfWeek.note}
+                </p>
+              </blockquote>
+            </Section>
+          )}
+
+          {sections.quotes.length > 0 && (
+            <Section title="Tribün Köşesi" kicker="Sesler">
+              <div
+                data-paper-grid
+                style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}
+              >
+                {sections.quotes.map((q, i) => (
+                  <div key={`q-${i}`}>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: 15.5,
+                        fontStyle: "italic",
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      “{q.text}”
+                    </p>
+                    <div
+                      style={{
+                        fontSize: 11.5,
+                        letterSpacing: "0.09em",
+                        textTransform: "uppercase",
+                        color: INK_3,
+                        marginTop: 7,
+                      }}
+                    >
+                      — {q.voice}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {paper.funFact && (
+            <div
               style={{
-                color: i < 3 ? "var(--gold)" : "var(--muted)",
+                marginTop: 26,
+                padding: "14px 18px",
+                background: PAPER_2,
+                border: `1px solid ${RULE}`,
                 fontSize: 14,
-                width: 20,
+                lineHeight: 1.6,
               }}
             >
-              {i + 1}
-            </span>
-            <Crest clubId={s.clubId} size={22} club={paper.crestLookup[s.clubId]} />
-            <span style={{ flex: 1, fontSize: 14 }}>{s.name}</span>
-            <span
-              className="t-mono"
-              style={{ fontSize: 16, fontWeight: 600, color: "var(--gold)" }}
-            >
-              {s.g}
-            </span>
-          </div>
-        ))}
-        {paper.scorers.length === 0 && (
-          <div className="t-small" style={{ color: "var(--muted)" }}>
-            Henüz gol yok.
-          </div>
-        )}
-      </GlassCard>
-      <GlassCard pad={24} hover={false}>
+              <strong style={{ letterSpacing: "0.06em" }}>NOT DÜŞÜLDÜ · </strong>
+              {paper.funFact}
+            </div>
+          )}
+
+          {sections.upcoming.length > 0 && (
+            <Section title="Gelecek Hafta" kicker="Program">
+              <div
+                data-paper-grid
+                style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px 24px" }}
+              >
+                {sections.upcoming.map((u, i) => (
+                  <div
+                    key={`u-${i}`}
+                    style={{
+                      fontSize: 13.5,
+                      padding: "7px 0",
+                      borderBottom: `1px solid ${RULE_SOFT}`,
+                    }}
+                  >
+                    <span style={{ fontWeight: 700 }}>{u.homeName}</span>
+                    <span style={{ color: INK_3 }}> — {u.awayName}</span>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+        </div>
+
         <div
           style={{
+            borderTop: `3px double ${INK}`,
+            padding: "14px clamp(16px, 3.5vw, 40px)",
             display: "flex",
-            alignItems: "center",
-            gap: 10,
-            marginBottom: 16,
+            justifyContent: "space-between",
+            fontSize: 11.5,
+            letterSpacing: "0.09em",
+            textTransform: "uppercase",
+            color: INK_3,
           }}
         >
-          <div style={{ fontSize: 24 }}>🎯</div>
-          <div>
-            <span className="t-label" style={{ color: "var(--cyan)" }}>
-              ASİST KRALLIĞI
-            </span>
-            <div className="t-h2" style={{ fontSize: 18 }}>
-              Top assists
-            </div>
-          </div>
+          <span>ElevenForge Spor</span>
+          <span>
+            Sezon {cover.seasonNumber} · Hafta {cover.weekNumber}
+          </span>
         </div>
-        {paper.assists.map((s, i) => (
-          <div
-            key={s.name}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              padding: "10px 0",
-              borderBottom:
-                i < paper.assists.length - 1
-                  ? "1px solid var(--border)"
-                  : "none",
-            }}
-          >
-            <span
-              className="t-mono"
-              style={{
-                color: i < 3 ? "var(--cyan)" : "var(--muted)",
-                fontSize: 14,
-                width: 20,
-              }}
-            >
-              {i + 1}
-            </span>
-            <Crest clubId={s.clubId} size={22} club={paper.crestLookup[s.clubId]} />
-            <span style={{ flex: 1, fontSize: 14 }}>{s.name}</span>
-            <span
-              className="t-mono"
-              style={{ fontSize: 16, fontWeight: 600, color: "var(--cyan)" }}
-            >
-              {s.a}
-            </span>
-          </div>
-        ))}
-        {paper.assists.length === 0 && (
-          <div className="t-small" style={{ color: "var(--muted)" }}>
-            Henüz asist yok.
-          </div>
-        )}
-      </GlassCard>
+      </article>
+
+      {/* The paper is a fixed multi-column layout by design; below 860px the
+          columns are what break it, so they collapse rather than the type
+          shrinking to nothing. */}
+      <style>{`
+        @media (max-width: 860px) {
+          [data-paper-grid] { grid-template-columns: 1fr !important; }
+          [data-newspaper] [data-lead] { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 }
 
-function PressRoom() {
-  const [answer, setAnswer] = useState<number | null>(null);
-  const toast = useToast();
-  const answers = [
-    {
-      text: "Oyuncularım inandı, ben de oyuna inandım. Skor doğal geldi.",
-      morale: 2,
-      emoji: "💎",
-      color: "var(--emerald)",
-    },
-    {
-      text: "Taktik planımız işledi, rakibin geçişlerini durdurduk.",
-      morale: 0,
-      emoji: "🎯",
-      color: "var(--cyan)",
-    },
-    {
-      text: "Bu sezonun en kötü rakiplerinden biriydi, ben de şaşkınım.",
-      morale: -1,
-      emoji: "🧊",
-      color: "var(--danger)",
-    },
-  ];
+// ─── Pieces ─────────────────────────────────────────────────────────────
+
+function Masthead({ paper }: { paper: NonNullable<NewspaperData> }) {
+  const { cover } = paper;
   return (
-    <GlassCard pad={28} hover={false}>
+    <header
+      style={{
+        padding: "22px clamp(16px, 3.5vw, 40px) 14px",
+        borderBottom: `3px double ${INK}`,
+        textAlign: "center",
+      }}
+    >
       <div
         style={{
           display: "flex",
-          alignItems: "center",
-          gap: 12,
-          marginBottom: 20,
+          justifyContent: "space-between",
+          fontSize: 11,
+          letterSpacing: "0.18em",
+          textTransform: "uppercase",
+          color: INK_3,
+          marginBottom: 10,
         }}
       >
-        <div
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 10,
-            background: "color-mix(in oklab, var(--indigo) 18%, transparent)",
-            border:
-              "1px solid color-mix(in oklab, var(--indigo) 40%, transparent)",
-            color: "var(--indigo)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <MessageSquare size={20} strokeWidth={1.6} />
-        </div>
-        <div>
-          <span className="t-label">BASIN ODASI</span>
-          <div className="t-h2" style={{ fontSize: 20, marginTop: 4 }}>
-            &ldquo;Bu skoru nasıl değerlendiriyorsun?&rdquo;
-          </div>
-        </div>
+        <span>{paper.publishedAtLabel}</span>
+        <span>
+          Sezon {cover.seasonNumber} · Hafta {cover.weekNumber}
+        </span>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {answers.map((a, i) => (
-          <button
-            key={a.emoji}
-            type="button"
-            onClick={() => {
-              setAnswer(i);
-              toast({
-                icon: a.emoji,
-                title: "Cevabın gönderildi",
-                body:
-                  a.morale > 0
-                    ? `Moral +${a.morale}`
-                    : a.morale < 0
-                      ? `Moral ${a.morale}`
-                      : "Moral nötr",
-                accent: a.color,
-              });
-            }}
-            className="glass"
-            style={{
-              padding: 16,
-              textAlign: "left",
-              cursor: "pointer",
-              border: `1px solid ${answer === i ? a.color : "var(--border)"}`,
-              background:
-                answer === i
-                  ? `color-mix(in oklab, ${a.color} 10%, var(--panel))`
-                  : "var(--panel)",
-              fontFamily: "var(--font-manrope)",
-              color: "var(--text)",
-              display: "flex",
-              gap: 12,
-              alignItems: "center",
-            }}
-          >
-            <span style={{ fontSize: 20 }}>{a.emoji}</span>
-            <span style={{ flex: 1, fontSize: 14 }}>{a.text}</span>
-            <span
-              className="t-mono"
-              style={{ fontSize: 12, fontWeight: 600, color: a.color }}
-            >
-              {a.morale > 0 ? `+${a.morale}` : a.morale} moral
-            </span>
-          </button>
-        ))}
+      <h1
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-manrope)",
+          fontWeight: 900,
+          fontSize: "clamp(30px, 6vw, 56px)",
+          letterSpacing: "-0.03em",
+          lineHeight: 1,
+        }}
+      >
+        ElevenForge <span style={{ color: RED }}>SPOR</span>
+      </h1>
+      <div
+        style={{
+          fontSize: 11,
+          letterSpacing: "0.24em",
+          textTransform: "uppercase",
+          color: INK_3,
+          marginTop: 8,
+        }}
+      >
+        Haftalık Futbol Gazetesi
       </div>
-      <div className="t-caption" style={{ marginTop: 16, fontSize: 12 }}>
-        Cevapların oyuncu moralini etkiler. Moral, bir sonraki maçta performansa
-        yansır.
-      </div>
-    </GlassCard>
+    </header>
   );
 }
 
-function FunPage({ paper }: { paper: NonNullable<NewspaperData> }) {
+function LeadStory({ paper }: { paper: NonNullable<NewspaperData> }) {
+  const { cover, sections } = paper;
+  const heroReport = sections.results.find(
+    (r) => r.homeClubId === cover.heroHomeClubId && r.awayClubId === cover.heroAwayClubId,
+  );
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-      <GlassCard pad={24} hover={false}>
-        <span className="t-label" style={{ color: "var(--warn)" }}>
-          AI KÖŞE · EĞLENCELİK
-        </span>
-        <div
-          className="t-h2"
-          style={{ fontSize: 18, marginTop: 8, marginBottom: 12 }}
-        >
-          Forge Fun Fact
+    <div style={{ paddingTop: 24 }}>
+      <div
+        style={{
+          fontSize: 11,
+          letterSpacing: "0.2em",
+          textTransform: "uppercase",
+          color: RED,
+          fontWeight: 700,
+          marginBottom: 10,
+        }}
+      >
+        Manşet
+      </div>
+      <h2
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-manrope)",
+          fontWeight: 900,
+          fontSize: "clamp(32px, 6.6vw, 68px)",
+          lineHeight: 0.98,
+          letterSpacing: "-0.035em",
+        }}
+      >
+        {cover.headline}
+      </h2>
+
+      <div
+        data-lead
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 220px",
+          gap: 28,
+          marginTop: 18,
+          alignItems: "start",
+        }}
+      >
+        <div>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 18,
+              lineHeight: 1.55,
+              fontWeight: 600,
+              color: INK,
+            }}
+          >
+            {cover.subhead}
+          </p>
+          {heroReport && (
+            <>
+              <p style={{ fontSize: 15.5, lineHeight: 1.72, color: INK_2, marginTop: 12 }}>
+                {heroReport.report}
+              </p>
+              {heroReport.scorers.length > 0 && (
+                <p style={{ fontSize: 13.5, lineHeight: 1.6, color: INK_3, marginTop: 8 }}>
+                  <strong>Goller:</strong> {heroReport.scorers.join(", ")}
+                </p>
+              )}
+            </>
+          )}
         </div>
-        <p style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.7 }}>
-          {paper.funFact || "Gazete henüz köşe yazısı yayınlamadı."}
-        </p>
-      </GlassCard>
-      <GlassCard pad={24} hover={false}>
-        <span className="t-label" style={{ color: "var(--danger)" }}>
-          TRANSFER SÖYLENTİLERİ
-        </span>
+
+        {/* The scoreline, set like a results box rather than a UI card. */}
         <div
-          className="t-h2"
-          style={{ fontSize: 18, marginTop: 8, marginBottom: 12 }}
-        >
-          Rumor mill
-        </div>
-        <ul
           style={{
-            margin: 0,
-            padding: 0,
-            listStyle: "none",
-            fontSize: 13,
-            color: "var(--text-2)",
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
+            border: `2px solid ${INK}`,
+            padding: "14px 16px",
+            background: PAPER_2,
           }}
         >
-          <li>🔥 Pazarda hareket yoğun — lideri zorlamaya hazırlanıyor.</li>
-          <li>📰 Kaşiflerden sıcak haberler, yılın genç yıldızı yolda.</li>
-          <li>🔍 Hafta sonu rövanşlar konuşulacak.</li>
-        </ul>
-      </GlassCard>
+          <ScoreLine
+            home={cover.heroHomeClubName}
+            away={cover.heroAwayClubName}
+            hs={cover.homeScore}
+            as={cover.awayScore}
+            large
+          />
+        </div>
+      </div>
+      <div style={{ borderBottom: `1px solid ${RULE}`, marginTop: 26 }} />
     </div>
+  );
+}
+
+function ScoreLine({
+  home,
+  away,
+  hs,
+  as,
+  large = false,
+}: {
+  home: string;
+  away: string;
+  hs: number;
+  as: number;
+  large?: boolean;
+}) {
+  const row = (name: string, score: number, won: boolean) => (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "baseline",
+        gap: 12,
+        padding: "3px 0",
+      }}
+    >
+      <span
+        style={{
+          fontSize: large ? 15 : 13.5,
+          fontWeight: won ? 700 : 500,
+          color: won ? INK : INK_2,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {name}
+      </span>
+      <span
+        style={{
+          fontSize: large ? 26 : 18,
+          fontWeight: 800,
+          fontVariantNumeric: "tabular-nums",
+          color: won ? INK : INK_3,
+        }}
+      >
+        {score}
+      </span>
+    </div>
+  );
+  return (
+    <div>
+      {row(home, hs, hs > as)}
+      {row(away, as, as > hs)}
+    </div>
+  );
+}
+
+function MatchReport({
+  r,
+}: {
+  r: NonNullable<NewspaperData>["sections"]["results"][number];
+}) {
+  return (
+    <div style={{ borderTop: `2px solid ${INK}`, paddingTop: 12 }}>
+      {r.derby && (
+        <div
+          style={{
+            fontSize: 10,
+            letterSpacing: "0.18em",
+            color: RED,
+            fontWeight: 700,
+            marginBottom: 6,
+          }}
+        >
+          DERBİ
+        </div>
+      )}
+      <ScoreLine home={r.homeName} away={r.awayName} hs={r.homeScore} as={r.awayScore} />
+      <p style={{ fontSize: 14, lineHeight: 1.65, color: INK_2, margin: "8px 0 0" }}>
+        {r.report}
+      </p>
+      {r.scorers.length > 0 && (
+        <p style={{ fontSize: 12.5, lineHeight: 1.55, color: INK_3, margin: "6px 0 0" }}>
+          {r.scorers.join(", ")}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function StandingsTable({
+  rows,
+}: {
+  rows: NonNullable<NewspaperData>["sections"]["table"];
+}) {
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table
+        style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          fontSize: 13.5,
+          fontFamily: SERIF,
+        }}
+      >
+        <thead>
+          <tr>
+            {["#", "Takım", "O", "AV", "P", "Form"].map((h, i) => (
+              <th
+                key={h}
+                style={{
+                  textAlign: i === 1 ? "left" : i === 5 ? "right" : "center",
+                  padding: "6px 8px",
+                  borderBottom: `2px solid ${INK}`,
+                  fontSize: 10.5,
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color: INK_2,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr
+              key={r.clubId}
+              style={{
+                background: i % 2 === 0 ? "transparent" : "rgba(23,17,11,0.045)",
+              }}
+            >
+              <td
+                style={{
+                  padding: "7px 8px",
+                  textAlign: "center",
+                  fontWeight: 700,
+                  color: i < 4 ? RED : INK_3,
+                  width: 32,
+                }}
+              >
+                {i + 1}
+              </td>
+              <td style={{ padding: "7px 8px", fontWeight: 600 }}>{r.name}</td>
+              <td style={{ padding: "7px 8px", textAlign: "center", color: INK_3 }}>
+                {r.played}
+              </td>
+              <td style={{ padding: "7px 8px", textAlign: "center", color: INK_2 }}>
+                {r.goalsFor - r.goalsAgainst > 0 ? "+" : ""}
+                {r.goalsFor - r.goalsAgainst}
+              </td>
+              <td
+                style={{
+                  padding: "7px 8px",
+                  textAlign: "center",
+                  fontWeight: 800,
+                }}
+              >
+                {r.points}
+              </td>
+              <td style={{ padding: "7px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
+                {r.form.map((f, j) => (
+                  <span
+                    key={`f-${j}`}
+                    title={f === "W" ? "Galibiyet" : f === "D" ? "Beraberlik" : "Mağlubiyet"}
+                    style={{
+                      display: "inline-block",
+                      width: 15,
+                      height: 15,
+                      lineHeight: "15px",
+                      textAlign: "center",
+                      fontSize: 9.5,
+                      fontWeight: 800,
+                      marginLeft: 2,
+                      color: PAPER,
+                      background: f === "W" ? "#1d6b3a" : f === "D" ? INK_3 : RED,
+                    }}
+                  >
+                    {f === "W" ? "G" : f === "D" ? "B" : "M"}
+                  </span>
+                ))}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function TotwStrip({ paper }: { paper: NonNullable<NewspaperData> }) {
+  const lines: Array<[string, typeof paper.totw]> = [
+    ["Kaleci", paper.totw.filter((t) => t.position === "GK")],
+    [
+      "Defans",
+      paper.totw.filter((t) => ["CB", "LB", "RB"].includes(t.position)),
+    ],
+    [
+      "Orta Saha",
+      paper.totw.filter((t) => ["CDM", "CM", "AM", "LM", "RM"].includes(t.position)),
+    ],
+    [
+      "Hücum",
+      paper.totw.filter((t) => ["ST", "CF", "LW", "RW"].includes(t.position)),
+    ],
+  ];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {lines
+        .filter(([, list]) => list.length > 0)
+        .map(([label, list]) => (
+          <div key={label}>
+            <div
+              style={{
+                fontSize: 10.5,
+                letterSpacing: "0.16em",
+                textTransform: "uppercase",
+                color: INK_3,
+                marginBottom: 6,
+              }}
+            >
+              {label}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              {list.map((t) => (
+                <div
+                  key={t.playerId}
+                  style={{
+                    border: `1px solid ${RULE}`,
+                    background: PAPER_2,
+                    padding: "7px 12px",
+                    minWidth: 150,
+                  }}
+                >
+                  <div style={{ fontSize: 13.5, fontWeight: 700 }}>{t.name}</div>
+                  <div style={{ fontSize: 11.5, color: INK_3, marginTop: 2 }}>
+                    {t.position} ·{" "}
+                    <strong style={{ color: RED }}>{t.rating.toFixed(1)}</strong>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+    </div>
+  );
+}
+
+function ChartList({
+  title,
+  rows,
+  unit,
+}: {
+  title: string;
+  rows: Array<[string, number]>;
+  unit: string;
+}) {
+  return (
+    <Section title={title} kicker="Sıralama">
+      {rows.length === 0 ? (
+        <p style={{ fontSize: 13.5, color: INK_3, margin: 0 }}>
+          Henüz kimse listeye giremedi.
+        </p>
+      ) : (
+        <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
+          {rows.map(([name, n], i) => (
+            <li
+              key={`${name}-${i}`}
+              style={{
+                display: "flex",
+                alignItems: "baseline",
+                gap: 10,
+                padding: "8px 0",
+                borderBottom: `1px solid ${RULE_SOFT}`,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 15,
+                  fontWeight: 800,
+                  color: i === 0 ? RED : INK_3,
+                  minWidth: 20,
+                }}
+              >
+                {i + 1}
+              </span>
+              <span style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>{name}</span>
+              <span style={{ fontSize: 14, fontWeight: 800 }}>
+                {n}{" "}
+                <span style={{ fontSize: 11, fontWeight: 400, color: INK_3 }}>
+                  {unit}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </Section>
+  );
+}
+
+function CardPips({ yellows, reds }: { yellows: number; reds: number }) {
+  return (
+    <span style={{ display: "inline-flex", gap: 3, flexShrink: 0 }}>
+      {Array.from({ length: Math.min(yellows, 8) }).map((_, i) => (
+        <span
+          key={`y-${i}`}
+          style={{ width: 7, height: 11, background: "#c99a06", borderRadius: 1 }}
+        />
+      ))}
+      {Array.from({ length: Math.min(reds, 4) }).map((_, i) => (
+        <span
+          key={`r-${i}`}
+          style={{ width: 7, height: 11, background: RED, borderRadius: 1 }}
+        />
+      ))}
+    </span>
+  );
+}
+
+function Section({
+  title,
+  kicker,
+  children,
+}: {
+  title: string;
+  kicker?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section style={{ marginTop: 34 }}>
+      <div style={{ marginBottom: 14 }}>
+        {kicker && (
+          <div
+            style={{
+              fontSize: 10.5,
+              letterSpacing: "0.2em",
+              textTransform: "uppercase",
+              color: RED,
+              fontWeight: 700,
+            }}
+          >
+            {kicker}
+          </div>
+        )}
+        <h3
+          style={{
+            margin: "4px 0 0",
+            fontFamily: "var(--font-manrope)",
+            fontWeight: 800,
+            fontSize: "clamp(20px, 2.6vw, 28px)",
+            letterSpacing: "-0.02em",
+            borderBottom: `2px solid ${INK}`,
+            paddingBottom: 8,
+          }}
+        >
+          {title}
+        </h3>
+      </div>
+      {children}
+    </section>
   );
 }

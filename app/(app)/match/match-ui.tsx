@@ -1,16 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { PlayCircle } from "lucide-react";
 import { Crest, EmptyState, GlassCard } from "@/components/ui/primitives";
 import type { MatchReplayData } from "@/lib/queries/match";
-import type { MatchEvent } from "@/lib/engine/match";
+import { MatchReplay } from "./replay";
 
 type StatsTab = "feed" | "stats";
 
 export default function MatchUi({ match }: { match: MatchReplayData }) {
   const [tab, setTab] = useState<StatsTab>("feed");
+  /*
+    Do not spoil the result.
+
+    The scoreboard prints the final score at 72px and the summary lists every
+    goal with its minute — directly above and beside a replay whose whole
+    purpose is to reveal them one at a time. Watching it was pointless: you
+    already knew.
+
+    So the score and the goal list stay hidden until the replay gets there,
+    and a button reveals them for anyone who just wants the result. Reduced
+    motion, skipping to the end and reaching full time all reveal it, so
+    nobody is ever stuck looking at a hidden score they cannot open.
+  */
+  const [revealed, setRevealed] = useState(false);
+  const reveal = useCallback(() => setRevealed(true), []);
 
   if (!match) {
     return (
@@ -43,8 +58,8 @@ export default function MatchUi({ match }: { match: MatchReplayData }) {
       {/* Scoreboard — dramatic full-bleed treatment with giant score,
           80px crests, and winner-highlighting via color weight. */}
       {(() => {
-        const homeWon = match.homeScore > match.awayScore;
-        const awayWon = match.awayScore > match.homeScore;
+        const homeWon = revealed && match.homeScore > match.awayScore;
+        const awayWon = revealed && match.awayScore > match.homeScore;
         return (
           <GlassCard
             pad={0}
@@ -113,7 +128,7 @@ export default function MatchUi({ match }: { match: MatchReplayData }) {
                       textShadow: homeWon ? "0 0 32px color-mix(in oklab, var(--emerald) 35%, transparent)" : "none",
                     }}
                   >
-                    {match.homeScore}
+                    {revealed ? match.homeScore : "•"}
                   </span>
                   <span style={{ fontSize: 28, color: "var(--muted-2)", fontWeight: 300 }}>–</span>
                   <span
@@ -128,7 +143,7 @@ export default function MatchUi({ match }: { match: MatchReplayData }) {
                       textShadow: awayWon ? "0 0 32px color-mix(in oklab, var(--emerald) 35%, transparent)" : "none",
                     }}
                   >
-                    {match.awayScore}
+                    {revealed ? match.awayScore : "•"}
                   </span>
                 </div>
                 <div
@@ -191,7 +206,8 @@ export default function MatchUi({ match }: { match: MatchReplayData }) {
           gap: 16,
         }}
       >
-        {/* Commentary */}
+        {/* The match, played back — see ./replay.tsx for why it plays
+            rather than printing. */}
         <GlassCard
           pad={0}
           hover={false}
@@ -203,58 +219,14 @@ export default function MatchUi({ match }: { match: MatchReplayData }) {
             flexDirection: "column",
           }}
         >
-          <div
-            style={{
-              padding: "14px 20px",
-              borderBottom: "1px solid var(--border)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: "50%",
-                  background:
-                    "linear-gradient(135deg, var(--indigo), var(--emerald))",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 11,
-                  color: "#fff",
-                  fontWeight: 700,
-                }}
-              >
-                AI
-              </div>
-              <span className="t-h3" style={{ fontSize: 14 }}>
-                Maç Anlatımı
-              </span>
-            </div>
-            <span
-              className="t-caption"
-              style={{ fontSize: 11, color: "var(--muted)" }}
-            >
-              {match.events.length} olay
-            </span>
-          </div>
-          <div
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              padding: "14px 20px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-            }}
-          >
-            {match.events.map((c, i) => (
-              <CommentaryItem key={`${c.minute}-${i}`} c={c} />
-            ))}
-          </div>
+          <MatchReplay
+            onReveal={reveal}
+            events={match.events}
+            homeClubName={match.homeClubName}
+            awayClubName={match.awayClubName}
+            homeShort={match.homeClubCrest.short}
+            awayShort={match.awayClubCrest.short}
+          />
         </GlassCard>
 
         {/* Stats drawer */}
@@ -290,7 +262,9 @@ export default function MatchUi({ match }: { match: MatchReplayData }) {
             ))}
           </div>
           <div style={{ padding: 16 }}>
-            {tab === "feed" && <FeedTab match={match} />}
+            {tab === "feed" && (
+              <FeedTab match={match} revealed={revealed} onReveal={reveal} />
+            )}
             {tab === "stats" && <StatsPanel match={match} />}
           </div>
         </GlassCard>
@@ -299,9 +273,39 @@ export default function MatchUi({ match }: { match: MatchReplayData }) {
   );
 }
 
-function FeedTab({ match }: { match: NonNullable<MatchReplayData> }) {
+function FeedTab({
+  match,
+  revealed,
+  onReveal,
+}: {
+  match: NonNullable<MatchReplayData>;
+  revealed: boolean;
+  onReveal: () => void;
+}) {
   const goalEvents = match.events.filter((e) => e.type === "goal");
   const cardEvents = match.events.filter((e) => e.type === "card");
+
+  // The goal list is the scoreline in another form: minute, club, minute,
+  // club. Printing it beside a replay that is still at 13' hands over the
+  // result the replay is in the middle of telling.
+  if (!revealed) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <span className="t-label">TARAFTAR ENERJİSİ</span>
+        <div className="t-mono" style={{ fontSize: 32, color: "var(--gold)" }}>
+          {Math.round(match.stats.crowdEnergy)}
+        </div>
+        <p className="t-caption" style={{ fontSize: 12, lineHeight: 1.6, margin: 0 }}>
+          Maç devam ediyor. Goller ve kartlar anlatım oraya geldikçe burada
+          listelenecek.
+        </p>
+        <button type="button" className="btn btn-outline btn-sm" onClick={onReveal}>
+          Sonucu Göster
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div>
       <span className="t-label">TARAFTAR ENERJİSİ</span>
@@ -402,87 +406,6 @@ function FeedTab({ match }: { match: NonNullable<MatchReplayData> }) {
   );
 }
 
-function CommentaryItem({ c }: { c: MatchEvent }) {
-  const color =
-    c.type === "goal"
-      ? "var(--emerald)"
-      : c.type === "card"
-        ? "var(--warn)"
-        : c.type === "shot"
-          ? "var(--cyan)"
-          : "var(--muted)";
-  const label =
-    c.type === "goal"
-      ? "GOL"
-      : c.type === "card"
-        ? "KART"
-        : c.type === "shot"
-          ? "ŞUT"
-          : c.type === "sub"
-            ? "DEĞİŞİKLİK"
-            : c.type === "half"
-              ? "DEVRE"
-              : c.type === "start"
-                ? "BAŞLANGIÇ"
-                : c.type === "end"
-                  ? "BİTTİ"
-                  : "ANALİZ";
-  return (
-    <div
-      className="anim-slide-up"
-      style={{ display: "flex", gap: 12, alignItems: "flex-start" }}
-    >
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 4,
-          minWidth: 48,
-        }}
-      >
-        <span
-          className="t-mono"
-          style={{ fontSize: 12, color: "var(--muted)" }}
-        >
-          {c.minute}&apos;
-        </span>
-        <span style={{ fontSize: 18 }}>{c.icon}</span>
-      </div>
-      <div
-        style={{
-          flex: 1,
-          background:
-            c.type === "goal"
-              ? `color-mix(in oklab, ${color} 8%, var(--panel))`
-              : "var(--panel-2)",
-          padding: "10px 14px",
-          borderRadius: 12,
-          border: `1px solid ${
-            c.type === "goal"
-              ? `color-mix(in oklab, ${color} 30%, var(--border))`
-              : "var(--border)"
-          }`,
-        }}
-      >
-        <span className="t-label" style={{ color, fontSize: 10 }}>
-          {label}
-        </span>
-        <div
-          style={{
-            fontSize: 14,
-            lineHeight: 1.55,
-            color: "var(--text)",
-            marginTop: 4,
-          }}
-        >
-          {c.text}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function StatsPanel({ match }: { match: NonNullable<MatchReplayData> }) {
   const stats: Array<[string, number, number, boolean?]> = [
     ["Topla oynama", match.stats.possessionHome, match.stats.possessionAway, true],
@@ -493,6 +416,52 @@ function StatsPanel({ match }: { match: NonNullable<MatchReplayData> }) {
   ];
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {/* xG first, because it is the one number that says whether the
+          scoreline was deserved — which is what a manager actually wants to
+          know after a 1-0 that felt like a 4-0. Decimal, so it gets its own
+          row rather than being forced into the integer bars below. */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "8px 10px",
+          borderRadius: 10,
+          background: "var(--panel-2)",
+          border: "1px solid var(--border)",
+        }}
+      >
+        <span
+          className="t-mono"
+          style={{
+            fontSize: 14,
+            fontWeight: 700,
+            color:
+              match.stats.xgHome > match.stats.xgAway
+                ? "var(--emerald)"
+                : "var(--text)",
+          }}
+        >
+          {match.stats.xgHome.toFixed(1)}
+        </span>
+        <span className="t-label" style={{ fontSize: 9.5 }}>
+          BEKLENEN GOL
+        </span>
+        <span
+          className="t-mono"
+          style={{
+            fontSize: 14,
+            fontWeight: 700,
+            color:
+              match.stats.xgAway > match.stats.xgHome
+                ? "var(--emerald)"
+                : "var(--text)",
+          }}
+        >
+          {match.stats.xgAway.toFixed(1)}
+        </span>
+      </div>
+
       {stats.map(([l, h, a, pct]) => (
         <div key={l}>
           <div

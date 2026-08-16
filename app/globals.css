@@ -580,6 +580,42 @@ body[data-modal-open="true"] { overflow: hidden; }
 .anim-slide-up { animation: slide-up var(--t) var(--ease) both; }
 .anim-slide-in-right { animation: slide-in-right var(--t) var(--ease) both; }
 
+/* Compact button — transport controls, inline row actions. Sized off the
+   base .btn so it inherits every state (hover, focus ring, disabled). */
+.btn-sm { padding: 5px 10px; font-size: 12px; gap: 5px; border-radius: 9px; }
+.btn-sm > svg { width: 14px; height: 14px; }
+
+/* A goal is the only moment in a match report that earns a flourish. The
+   card lands with a short overshoot and a green wash that fades out; nothing
+   loops, so a finished feed is completely still. */
+@keyframes goal-land {
+  0%   { opacity: 0; transform: translateY(10px) scale(0.97); }
+  55%  { opacity: 1; transform: translateY(0) scale(1.015); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes goal-wash {
+  0%   { opacity: 0.5; }
+  100% { opacity: 0; }
+}
+.replay-goal { animation: goal-land 520ms var(--ease) both; position: relative; }
+.replay-goal::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 16px;
+  pointer-events: none;
+  background: radial-gradient(
+    120% 140% at 12% 50%,
+    color-mix(in oklab, var(--emerald) 45%, transparent),
+    transparent 65%
+  );
+  animation: goal-wash 900ms var(--ease) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .replay-goal, .replay-goal::after { animation: none; }
+  .replay-goal::after { display: none; }
+}
+
 /* ───────────────────────────────────────────────────────────────
    Route transitions — fade + lift on page enter.
    Every (app) route wraps its content in <main data-page-enter>;

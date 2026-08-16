@@ -1,6 +1,10 @@
 /**
  * Scout mechanics:
- *  - sendScout(clubId, params) creates a scout that returns after 8h with 3-5 candidates.
+ *  - sendScout(clubId, params) creates a scout that returns in 2-3h with 3-5
+ *    candidates. It was eight hours, which is most of a waking day: send one
+ *    in the evening and the report was there the next night, so scouting
+ *    happened at most once a day and could not be part of a session. A chief
+ *    scout on the payroll now buys speed as well as extra candidates.
  *  - processScoutReturns() activates scouts whose returnsAt has passed, generating
  *    new Player rows (not yet attached to a club) tagged with resultsJson.
  *  - claimScoutPlayer(callerClubId, scoutId, playerIdx) attaches the player to
@@ -10,211 +14,150 @@ import { and, eq, lt, lte } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { debitClub } from "@/lib/money";
 import { attributesFor } from "@/lib/attributes";
+import { generatePlayer, inventName, rollSecondaryRoles } from "@/lib/player-gen";
+import { seasonProgress } from "@/lib/market-quality";
+import {
+  findScoutCandidates,
+  type ScoutPoolPlayer,
+} from "@/lib/scout-pool";
+import { marketValueCents, wageFromValueCents } from "@/lib/economy";
+import { parseStaffJson } from "@/lib/staff";
 import {
   transferWindow,
   windowClosedError,
 } from "@/lib/transfer-window";
 import { feedEvents, leagues, players, scouts, clubs } from "@/lib/schema";
 import type { Position } from "@/types";
-import { marketValueCents, wageFromValueCents } from "@/lib/economy";
 
 const CLAIM_WINDOW_MS = 48 * 3600 * 1000;
 
-// ─── Scout name pool ─────────────────────────────────────────────
-// Young prospect + established-starter names scouts surface when a
-// manager sends them to a specific country. All names are real 2025-26
-// big-league footballers we are confident are/were at their clubs for
-// 2+ seasons (low risk of Jan 2026 moves invalidating the entry). The
-// scout does NOT inherit the player's real-life club — that would
-// overlap with the Süper Lig pack — it just uses the name + typical
-// nationality so "İspanya'dan RW scout et" returns recognizable names.
-//
-// Keep the list ≤14 per nat — scout candidates are 3-5 per return, so
-// a pool this size gives plenty of variety before repetition.
-//
-// Names must not collide with anyone already in a Süper Lig squad, or a
-// scout report would offer a player the league already owns. processScoutReturns
-// filters against the league roster as a backstop, but keeping the pools
-// disjoint means the filter rarely has to fire.
-const INTL_NAMES: Record<string, Array<{ name: string; nat: string }>> = {
-  // Premier League / La Liga / Serie A / Ligue 1 / Bundesliga / Eredivisie
-  // / Primeira Liga çeşitlemesi.
-  BR: [
-    { name: "Vinícius Júnior", nat: "BR" }, { name: "Rodrygo", nat: "BR" },
-    { name: "Raphinha", nat: "BR" }, { name: "Bruno Guimarães", nat: "BR" },
-    { name: "Gabriel Martinelli", nat: "BR" }, { name: "Lucas Paquetá", nat: "BR" },
-    { name: "Éder Militão", nat: "BR" }, { name: "Casemiro", nat: "BR" },
-    { name: "Richarlison", nat: "BR" }, { name: "Gabriel Magalhães", nat: "BR" },
-    { name: "Endrick", nat: "BR" }, { name: "Estêvão", nat: "BR" },
-    { name: "Savinho", nat: "BR" }, { name: "João Gomes", nat: "BR" },
-  ],
-  AR: [
-    { name: "Lautaro Martínez", nat: "AR" }, { name: "Julián Álvarez", nat: "AR" },
-    { name: "Paulo Dybala", nat: "AR" }, { name: "Alexis Mac Allister", nat: "AR" },
-    { name: "Enzo Fernández", nat: "AR" }, { name: "Nicolás Otamendi", nat: "AR" },
-    { name: "Cristian Romero", nat: "AR" }, { name: "Leandro Paredes", nat: "AR" },
-    { name: "Nicolás González", nat: "AR" }, { name: "Valentín Carboni", nat: "AR" },
-    { name: "Alejandro Garnacho", nat: "AR" }, { name: "Franco Mastantuono", nat: "AR" },
-  ],
-  FR: [
-    { name: "Kylian Mbappé", nat: "FR" }, { name: "Ousmane Dembélé", nat: "FR" },
-    { name: "Eduardo Camavinga", nat: "FR" }, { name: "Aurélien Tchouaméni", nat: "FR" },
-    { name: "Antoine Griezmann", nat: "FR" }, { name: "Jules Koundé", nat: "FR" },
-    { name: "Dayot Upamecano", nat: "FR" }, { name: "Theo Hernández", nat: "FR" },
-    { name: "William Saliba", nat: "FR" }, { name: "Mike Maignan", nat: "FR" },
-    { name: "Michael Olise", nat: "FR" }, { name: "Désiré Doué", nat: "FR" },
-    { name: "Warren Zaïre-Emery", nat: "FR" }, { name: "Bradley Barcola", nat: "FR" },
-  ],
-  ES: [
-    { name: "Pedri", nat: "ES" }, { name: "Gavi", nat: "ES" },
-    { name: "Lamine Yamal", nat: "ES" }, { name: "Ferran Torres", nat: "ES" },
-    { name: "Dani Olmo", nat: "ES" }, { name: "Rodri", nat: "ES" },
-    { name: "Nico Williams", nat: "ES" }, { name: "Fabián Ruiz", nat: "ES" },
-    { name: "Unai Simón", nat: "ES" }, { name: "Martín Zubimendi", nat: "ES" },
-  ],
-  DE: [
-    { name: "Jamal Musiala", nat: "DE" }, { name: "Joshua Kimmich", nat: "DE" },
-    { name: "Florian Wirtz", nat: "DE" }, { name: "Kai Havertz", nat: "DE" },
-    { name: "Antonio Rüdiger", nat: "DE" }, { name: "Leon Goretzka", nat: "DE" },
-    { name: "Niclas Füllkrug", nat: "DE" }, { name: "Julian Brandt", nat: "DE" },
-  ],
-  PT: [
-    { name: "Bernardo Silva", nat: "PT" }, { name: "Vitinha", nat: "PT" },
-    { name: "João Neves", nat: "PT" }, { name: "Rafael Leão", nat: "PT" },
-    { name: "Rúben Dias", nat: "PT" }, { name: "Bruno Fernandes", nat: "PT" },
-    { name: "João Cancelo", nat: "PT" }, { name: "Gonçalo Ramos", nat: "PT" },
-  ],
-  NL: [
-    { name: "Virgil van Dijk", nat: "NL" }, { name: "Frenkie de Jong", nat: "NL" },
-    { name: "Cody Gakpo", nat: "NL" }, { name: "Micky van de Ven", nat: "NL" },
-    { name: "Denzel Dumfries", nat: "NL" }, { name: "Matthijs de Ligt", nat: "NL" },
-    { name: "Tijjani Reijnders", nat: "NL" }, { name: "Xavi Simons", nat: "NL" },
-  ],
-  BE: [
-    { name: "Kevin De Bruyne", nat: "BE" }, { name: "Dodi Lukebakio", nat: "BE" },
-    { name: "Youri Tielemans", nat: "BE" }, { name: "Jérémy Doku", nat: "BE" },
-    { name: "Loïs Openda", nat: "BE" }, { name: "Charles De Ketelaere", nat: "BE" },
-  ],
-  NG: [
-    { name: "Ademola Lookman", nat: "NG" }, { name: "Alex Iwobi", nat: "NG" },
-    { name: "Samuel Chukwueze", nat: "NG" }, { name: "Victor Boniface", nat: "NG" },
-    { name: "Calvin Bassey", nat: "NG" }, { name: "Taiwo Awoniyi", nat: "NG" },
-  ],
-  NO: [
-    { name: "Erling Haaland", nat: "NO" }, { name: "Martin Ødegaard", nat: "NO" },
-    { name: "Alexander Sørloth", nat: "NO" }, { name: "Antonio Nusa", nat: "NO" },
-    { name: "Sander Berge", nat: "NO" }, { name: "Oscar Bobb", nat: "NO" },
-  ],
-  HR: [
-    { name: "Mateo Kovačić", nat: "HR" }, { name: "Petar Sučić", nat: "HR" },
-    { name: "Joško Gvardiol", nat: "HR" }, { name: "Luka Sučić", nat: "HR" },
-    { name: "Mario Pašalić", nat: "HR" }, { name: "Martin Baturina", nat: "HR" },
-  ],
-  SN: [
-    { name: "Sadio Mané", nat: "SN" }, { name: "Kalidou Koulibaly", nat: "SN" },
-    { name: "Ismaïla Sarr", nat: "SN" }, { name: "Nicolas Jackson", nat: "SN" },
-    { name: "Amadou Onana", nat: "SN" }, { name: "Lamine Camara", nat: "SN" },
-  ],
-  MA: [
-    { name: "Achraf Hakimi", nat: "MA" }, { name: "Noussair Mazraoui", nat: "MA" },
-    { name: "Azzedine Ounahi", nat: "MA" }, { name: "Eliesse Ben Seghir", nat: "MA" },
-    { name: "Brahim Díaz", nat: "MA" }, { name: "Bilal El Khannouss", nat: "MA" },
-  ],
-  DK: [
-    { name: "Christian Eriksen", nat: "DK" }, { name: "Pierre Højbjerg", nat: "DK" },
-    { name: "Rasmus Højlund", nat: "DK" }, { name: "Mikkel Damsgaard", nat: "DK" },
-    { name: "Joachim Andersen", nat: "DK" },
-  ],
-  SE: [
-    { name: "Alexander Isak", nat: "SE" }, { name: "Dejan Kulusevski", nat: "SE" },
-    { name: "Viktor Gyökeres", nat: "SE" }, { name: "Emil Forsberg", nat: "SE" },
-  ],
-  CI: [
-    { name: "Sébastien Haller", nat: "CI" }, { name: "Simon Adingra", nat: "CI" },
-    { name: "Evan Ndicka", nat: "CI" }, { name: "Amad Diallo", nat: "CI" },
-    { name: "Karim Konaté", nat: "CI" },
-  ],
-  GH: [
-    { name: "Mohammed Kudus", nat: "GH" }, { name: "Thomas Partey", nat: "GH" },
-    { name: "Antoine Semenyo", nat: "GH" }, { name: "Kamaldeen Sulemana", nat: "GH" },
-  ],
-  EN: [
-    { name: "Jude Bellingham", nat: "EN" }, { name: "Harry Kane", nat: "EN" },
-    { name: "Bukayo Saka", nat: "EN" }, { name: "Phil Foden", nat: "EN" },
-    { name: "Declan Rice", nat: "EN" }, { name: "Cole Palmer", nat: "EN" },
-    { name: "Anthony Gordon", nat: "EN" }, { name: "Marc Guéhi", nat: "EN" },
-    { name: "Morgan Rogers", nat: "EN" }, { name: "Jarrad Branthwaite", nat: "EN" },
-  ],
-  GE: [
-    { name: "Khvicha Kvaratskhelia", nat: "GE" }, { name: "Giorgi Mamardashvili", nat: "GE" },
-    { name: "Giorgi Chakvetadze", nat: "GE" },
-  ],
-  IT: [
-    { name: "Nicolò Barella", nat: "IT" }, { name: "Sandro Tonali", nat: "IT" },
-    { name: "Federico Dimarco", nat: "IT" }, { name: "Alessandro Bastoni", nat: "IT" },
-    { name: "Giacomo Raspadori", nat: "IT" }, { name: "Cesare Casadei", nat: "IT" },
-  ],
-  // Turkish internationals playing ABROAD. A Turkish game whose "scout
-  // Türkiye" button returned invented names while Arda Güler and Kenan
-  // Yıldız existed was a strange gap. Everyone here plays outside the Süper
-  // Lig, so a scout report can never duplicate a player already in a squad.
-  TR: [
-    { name: "Arda Güler", nat: "TR" }, { name: "Kenan Yıldız", nat: "TR" },
-    { name: "Ferdi Kadıoğlu", nat: "TR" }, { name: "Zeki Çelik", nat: "TR" },
-    { name: "Altay Bayındır", nat: "TR" }, { name: "Berke Özer", nat: "TR" },
-    { name: "Can Uzun", nat: "TR" }, { name: "Yusuf Sarı", nat: "TR" },
-    { name: "Emirhan Demircan", nat: "TR" }, { name: "Doğukan Sinik", nat: "TR" },
-    { name: "Ahmetcan Kaplan", nat: "TR" }, { name: "Efe Akman", nat: "TR" },
-  ],
-};
+// The real-footballer pool moved to lib/scout-pool.ts, where each name
+// carries its actual date of birth, position and role. It used to be a bare
+// list of names here and everything else about the player was rolled at
+// random — so a report could offer a 31-year-old Lamine Yamal. See that
+// file's header for the rules on editing it.
 
 type ScoutCandidate = {
   name: string;
   nat: string;
   position: Position;
   role: string;
+  secondaryRoles: string[];
   age: number;
   overall: number;
   potential: number;
+  pace: number;
+  shooting: number;
+  passing: number;
+  defending: number;
+  physical: number;
+  goalkeeping: number;
+  /**
+   * True when this is a real footballer carried from lib/scout-pool.ts with
+   * his actual age and position. The report shows the difference, because a
+   * name the manager recognises is only worth showing if he can trust what
+   * is printed next to it.
+   */
+  real?: boolean;
   marketValueCents: number;
   wageCents: number;
 };
 
-function genCandidate(
-  nat: string,
-  position: Position,
-  ageRange: [number, number],
-): ScoutCandidate {
-  const pool = INTL_NAMES[nat] ?? INTL_NAMES.TR;
-  const { name } = pool[Math.floor(Math.random() * pool.length)];
-  const age =
-    ageRange[0] +
-    Math.floor(Math.random() * (ageRange[1] - ageRange[0] + 1));
-  const overall = Math.round(68 + Math.random() * 12); // 68-80
-  const potential = Math.min(95, overall + Math.floor(Math.random() * 14));
-  const valueCents = marketValueCents(overall, potential, age);
-  const roleChoices: Record<Position, string[]> = {
-    GK: ["GK"],
-    DEF: ["CB", "LB", "RB"],
-    MID: ["CM", "CDM", "AM", "LW", "RW"],
-    FWD: ["ST", "LW", "RW"],
-  };
-  const role =
-    roleChoices[position][
-      Math.floor(Math.random() * roleChoices[position].length)
-    ];
+/**
+ * How far up the game the club's scouting department can see.
+ *
+ * A flat 68-80 before, for every scout in every week of every season. That
+ * made scouting a fixed-price commodity: you always knew roughly what came
+ * back, so there was no reason to send one at any particular moment and no
+ * reason to pay for a chief scout.
+ *
+ * Now the chief scout buys ACCESS. A club with nobody in the role is not told
+ * about Kylian Mbappé — not because Mbappé is randomly unavailable, but
+ * because nobody at the club is watching that level of football. That reads
+ * as a reason to hire someone, which "+1 candidate per report" never did.
+ *
+ * Season progress widens the window too, on the same curve the transfer
+ * market uses, so a scout and a listing in the same week are offering players
+ * from the same world.
+ */
+function scoutReach(
+  scoutTier: number,
+  weekProgress: number,
+  r: () => number,
+): { minOverall: number; maxOverall: number; tier: number } {
+  const base = 0.34 + scoutTier * 0.11 + weekProgress * 0.22;
+  // A long right tail: most reports are solid, a few are the reason you keep
+  // sending scouts out.
+  const luck = r() < 0.12 ? 0.28 * r() + 0.1 : (r() - 0.5) * 0.22;
+  const tier = Math.max(0.08, Math.min(1, base + luck));
+  const maxOverall = Math.round(70 + tier * 25); // 72 … 95
+  return { minOverall: Math.max(66, maxOverall - 10), maxOverall, tier };
+}
+
+/** Turn a real pool entry into a candidate, attributes and price included. */
+function realCandidate(p: ScoutPoolPlayer): ScoutCandidate {
+  const attrs = attributesFor(p.overall, p.role);
+  const value = marketValueCents(p.overall, p.potential, p.age);
   return {
-    name,
-    nat,
-    position,
-    role,
-    age,
-    overall,
-    potential,
-    marketValueCents: valueCents,
-    wageCents: wageFromValueCents(valueCents),
+    name: p.name,
+    nat: p.nat,
+    position: p.position,
+    role: p.role,
+    secondaryRoles: rollSecondaryRoles(p.role),
+    age: p.age,
+    overall: p.overall,
+    potential: p.potential,
+    ...attrs,
+    real: true,
+    marketValueCents: value,
+    wageCents: wageFromValueCents(value),
   };
 }
+
+/**
+ * Invent one, for when the pool has nobody left who fits the brief.
+ *
+ * Deliberately given a made-up name rather than borrowing a real one: a real
+ * name comes with real facts attached, and the moment we invent an age for a
+ * player the manager recognises, the whole report stops being trustworthy.
+ */
+function inventedCandidate(
+  position: Position,
+  ageRange: [number, number],
+  tier: number,
+): ScoutCandidate {
+  const { name, nat } = inventName();
+  const age =
+    ageRange[0] + Math.floor(Math.random() * (ageRange[1] - ageRange[0] + 1));
+  const p = generatePlayer({ name, nationality: nat, position, age, tier });
+  return {
+    name: p.name,
+    nat: p.nationality,
+    position: p.position,
+    role: p.role,
+    secondaryRoles: p.secondaryRoles,
+    age: p.age,
+    overall: p.overall,
+    potential: p.potential,
+    pace: p.pace,
+    shooting: p.shooting,
+    passing: p.passing,
+    defending: p.defending,
+    physical: p.physical,
+    goalkeeping: p.goalkeeping,
+    real: false,
+    marketValueCents: p.marketValueCents,
+    wageCents: p.wageCents,
+  };
+}
+
+/**
+ * Base wait for a scout, in hours. Each chief-scout tier takes half an hour
+ * off, so a tier-3 scout reports back in 90 minutes — fast enough that hiring
+ * one visibly changes how the screen feels to use.
+ */
+const SCOUT_BASE_HOURS = 3;
+const SCOUT_HOURS_PER_TIER = 0.5;
 
 export async function sendScout(params: {
   leagueId: string;
@@ -224,7 +167,13 @@ export async function sendScout(params: {
   ageMin: number;
   ageMax: number;
 }) {
-  const returnsAt = new Date(Date.now() + 8 * 3600 * 1000);
+  const [club] = await db
+    .select({ staffJson: clubs.staffJson })
+    .from(clubs)
+    .where(eq(clubs.id, params.clubId));
+  const tier = parseStaffJson(club?.staffJson ?? null).scout?.tier ?? 0;
+  const hours = Math.max(1, SCOUT_BASE_HOURS - tier * SCOUT_HOURS_PER_TIER);
+  const returnsAt = new Date(Date.now() + hours * 3600 * 1000);
   const [row] = await db
     .insert(scouts)
     .values({ ...params, returnsAt })
@@ -273,33 +222,43 @@ export async function processScoutReturns(opts: { leagueId?: string } = {}) {
     );
 
   for (const s of active) {
-    // Bonus candidates from a hired Baş Kaşif (+tier results).
-    let bonus = 0;
+    // A hired Baş Kaşif buys both more candidates and better ones.
     const [club] = await db
       .select({ staffJson: clubs.staffJson })
       .from(clubs)
       .where(eq(clubs.id, s.clubId));
-    if (club?.staffJson) {
-      try {
-        const raw = JSON.parse(club.staffJson) as { scout?: { id: string } };
-        if (raw.scout) {
-          const { staffById } = await import("@/lib/staff");
-          const m = staffById(raw.scout.id);
-          if (m && m.role === "scout") bonus = m.tier;
-        }
-      } catch {}
-    }
-    const count = 3 + Math.floor(Math.random() * 3) + bonus; // 3-5 (+staff tier)
+    const scoutTier = parseStaffJson(club?.staffJson ?? null).scout?.tier ?? 0;
+    // Late-season reports are stronger, on the same curve the transfer market
+    // uses — a scout and a listing in the same week should be offering players
+    // from the same world.
+    const [lgRow] = await db
+      .select({
+        weekNumber: leagues.weekNumber,
+        seasonLength: leagues.seasonLength,
+      })
+      .from(leagues)
+      .where(eq(leagues.id, s.leagueId));
+    const progress = lgRow ? seasonProgress(lgRow) : 0;
     const positions: Position[] =
       s.targetPosition === "ANY"
         ? ["GK", "DEF", "MID", "FWD"]
         : [s.targetPosition];
-    // Never offer a player the league already has. The name pools are kept
-    // disjoint from the squad packs, but a squad refresh can bring a pool
-    // name into the league (Lukaku signing for Fenerbahçe is exactly that),
-    // and two scouts running together could otherwise surface the same
-    // prospect twice.
-    const existing = new Set(
+
+    /*
+      Three candidates, and you sign one of them.
+
+      It was 3-5 plus the staff tier, which meant a club with a gold chief
+      scout got eight names and picked the best — so the choice made itself
+      and the report was a formality. Three is a decision: a striker you can
+      afford, a teenager who might become one, and a squad player, and you
+      only get one.
+
+      The exclusion set is the whole league's roster PLUS everyone already
+      named in this club's other reports. Three scouts in the field at once
+      have to come back with three different shortlists or they are one
+      shortlist printed three times.
+    */
+    const taken = new Set(
       (
         await db
           .select({ name: players.name })
@@ -307,21 +266,49 @@ export async function processScoutReturns(opts: { leagueId?: string } = {}) {
           .where(eq(players.leagueId, s.leagueId))
       ).map((r) => r.name),
     );
-    const results: ScoutCandidate[] = [];
-    for (let i = 0; i < count; i++) {
-      const pos = positions[Math.floor(Math.random() * positions.length)];
-      let candidate: ScoutCandidate | null = null;
-      for (let attempt = 0; attempt < 8; attempt++) {
-        const c = genCandidate(s.targetNationality, pos, [s.ageMin, s.ageMax]);
-        if (!existing.has(c.name)) {
-          candidate = c;
-          break;
+    const siblingReports = await db
+      .select({ resultsJson: scouts.resultsJson })
+      .from(scouts)
+      .where(and(eq(scouts.clubId, s.clubId), eq(scouts.status, "returned")));
+    for (const sib of siblingReports) {
+      try {
+        for (const c of JSON.parse(sib.resultsJson ?? "[]") as Array<{
+          name?: string;
+        }>) {
+          if (c?.name) taken.add(c.name);
         }
+      } catch {
+        /* unreadable sibling report — nothing to exclude from it */
       }
-      if (!candidate) continue; // pool exhausted for this nationality
-      existing.add(candidate.name);
+    }
+
+    const CANDIDATES_PER_REPORT = 3;
+    const results: ScoutCandidate[] = [];
+    for (let i = 0; i < CANDIDATES_PER_REPORT; i++) {
+      const pos = positions[Math.floor(Math.random() * positions.length)];
+      const reach = scoutReach(scoutTier, progress, Math.random);
+      const real = findScoutCandidates({
+        nat: s.targetNationality,
+        position: pos,
+        ageMin: s.ageMin,
+        ageMax: s.ageMax,
+        minOverall: reach.minOverall,
+        maxOverall: reach.maxOverall,
+        exclude: taken,
+        today: now,
+      });
+      // Real names first — they are the reason a scout screen is interesting.
+      // Only when the brief matches nobody left in the pool does the report
+      // fall back to an invented player.
+      const candidate =
+        real.length > 0
+          ? realCandidate(real[Math.floor(Math.random() * real.length)])
+          : inventedCandidate(pos, [s.ageMin, s.ageMax], reach.tier);
+      taken.add(candidate.name);
       results.push(candidate);
     }
+    const count = results.length;
+
     await db
       .update(scouts)
       .set({ status: "returned", resultsJson: JSON.stringify(results) })
@@ -429,11 +416,23 @@ export async function claimScoutPlayer(
       nationality: c.nat,
       overall: c.overall,
       potential: c.potential,
-      // Without these the INSERT fell through to the schema defaults —
-      // pace/shooting/passing/defending/physical 60, goalkeeping 30 — so every
-      // scouted player performed like a 60 no matter what his rating said.
-      // The match engine reads the attributes, not just `overall`.
-      ...attributesFor(c.overall, c.role),
+      // The attributes are carried on the candidate, not re-rolled here.
+      // Re-rolling would mean the player you signed was not the player the
+      // report described — the scout's whole job is to tell you in advance
+      // what you are getting. Reports written before candidates carried
+      // attributes fall back to a fresh roll, which is still far better than
+      // the schema defaults of 60/30 they would otherwise land on.
+      ...(typeof c.pace === "number"
+        ? {
+            pace: c.pace,
+            shooting: c.shooting,
+            passing: c.passing,
+            defending: c.defending,
+            physical: c.physical,
+            goalkeeping: c.goalkeeping,
+          }
+        : attributesFor(c.overall, c.role)),
+      secondaryRoles: JSON.stringify(c.secondaryRoles ?? []),
       marketValueCents: c.marketValueCents,
       wageCents: c.wageCents,
     })

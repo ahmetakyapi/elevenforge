@@ -80,6 +80,19 @@ export type ReturnedScoutCandidate = {
   overall: number;
   potential: number;
   marketValueEur: number;
+  /** Attributes, so the report can be read like a player card. */
+  pace: number;
+  shooting: number;
+  passing: number;
+  defending: number;
+  physical: number;
+  goalkeeping: number;
+  /**
+   * True for a real footballer carried with his actual age and position from
+   * lib/scout-pool.ts. The report marks these, because a recognisable name is
+   * only worth printing if what sits beside it can be trusted.
+   */
+  real: boolean;
 };
 
 export type ReturnedScoutView = {
@@ -116,7 +129,14 @@ export type TransferPageData = {
   listings: TransferListingView[];
   globalTicker: GlobalTransferView[];
   myListings: MyListingView[];
+  /** The most recent scout in the field — kept for the compact sidebar card. */
   activeScout: ActiveScoutView | null;
+  /**
+   * Every scout in the field. Three may be out at once and the sidebar showed
+   * only the newest, so the other two were invisible until they returned —
+   * there was no way to tell whether you had one running or three.
+   */
+  activeScouts: ActiveScoutView[];
   returnedScouts: ReturnedScoutView[];
   marketStats: MarketStatsView;
   userSquad: SellRowView[];
@@ -298,16 +318,12 @@ export async function loadTransferData(
   }));
 
   // 4. Active scout (most recent) + any returned scouts waiting for claim
-  const activeScoutRow = (
-    await db
-      .select()
-      .from(scouts)
-      .where(
-        and(eq(scouts.clubId, club.id), eq(scouts.status, "active")),
-      )
-      .orderBy(desc(scouts.sentAt))
-      .limit(1)
-  )[0];
+  const activeScoutRows = await db
+    .select()
+    .from(scouts)
+    .where(and(eq(scouts.clubId, club.id), eq(scouts.status, "active")))
+    .orderBy(desc(scouts.sentAt));
+  const activeScoutRow = activeScoutRows[0];
   const returnedScoutRows = await db
     .select()
     .from(scouts)
@@ -326,6 +342,13 @@ export async function loadTransferData(
           overall: number;
           potential: number;
           marketValueCents: number;
+          pace?: number;
+          shooting?: number;
+          passing?: number;
+          defending?: number;
+          physical?: number;
+          goalkeeping?: number;
+          real?: boolean;
         }>;
         candidates = parsed.map((c) => ({
           name: c.name,
@@ -336,6 +359,15 @@ export async function loadTransferData(
           overall: c.overall,
           potential: c.potential,
           marketValueEur: Math.round(Number(c.marketValueCents) / 100),
+          // Reports written before candidates carried attributes fall back to
+          // the rating, so the card renders rather than showing six zeroes.
+          pace: c.pace ?? c.overall,
+          shooting: c.shooting ?? c.overall,
+          passing: c.passing ?? c.overall,
+          defending: c.defending ?? c.overall,
+          physical: c.physical ?? c.overall,
+          goalkeeping: c.goalkeeping ?? (c.position === "GK" ? c.overall : 30),
+          real: c.real === true,
         }));
       } catch {}
       return {
@@ -346,20 +378,29 @@ export async function loadTransferData(
       };
     })
     .filter((s) => s.candidates.length > 0);
+  const toActiveView = (row: typeof activeScoutRows[number]): ActiveScoutView => ({
+    id: row.id,
+    country: row.targetNationality,
+    position: row.targetPosition,
+    ageRange: `${row.ageMin}-${row.ageMax}y`,
+    returnsInSec: Math.max(
+      0,
+      Math.floor((new Date(row.returnsAt).getTime() - now) / 1000),
+    ),
+    // Measured from the row rather than assumed: the trip is 3h at base and
+    // shorter with a chief scout on the payroll, so a hard-coded 8h made the
+    // progress ring lie about how far along every scout was.
+    totalDurationSec: Math.max(
+      60,
+      Math.round(
+        (new Date(row.returnsAt).getTime() - new Date(row.sentAt).getTime()) /
+          1000,
+      ),
+    ),
+  });
+  const activeScouts = activeScoutRows.map(toActiveView);
   const activeScout: ActiveScoutView | null = activeScoutRow
-    ? {
-        id: activeScoutRow.id,
-        country: activeScoutRow.targetNationality,
-        position: activeScoutRow.targetPosition,
-        ageRange: `${activeScoutRow.ageMin}-${activeScoutRow.ageMax}y`,
-        returnsInSec: Math.max(
-          0,
-          Math.floor(
-            (new Date(activeScoutRow.returnsAt).getTime() - now) / 1000,
-          ),
-        ),
-        totalDurationSec: 8 * 3600,
-      }
+    ? toActiveView(activeScoutRow)
     : null;
 
   // 5. Market stats
@@ -434,6 +475,7 @@ export async function loadTransferData(
     globalTicker,
     myListings,
     activeScout,
+    activeScouts,
     returnedScouts,
     marketStats,
     userSquad,

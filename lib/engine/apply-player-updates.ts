@@ -92,7 +92,11 @@ export async function applyPlayerUpdates(
             (u.rating >= 8 ? 1 : u.rating >= 7 ? 0 : u.rating < 6 ? -1 : 0),
         ),
       ),
-      fitness: Math.max(60, row.fitness - 10),
+      // The drain is set by the engine from the side's tactics — pressing at
+      // 4 with a high tempo costs real fitness, which is what stops those
+      // dials from being free. Falls back to the old flat cost for any
+      // update produced before the engine started reporting it.
+      fitness: Math.max(50, row.fitness - (u.fitnessDrain ?? 10)),
     };
 
     // A red card and an injury are not mutually exclusive: a player sent off

@@ -13,6 +13,7 @@ import { and, asc, eq, lte } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { clubs, cupFixtures, feedEvents, leagues, players } from "@/lib/schema";
 import { simulateMatch } from "@/lib/engine/match";
+import { tacticsFrom } from "@/lib/tactics";
 import {
   applyPlayerUpdates,
   decrementSuspensions,
@@ -152,18 +153,8 @@ export async function runCupRound(opts: { leagueId: string }): Promise<{
       awayClubName: away.name,
       homeSquad,
       awaySquad,
-      homeTactics: {
-        formation: home.formation,
-        mentality: home.mentality,
-        pressing: home.pressing,
-        tempo: home.tempo,
-      },
-      awayTactics: {
-        formation: away.formation,
-        mentality: away.mentality,
-        pressing: away.pressing,
-        tempo: away.tempo,
-      },
+      homeTactics: tacticsFrom(home),
+      awayTactics: tacticsFrom(away),
       homeCity: home.city,
       awayCity: away.city,
       // The managers' saved team sheets apply in the cup too. Without these

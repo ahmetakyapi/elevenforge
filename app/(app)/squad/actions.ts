@@ -3,11 +3,29 @@
 import { and, eq, gte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { marketValueCents } from "@/lib/economy";
 import { debitClub } from "@/lib/money";
-import { feedEvents, friendlies, players } from "@/lib/schema";
+import { friendlyGrowthChance } from "@/lib/progression";
+import { autoLineup } from "@/lib/lineup";
+import { clubs, feedEvents, friendlies, players } from "@/lib/schema";
+import { parseStaffJson } from "@/lib/staff";
 import { requireLeagueContext } from "@/lib/session";
 import { uuidSchema, validate } from "@/lib/validation";
 import { TRAINABLE } from "@/lib/attributes";
+
+/**
+ * The shapes the tactic board offers. Kept in step with ALLOWED_FORMATIONS in
+ * app/(app)/tactic/actions.ts — a formation this accepts but that board does
+ * not would leave the club in a state its own tactic screen cannot display.
+ */
+const ALLOWED_FORMATIONS = [
+  "4-3-3",
+  "4-4-2",
+  "4-2-3-1",
+  "3-5-2",
+  "5-3-2",
+  "4-1-4-1",
+] as const satisfies readonly string[];
 
 /** €150K per friendly. */
 const FRIENDLY_COST_CENTS = 15_000_000;
@@ -139,21 +157,47 @@ export async function playFriendly(playerId: string) {
     boostApplied: true,
   });
 
-  // Apply boosts. Fitness +15 (capped 100), morale +1 (capped 5),
-  // small chance of overall +1 if young + not at potential yet.
+  // Apply boosts. Fitness +15 (capped 100), morale +1 (capped 5), and a roll
+  // on the same progression curve the training ground uses — worth about two
+  // days of training, so a friendly is a top-up rather than a parallel and
+  // better route to development.
+  //
+  // What keeps it honest is the DAILY CAP, not a ceiling on the rating. The
+  // old code refused any gain at `potential`, which meant the boost silently
+  // did nothing for a mature squad and the €150K bought fitness alone.
   const newFit = Math.min(100, row.fitness + 15);
   const newMor = Math.min(5, row.morale + 1);
-  const ageBonus = row.age <= 22 ? 0.5 : row.age <= 26 ? 0.25 : 0.1;
+  const [clubRow] = await db
+    .select({ trainingLevel: clubs.trainingLevel, staffJson: clubs.staffJson })
+    .from(clubs)
+    .where(eq(clubs.id, ctx.club.id));
+  const ctxProgress = {
+    trainingLevel: clubRow?.trainingLevel ?? 1,
+    coachTier: parseStaffJson(clubRow?.staffJson ?? null).headCoach?.tier ?? 0,
+  };
   const ovrBump =
-    row.overall < row.potential && Math.random() < ageBonus ? 1 : 0;
+    Math.random() < friendlyGrowthChance(row, ctxProgress) ? 1 : 0;
+  const nextOverall = Math.min(99, row.overall + ovrBump);
   await db
     .update(players)
     .set({
       fitness: newFit,
       morale: newMor,
-      // Never exceed potential — the cap is what stops a manager from
-      // grinding friendlies into an unbounded overall.
-      overall: Math.min(row.potential, row.overall + ovrBump),
+      overall: nextOverall,
+      // Potential never sits below overall — the squad screen reads the gap
+      // as remaining growth.
+      potential: Math.max(row.potential, nextOverall),
+      // A player who improves is worth more immediately. His wage is not
+      // touched: that is fixed by the contract until it is renewed.
+      ...(ovrBump
+        ? {
+            marketValueCents: marketValueCents(
+              nextOverall,
+              Math.max(row.potential, nextOverall),
+              row.age,
+            ),
+          }
+        : {}),
     })
     .where(eq(players.id, row.id));
 
@@ -200,4 +244,42 @@ export async function setTrainingFocus(input: {
   }
   revalidatePath("/squad");
   return { ok: true as const };
+}
+
+/**
+ * Change formation from the squad screen, and re-arrange the eleven for it.
+ *
+ * Changing shape used to mean leaving the squad, opening the tactic board,
+ * picking a formation, dragging eleven names into the right slots and saving.
+ * That is the correct place to do it CAREFULLY — but it is far too much
+ * ceremony for "try a back three", which is a thing a manager wants to do in
+ * one tap and undo in another.
+ *
+ * So this does both halves at once: it sets the formation AND writes a team
+ * sheet that actually fits it, using the same `autoLineup` the AI managers
+ * use. Setting the formation alone would have been worse than nothing — the
+ * saved XI would still be the old shape's eleven, and the resolver would keep
+ * fielding a back four inside a 3-5-2.
+ */
+export async function setFormationQuick(formation: string) {
+  const ctx = await requireLeagueContext();
+  if (!(ALLOWED_FORMATIONS as readonly string[]).includes(formation)) {
+    return { ok: false as const, error: "Geçersiz diziliş." };
+  }
+
+  const squad = await db
+    .select()
+    .from(players)
+    .where(eq(players.clubId, ctx.club.id));
+  const lineup = autoLineup(squad, formation);
+
+  await db
+    .update(clubs)
+    .set({ formation, lineupJson: JSON.stringify(lineup) })
+    .where(eq(clubs.id, ctx.club.id));
+
+  revalidatePath("/squad");
+  revalidatePath("/tactic");
+  revalidatePath("/dashboard");
+  return { ok: true as const, formation, xiCount: lineup.xi.length };
 }

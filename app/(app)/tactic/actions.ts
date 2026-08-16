@@ -8,6 +8,7 @@ import { clubs, players } from "@/lib/schema";
 import { requireLeagueContext } from "@/lib/session";
 import { uuidSchema, validate } from "@/lib/validation";
 import type { Formation } from "@/types";
+import { clampDial } from "@/lib/tactics";
 
 const subPlanSchema = z.object({
   subs: z
@@ -35,6 +36,13 @@ export type TacticPreset = {
   mentality: number;
   pressing: number;
   tempo: number;
+  // The four dials added with lib/tactics.ts. Optional so a preset saved
+  // before they existed still loads — it simply leaves them at neutral rather
+  // than refusing to open.
+  defLine?: number;
+  passingStyle?: number;
+  width?: number;
+  aggression?: number;
 };
 
 function parsePresets(raw: string): Array<TacticPreset | null> {
@@ -54,6 +62,10 @@ export async function saveTactics(input: {
   mentality: number;
   pressing: number;
   tempo: number;
+  defLine?: number;
+  passingStyle?: number;
+  width?: number;
+  aggression?: number;
 }) {
   const ctx = await requireLeagueContext();
   if (!ALLOWED_FORMATIONS.includes(input.formation)) {
@@ -68,6 +80,14 @@ export async function saveTactics(input: {
       mentality: clamp(input.mentality),
       pressing: clamp(input.pressing),
       tempo: clamp(input.tempo),
+      // clampDial, not clamp: an omitted dial has to land on the neutral 2,
+      // not on 0. `Math.round(undefined)` is NaN, and NaN clamped by
+      // Math.max/min stays NaN — which the database would reject and, if it
+      // did not, the engine would read as a silent zero.
+      defLine: clampDial(input.defLine),
+      passingStyle: clampDial(input.passingStyle),
+      width: clampDial(input.width),
+      aggression: clampDial(input.aggression),
     })
     .where(eq(clubs.id, ctx.club.id));
 
@@ -85,6 +105,10 @@ export async function saveTacticPreset(input: {
   mentality: number;
   pressing: number;
   tempo: number;
+  defLine?: number;
+  passingStyle?: number;
+  width?: number;
+  aggression?: number;
 }) {
   const ctx = await requireLeagueContext();
   if (input.slot < 0 || input.slot > 6) {
@@ -100,6 +124,10 @@ export async function saveTacticPreset(input: {
   const mentality = clamp(input.mentality);
   const pressing = clamp(input.pressing);
   const tempo = clamp(input.tempo);
+  const defLine = clampDial(input.defLine);
+  const passingStyle = clampDial(input.passingStyle);
+  const width = clampDial(input.width);
+  const aggression = clampDial(input.aggression);
 
   const presets = parsePresets(ctx.club.tacticPresets);
   presets[input.slot] = {
@@ -107,6 +135,10 @@ export async function saveTacticPreset(input: {
     mentality,
     pressing,
     tempo,
+    defLine,
+    passingStyle,
+    width,
+    aggression,
   };
   await db
     .update(clubs)
@@ -116,6 +148,10 @@ export async function saveTacticPreset(input: {
       mentality,
       pressing,
       tempo,
+      defLine,
+      passingStyle,
+      width,
+      aggression,
     })
     .where(eq(clubs.id, ctx.club.id));
 
@@ -191,9 +227,25 @@ export async function loadTacticPreset(slot: number) {
       mentality: preset.mentality,
       pressing: preset.pressing,
       tempo: preset.tempo,
+      defLine: clampDial(preset.defLine),
+      passingStyle: clampDial(preset.passingStyle),
+      width: clampDial(preset.width),
+      aggression: clampDial(preset.aggression),
     })
     .where(eq(clubs.id, ctx.club.id));
 
   revalidatePath("/tactic");
-  return { ok: true as const, preset };
+  // Hand back a fully-populated preset so the client does not have to guess
+  // what an older slot left unset — a missing dial reads as neutral here,
+  // exactly as it was just written to the club.
+  return {
+    ok: true as const,
+    preset: {
+      ...preset,
+      defLine: clampDial(preset.defLine),
+      passingStyle: clampDial(preset.passingStyle),
+      width: clampDial(preset.width),
+      aggression: clampDial(preset.aggression),
+    },
+  };
 }
