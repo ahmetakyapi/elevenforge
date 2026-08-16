@@ -240,6 +240,10 @@ export const players = pgTable(
     defending: integer("defending").notNull().default(60),
     physical: integer("physical").notNull().default(60),
     goalkeeping: integer("goalkeeping").notNull().default(30),
+    // Which attribute this player works on while status = 'training'.
+    // NULL falls back to his position's primary attribute, so a squad that
+    // never touches the panel still trains sensibly.
+    trainingFocus: text("training_focus"),
     fitness: integer("fitness").notNull().default(90),
     morale: integer("morale").notNull().default(4),
     wageCents: money("wage_cents").notNull().default(10_000_000),

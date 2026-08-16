@@ -5,7 +5,13 @@ import { AlertTriangle, Dumbbell, Plus, X, Zap } from "lucide-react";
 import { OvrChip, PosBadge } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/toast";
 import { posColor } from "@/lib/utils";
-import { toggleTraining } from "./actions";
+import { setTrainingFocus, toggleTraining } from "./actions";
+import {
+  ATTR_LABEL,
+  PRIMARY_ATTR,
+  TRAINABLE,
+  type TrainableAttr,
+} from "@/lib/attributes";
 import type { Player, Position } from "@/types";
 
 const GROUPS: Array<{ pos: Position; label: string }> = [
@@ -59,6 +65,21 @@ export function TrainingPanel({ squad }: { squad: Player[] }) {
           p.ovr < p.pot,
       )
       .sort((a, b) => b.pot - b.ovr - (a.pot - a.ovr) || a.age - b.age)[0];
+
+  const focus = (playerId: string, attr: TrainableAttr, name: string) => {
+    startTransition(async () => {
+      const res = await setTrainingFocus({ playerId, focus: attr });
+      if (res.ok) {
+        pushToast({
+          icon: "🎯",
+          title: `${name} artık ${ATTR_LABEL[attr]} çalışıyor`,
+          accent: "var(--accent)",
+        });
+      } else {
+        pushToast({ title: "Olmadı", body: res.error, accent: "var(--danger)" });
+      }
+    });
+  };
 
   const run = (playerId: string, adding: boolean, name: string) => {
     startTransition(async () => {
@@ -233,6 +254,47 @@ export function TrainingPanel({ squad }: { squad: Player[] }) {
                 <span className="t-label" style={{ fontSize: 10.5 }}>
                   {label.toUpperCase()}
                 </span>
+              </div>
+
+              <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                {TRAINABLE.filter((a) =>
+                  // A keeper has no use for shooting drills, and an outfielder
+                  // none for goalkeeping. Offering them would be noise.
+                  p.pos === "GK" ? a === "goalkeeping" || a === "physical" || a === "pace"
+                    : a !== "goalkeeping",
+                ).map((a) => {
+                  const active = (p.trainingFocus ?? PRIMARY_ATTR[p.pos]) === a;
+                  const primary = PRIMARY_ATTR[p.pos] === a;
+                  return (
+                    <button
+                      key={a}
+                      type="button"
+                      disabled={pending}
+                      onClick={() => focus(p.id!, a, p.n)}
+                      title={
+                        primary
+                          ? `${ATTR_LABEL[a]} — bu mevkinin ana özelliği, OVR'yi de yükseltir`
+                          : `${ATTR_LABEL[a]} — maçta işe yarar, OVR'yi yükseltmez`
+                      }
+                      className="t-mono"
+                      style={{
+                        fontSize: 9.5,
+                        fontWeight: 700,
+                        padding: "3px 7px",
+                        borderRadius: 6,
+                        cursor: "pointer",
+                        border: `1px solid ${active ? tint : "var(--border)"}`,
+                        background: active
+                          ? `color-mix(in oklab, ${tint} 20%, transparent)`
+                          : "transparent",
+                        color: active ? tint : "var(--muted)",
+                      }}
+                    >
+                      {ATTR_LABEL[a]}
+                      {primary && " ★"}
+                    </button>
+                  );
+                })}
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: 9 }}>

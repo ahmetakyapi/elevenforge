@@ -47,6 +47,8 @@ export type Player = {
   defending?: number;
   physical?: number;
   goalkeeping?: number;
+  /** Which attribute this player works on while in training. */
+  trainingFocus?: string;
 };
 
 export type TransferListing = {

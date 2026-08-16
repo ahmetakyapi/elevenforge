@@ -15,6 +15,12 @@ import { adjustClubBalance } from "@/lib/money";
 import { clubs, feedEvents, players } from "@/lib/schema";
 import { staffById } from "@/lib/staff";
 import { claimJob } from "./claim";
+import {
+  PRIMARY_ATTR,
+  raisesOverall,
+  TRAINABLE,
+  type TrainableAttr,
+} from "@/lib/attributes";
 
 export async function runDailyTraining(
   opts: { leagueId?: string; force?: boolean } = {},
@@ -77,19 +83,66 @@ export async function runDailyTraining(
         ...(leagueFilter ? [leagueFilter] : []),
       ),
     );
-  const promotedIds: string[] = [];
+  /*
+    A won roll now raises the attribute the manager chose, not just `overall`.
+
+    The match engine reads the attributes far more heavily than the headline:
+    a forward is scored `shooting*0.55 + pace*0.20 + physical*0.10 +
+    overall*0.15`. Training shooting is therefore worth several times more in a
+    match than the +1 overall it also brings — and training a SECONDARY
+    attribute is a real alternative rather than a worse version of the same
+    thing, because it improves the player in the situations that attribute
+    governs without inflating his rating, his market value or his wage.
+
+    `overall` stays stored and authoritative. Deriving it from the attributes
+    instead would shift every existing player's rating the moment this shipped,
+    and marketValueCents raises (overall − 58) to the power 3.6 — a couple of
+    points of drift near 80 is a doubling of the price of every player in every
+    live league at once. Not a change to make as a side effect of a training
+    feature.
+
+    Batched by (attribute, raises-overall) rather than one write per player:
+    six attributes × two cases is at most twelve statements no matter how many
+    trainees there are, and this file's header exists because per-row writes
+    timed out against Neon at ~4,000 players.
+  */
+  type Bucket = { ids: string[]; attr: TrainableAttr; bumpOverall: boolean };
+  const buckets = new Map<string, Bucket>();
+  let promoted = 0;
+
   for (const p of trainees) {
     const ageBonus = p.age <= 19 ? 3 : p.age <= 22 ? 2 : p.age <= 26 ? 1 : 0.5;
-    if (Math.random() < (0.35 * ageBonus) / 2) promotedIds.push(p.id);
-  }
-  if (promotedIds.length > 0) {
-    await db
-      .update(players)
-      .set({ overall: sql`LEAST(${players.potential}, ${players.overall} + 1)` })
-      .where(inArray(players.id, promotedIds));
+    if (Math.random() >= (0.35 * ageBonus) / 2) continue;
+
+    // No focus set means the manager never opened the panel; default to the
+    // position's primary attribute so an untouched squad still develops the
+    // way it used to.
+    const focus = (TRAINABLE as readonly string[]).includes(p.trainingFocus ?? "")
+      ? (p.trainingFocus as TrainableAttr)
+      : (PRIMARY_ATTR[p.position] ?? "physical");
+    const bumpOverall = raisesOverall(p.position, focus);
+    const key = `${focus}:${bumpOverall}`;
+    const bucket = buckets.get(key) ?? { ids: [], attr: focus, bumpOverall };
+    bucket.ids.push(p.id);
+    buckets.set(key, bucket);
+    promoted++;
   }
 
-  return { promoted: promotedIds.length, healed, fitnessBumped };
+  for (const { ids, attr, bumpOverall } of buckets.values()) {
+    const column = players[attr];
+    await db
+      .update(players)
+      .set({
+        // Attributes are capped at 99 like every other roll (see rollAttr).
+        [attr]: sql`LEAST(99, ${column} + 1)`,
+        ...(bumpOverall
+          ? { overall: sql`LEAST(${players.potential}, ${players.overall} + 1)` }
+          : {}),
+      })
+      .where(inArray(players.id, ids));
+  }
+
+  return { promoted, healed, fitnessBumped };
 }
 
 /**

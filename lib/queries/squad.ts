@@ -50,6 +50,7 @@ export async function loadSquad(ctx: LeagueContext): Promise<Player[]> {
       defending: p.defending,
       physical: p.physical,
       goalkeeping: p.goalkeeping,
+      trainingFocus: p.trainingFocus ?? undefined,
     };
   });
 }

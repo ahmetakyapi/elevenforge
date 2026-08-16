@@ -77,3 +77,59 @@ export function attributesFor(
     goalkeeping: rollAttr(overall, o.goalkeeping, r),
   };
 }
+
+/**
+ * Which attribute a trainee is working on.
+ *
+ * Matches the player column names exactly, so a focus can be used as a key
+ * into the row without a translation table that could drift.
+ */
+export const TRAINABLE = [
+  "pace",
+  "shooting",
+  "passing",
+  "defending",
+  "physical",
+  "goalkeeping",
+] as const;
+export type TrainableAttr = (typeof TRAINABLE)[number];
+
+/** Turkish labels, in one place so the panel and the toasts agree. */
+export const ATTR_LABEL: Record<TrainableAttr, string> = {
+  pace: "Hız",
+  shooting: "Şut",
+  passing: "Pas",
+  defending: "Defans",
+  physical: "Fizik",
+  goalkeeping: "Kalecilik",
+};
+
+/**
+ * The attribute the match engine weights most heavily for this position.
+ *
+ * Read straight off lib/engine/match.ts: a forward is scored
+ * `shooting*0.55 + pace*0.20 + physical*0.10 + overall*0.15`, a midfielder on
+ * passing*0.50, a defender on defending*0.50, a keeper on goalkeeping*0.75.
+ * Training the primary attribute is therefore worth several times more in a
+ * match than the +1 overall it also brings — which is what makes choosing a
+ * focus a decision rather than a formality.
+ */
+export const PRIMARY_ATTR: Record<string, TrainableAttr> = {
+  GK: "goalkeeping",
+  DEF: "defending",
+  MID: "passing",
+  FWD: "shooting",
+};
+
+/**
+ * Does working on this attribute raise the player's headline rating?
+ *
+ * Only the primary one does. Training a secondary attribute still pays off —
+ * the engine reads pace and physical for every outfield line — but it does not
+ * inflate `overall`, and therefore does not inflate market value or wages.
+ * That is the trade the manager is choosing between: a better player in the
+ * situations that attribute governs, or a more valuable one.
+ */
+export function raisesOverall(position: string, attr: TrainableAttr): boolean {
+  return PRIMARY_ATTR[position] === attr;
+}

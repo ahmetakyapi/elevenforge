@@ -10,7 +10,7 @@ import { runWeeklyNewspaper } from "../lib/jobs/newspaper";
 import { runPriceDecay } from "../lib/jobs/price-decay";
 import { resolveTransferBids } from "../lib/jobs/bids";
 import { closeMarketForSeasonRoll } from "../lib/jobs/market-reset";
-import { runWeeklyEconomy } from "../lib/jobs/training";
+import { runDailyTraining, runWeeklyEconomy } from "../lib/jobs/training";
 import {
   clubs,
   fixtures,
@@ -95,6 +95,11 @@ async function playSeason(leagueId: string): Promise<void> {
     await runWeeklyNewspaper({ leagueId });
     await runPriceDecay({ leagueId });
     await resolveTransferBids({ leagueId });
+    // Training was called by NO script in the test:all chain, so anything
+    // asserted about player development passed vacuously. It belongs in the
+    // loop for the same reason match-day does: it runs every day in
+    // production and its effects compound over four seasons.
+    await runDailyTraining({ leagueId });
 
     // The economy job runs once per MATCH DAY in production, because a match
     // day is this game's football week — see the note on runWeeklyEconomy.

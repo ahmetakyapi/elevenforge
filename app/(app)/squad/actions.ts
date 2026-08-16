@@ -7,6 +7,7 @@ import { debitClub } from "@/lib/money";
 import { feedEvents, friendlies, players } from "@/lib/schema";
 import { requireLeagueContext } from "@/lib/session";
 import { uuidSchema, validate } from "@/lib/validation";
+import { TRAINABLE } from "@/lib/attributes";
 
 /** €150K per friendly. */
 const FRIENDLY_COST_CENTS = 15_000_000;
@@ -172,4 +173,31 @@ export async function playFriendly(playerId: string) {
     ovrBump,
     remaining: 3 - within.length - 1,
   };
+}
+
+/**
+ * Choose which attribute a trainee works on.
+ *
+ * Stored on the player rather than on a training slot, so the choice survives
+ * being taken out of training and put back — a manager who has decided his
+ * centre-back should work on pace should not have to say so again every time.
+ */
+export async function setTrainingFocus(input: {
+  playerId: string;
+  focus: string;
+}) {
+  const ctx = await requireLeagueContext();
+  if (!(TRAINABLE as readonly string[]).includes(input.focus)) {
+    return { ok: false as const, error: "Geçersiz antrenman alanı." };
+  }
+  const updated = await db
+    .update(players)
+    .set({ trainingFocus: input.focus })
+    .where(and(eq(players.id, input.playerId), eq(players.clubId, ctx.club.id)))
+    .returning();
+  if (updated.length === 0) {
+    return { ok: false as const, error: "Bu oyuncu senin kadronda değil." };
+  }
+  revalidatePath("/squad");
+  return { ok: true as const };
 }
