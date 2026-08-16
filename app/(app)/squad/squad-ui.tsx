@@ -4,14 +4,11 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import {
-  AlertTriangle,
-  Calendar,
   Coins,
+  Columns3,
   LayoutGrid,
   List,
-  Plus,
   Search,
-  Star,
   Target,
   X,
   Zap,
@@ -25,6 +22,7 @@ import Link from "next/link";
 import { useToast } from "@/components/ui/toast";
 import { playFriendly, toggleTraining } from "./actions";
 import { FormationSwitcher } from "./formation-switcher";
+import { SquadBoard } from "./squad-board";
 import { TrainingPanel } from "./training-panel";
 import { renewContract } from "./contract-actions";
 import { ComparePanel } from "./compare-panel";
@@ -52,7 +50,7 @@ export type SquadUiProps = {
 
 type PosFilter = Position | "ALL";
 type SortKey = "ovr" | "pot" | "age" | "val";
-type View = "grid" | "list";
+type View = "board" | "grid" | "list";
 
 const avgForm = (p: Player) =>
   !p.form || p.form.length === 0
@@ -71,7 +69,16 @@ export default function SquadPage({
   const [filter, setFilter] = useState<PosFilter>("ALL");
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<SortKey>("ovr");
-  const [view, setView] = useState<View>("grid");
+  /*
+    The board is the default.
+
+    The card grid was, and it made the page 2,800px tall — seeing your own
+    squad took four screenfuls. A squad list is a thing you scan for shape
+    (who is thin, who is old, where the quality sits), and you cannot see a
+    shape one quarter at a time. The cards are still one tap away for when you
+    are judging a single player, which is what they are good at.
+  */
+  const [view, setView] = useState<View>("board");
   const [selected, setSelected] = useState<Player | null>(null);
   const [hoveredNum, setHoveredNum] = useState<number | null>(null);
   // Compare mode: when active, clicking a player adds it to the slot pair
@@ -262,6 +269,7 @@ export default function SquadPage({
               border: "1px solid var(--border)",
             }}
           >
+            <ViewToggle v="board" current={view} onClick={() => setView("board")} />
             <ViewToggle v="grid" current={view} onClick={() => setView("grid")} />
             <ViewToggle v="list" current={view} onClick={() => setView("list")} />
           </div>
@@ -292,7 +300,15 @@ export default function SquadPage({
 
           The grouping is suppressed while a position filter is active — one
           heading over one group is a heading that says nothing. */}
-      {view === "grid" ? (
+      {view === "board" ? (
+        <SquadBoard
+          squad={filtered}
+          onSelect={handlePlayerClick}
+          compareMode={compareMode}
+          compareA={compareA}
+          compareB={compareB}
+        />
+      ) : view === "grid" ? (
         filter === "ALL" ? (
           <div style={{ display: "grid", gap: 30 }}>
             {POSITION_GROUPS.map(({ pos, label }) => {
@@ -392,7 +408,7 @@ function ViewToggle({
   current: View;
   onClick: () => void;
 }) {
-  const Icon = v === "grid" ? LayoutGrid : List;
+  const Icon = v === "board" ? Columns3 : v === "grid" ? LayoutGrid : List;
   return (
     <button
       type="button"
@@ -409,7 +425,19 @@ function ViewToggle({
   );
 }
 
-// ─── Hero header ────────────────────────────────────────────
+/**
+ * The squad header, as a ribbon.
+ *
+ * It used to be a 200px hero: a 420-unit inline pitch SVG, two radial washes,
+ * the club name at clamp(28px, 4vw, 42px), and four boxed stat tiles. Handsome
+ * once. But it is the same club, on the same screen, every single time you
+ * open it — and it was pushing the thing you came for below the fold, on a
+ * page whose entire problem was that you had to scroll to see your own squad.
+ *
+ * Decoration earns its space on a screen you visit occasionally. This is not
+ * one of those. So: one line, the crest, the name, and the five numbers, all
+ * of which are things that actually change.
+ */
 function SquadHero({
   totalVal,
   avgOvr,
@@ -433,243 +461,93 @@ function SquadHero({
   userClubName: string;
   userClubCrest: { color: string; color2: string; short: string };
 }) {
+  const unavailable = injured + suspended;
+  const stats: Array<[string, string, string?]> = [
+    ["KADRO", `${squadCount}`, `${activeCount} hazır`],
+    ["ORT. OVR", avgOvr],
+    ["ORT. YAŞ", avgAge],
+    ["DEĞER", fmtEUR(totalVal)],
+  ];
   return (
-    <div
+    <header
+      data-squad-ribbon
       style={{
-        position: "relative",
-        borderRadius: 20,
-        overflow: "hidden",
-        background: `
-          radial-gradient(800px 400px at 15% 20%, color-mix(in oklab, var(--indigo) 18%, transparent), transparent 60%),
-          radial-gradient(600px 400px at 90% 100%, color-mix(in oklab, var(--emerald) 14%, transparent), transparent 60%),
-          linear-gradient(135deg, color-mix(in oklab, var(--panel) 120%, transparent) 0%, color-mix(in oklab, var(--bg-2) 120%, transparent) 100%)`,
-        border: "1px solid var(--border-strong)",
-        boxShadow: "var(--shadow-lg)",
+        display: "flex",
+        alignItems: "center",
+        gap: 18,
+        flexWrap: "wrap",
+        padding: "12px 18px",
+        marginBottom: 14,
+        borderRadius: 14,
+        background: "var(--panel)",
+        border: "1px solid var(--border)",
       }}
     >
-      <svg
-        viewBox="0 0 1600 420"
-        preserveAspectRatio="xMidYMid slice"
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          opacity: 0.22,
-          pointerEvents: "none",
-        }}
-      >
-        <defs>
-          <linearGradient id="pitchHero" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#10b981" stopOpacity="0.5" />
-            <stop offset="100%" stopColor="#6366f1" stopOpacity="0.5" />
-          </linearGradient>
-        </defs>
-        <g stroke="url(#pitchHero)" strokeWidth="1.2" fill="none">
-          <rect x="40" y="40" width="1520" height="340" />
-          <line x1="800" y1="40" x2="800" y2="380" />
-          <circle cx="800" cy="210" r="85" />
-          <rect x="40" y="130" width="170" height="160" />
-          <rect x="1390" y="130" width="170" height="160" />
-        </g>
-      </svg>
-
-      <div
-        style={{
-          position: "relative",
-          padding: "28px 32px",
-          display: "grid",
-          gridTemplateColumns: "1fr auto",
-          gap: 24,
-          alignItems: "center",
-        }}
-      >
-        <div className="anim-slide-up">
+      <div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
+        <Crest clubId={userClubId} size={34} club={userClubCrest} />
+        <div style={{ minWidth: 0 }}>
           <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              marginBottom: 10,
-            }}
-          >
-            <Crest clubId={userClubId} size={32} club={userClubCrest} />
-            <span className="t-label" style={{ color: "var(--muted)" }}>
-              KADRO YÖNETİMİ
-            </span>
-          </div>
-          <h1
-            className="t-display"
-            style={{
-              fontSize: "clamp(38px, 5vw, 64px)",
-              letterSpacing: "-0.035em",
-              lineHeight: 0.95,
-              margin: 0,
-              color: "var(--text)",
-            }}
+            className="t-h2"
+            style={{ fontSize: 19, lineHeight: 1.1, letterSpacing: "-0.02em" }}
           >
             {userClubName}
-          </h1>
-          <p
-            style={{
-              color: "var(--text-2)",
-              fontSize: 15,
-              marginTop: 8,
-              letterSpacing: "-0.005em",
-            }}
-          >
-            <span className="t-mono" style={{ color: "var(--text)" }}>
-              {squadCount}
-            </span>{" "}
-            oyuncu ·{" "}
-            <span className="t-mono" style={{ color: "var(--text)" }}>
-              {activeCount}
-            </span>{" "}
-            aktif
-          </p>
-        </div>
-        <div className="anim-slide-up" style={{ animationDelay: "100ms" }}>
-          <Link
-            href="/transfer"
-            className="btn btn-primary btn-lg"
-            style={{ padding: "12px 22px", textDecoration: "none" }}
-          >
-            <Plus size={14} strokeWidth={1.6} /> Transfer Pazarı
-          </Link>
+          </div>
+          <span className="t-label" style={{ fontSize: 9, color: "var(--muted)" }}>
+            KADRO YÖNETİMİ
+          </span>
         </div>
       </div>
 
-      {/* Stat strip */}
-      <div
-        data-squad-hero-stats
-        style={{
-          position: "relative",
-          display: "grid",
-          gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-          borderTop: "1px solid var(--border)",
-        }}
-      >
-        {[
-          {
-            label: "TOPLAM DEĞER",
-            value: fmtEUR(totalVal),
-            sub: "Piyasa",
-            color: "var(--emerald)",
-            Icon: Coins,
-            delay: 0,
-          },
-          {
-            label: "ORT. OVERALL",
-            value: avgOvr,
-            sub:
-              Number(avgOvr) >= 80
-                ? "Elit"
-                : Number(avgOvr) >= 75
-                  ? "Güçlü"
-                  : "Gelişiyor" + " kadro",
-            color: "var(--accent)",
-            Icon: Star,
-            delay: 80,
-          },
-          {
-            label: "ORT. YAŞ",
-            value: avgAge,
-            sub:
-              Number(avgAge) < 25
-                ? "Genç"
-                : Number(avgAge) < 28
-                  ? "Dengeli"
-                  : "Tecrübeli",
-            color: "var(--cyan)",
-            Icon: Calendar,
-            delay: 160,
-          },
-          {
-            label: "SAKAT / CEZALI",
-            value: `${injured + suspended}`,
-            sub: "Bu hafta",
-            color: "var(--warn)",
-            Icon: AlertTriangle,
-            delay: 240,
-          },
-        ].map((s, i) => (
-          <div
-            key={s.label}
-            className="anim-slide-up"
-            style={{
-              padding: "18px 24px",
-              borderLeft: i === 0 ? "none" : "1px solid var(--border)",
-              animationDelay: `${s.delay + 300}ms`,
-              position: "relative",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                marginBottom: 6,
-              }}
-            >
-              <div
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 7,
-                  background: `color-mix(in oklab, ${s.color} 18%, transparent)`,
-                  color: s.color,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <s.Icon size={13} strokeWidth={1.6} />
-              </div>
-              <span className="t-label" style={{ fontSize: 10 }}>
-                {s.label}
-              </span>
-            </div>
+      <div style={{ flex: 1 }} />
+
+      <div style={{ display: "flex", alignItems: "center", gap: 22, flexWrap: "wrap" }}>
+        {stats.map(([label, value, sub]) => (
+          <div key={label} style={{ textAlign: "right" }}>
+            <span className="t-label" style={{ fontSize: 8.5 }}>
+              {label}
+            </span>
             <div
               className="t-mono"
-              style={{
-                fontSize: 26,
-                fontWeight: 700,
-                color: "var(--text)",
-                letterSpacing: "-0.02em",
-              }}
+              style={{ fontSize: 16, fontWeight: 800, lineHeight: 1.15 }}
             >
-              {s.value}
+              {value}
             </div>
-            <div className="t-caption" style={{ fontSize: 11, marginTop: 2 }}>
-              {s.sub}
-            </div>
+            {sub && (
+              <span className="t-caption" style={{ fontSize: 9.5 }}>
+                {sub}
+              </span>
+            )}
           </div>
         ))}
+        {/* Only shown when there is something to show. A permanent "0 sakat"
+            is a tile that never changes, which is the whole problem above. */}
+        {unavailable > 0 && (
+          <div
+            style={{
+              textAlign: "right",
+              paddingLeft: 18,
+              borderLeft: "1px solid var(--border)",
+            }}
+          >
+            <span className="t-label" style={{ fontSize: 8.5, color: "var(--warn)" }}>
+              YOK
+            </span>
+            <div
+              className="t-mono"
+              style={{ fontSize: 16, fontWeight: 800, color: "var(--warn)", lineHeight: 1.15 }}
+            >
+              {unavailable}
+            </div>
+            <span className="t-caption" style={{ fontSize: 9.5 }}>
+              {injured} sakat · {suspended} cezalı
+            </span>
+          </div>
+        )}
       </div>
-    </div>
+    </header>
   );
 }
 
-// ─── Player card (grid view) ────────────────────────────────
-//
-// Premium layout: the card leads with a giant tier-coloured OVR
-// chip (sağ üst), a bold name, and a 3-attribute micro-bar strip
-// chosen by role. Secondary info (age, value, fitness pill) sits
-// on a single line below. Status + potential / listed / training
-// show as small top-left chips only when non-default.
-//
-// Removed from the previous card: the 5-match form bar chart, the
-// fit+moral dual bars, and the watermarked jersey number — they
-// made every tile feel busy. The PlayerSheet still has all of it.
-
-// Role → the 3 attributes most relevant to that role. Strikers see
-// pace/shooting/physical; CBs see defending/physical/pace; etc. If a
-// role isn't mapped we fall back to a generic trio for that position.
-
-
-// Tier palette: gives the OVR chip + the top edge a recognisable
-// colour so a quick scan distinguishes stars from squad depth.
 function tierPalette(ovr: number): {
   label: string;
   accent: string;

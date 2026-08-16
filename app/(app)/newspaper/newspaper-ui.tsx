@@ -40,7 +40,7 @@ const PAPER = "#ece5d6";
 const PAPER_2 = "#e2d9c6";
 const INK = "#17110b";
 const INK_2 = "#4a3f33";
-const INK_3 = "#6f6152";
+const INK_3 = "#63563f";
 const RULE = "rgba(23,17,11,0.22)";
 const RULE_SOFT = "rgba(23,17,11,0.11)";
 const RED = "#a51c1c";
@@ -105,9 +105,144 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
             </Section>
           )}
 
+          {sections.clubOfWeek && (
+            <Section title="Haftanın Takımı" kicker="Seçim">
+              <div
+                style={{
+                  border: `3px double ${INK}`,
+                  padding: "16px 20px",
+                  background: PAPER_2,
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: "var(--font-manrope)",
+                    fontWeight: 900,
+                    fontSize: "clamp(24px, 3.4vw, 34px)",
+                    letterSpacing: "-0.03em",
+                    lineHeight: 1,
+                  }}
+                >
+                  {sections.clubOfWeek.clubName}
+                </div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    letterSpacing: "0.16em",
+                    textTransform: "uppercase",
+                    color: RED,
+                    fontWeight: 700,
+                    marginTop: 6,
+                  }}
+                >
+                  Teknik Direktör · {sections.clubOfWeek.managerName}
+                </div>
+                <p style={{ fontSize: 15, lineHeight: 1.65, color: INK_2, margin: "10px 0 0" }}>
+                  {sections.clubOfWeek.line}
+                </p>
+              </div>
+            </Section>
+          )}
+
           {sections.table.length > 0 && (
             <Section title="Puan Durumu" kicker="Baskıya girerken">
               <StandingsTable rows={sections.table} />
+            </Section>
+          )}
+
+          {sections.column && (
+            <Section title={sections.column.title} kicker="Köşe Yazısı">
+              <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+                <Byline name={sections.column.author} />
+                <div
+                  data-paper-column
+                  style={{
+                    flex: 1,
+                    columnCount: 2,
+                    columnGap: 24,
+                    columnRule: `1px solid ${RULE_SOFT}`,
+                    fontSize: 14.5,
+                    lineHeight: 1.75,
+                    color: INK_2,
+                    textAlign: "justify",
+                  }}
+                >
+                  {sections.column.body.map((para, i) => (
+                    <p key={`col-${i}`} style={{ margin: i === 0 ? 0 : "10px 0 0" }}>
+                      {para}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            </Section>
+          )}
+
+          {sections.managerCards.length > 0 && (
+            <Section title="Menajer Karnesi" kicker="Not Verildi">
+              <div
+                data-paper-grid
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, 1fr)",
+                  gap: "0 30px",
+                }}
+              >
+                {sections.managerCards.map((m, i) => (
+                  <div
+                    key={`mc-${i}`}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "10px 0",
+                      borderBottom: `1px solid ${RULE_SOFT}`,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 38,
+                        height: 38,
+                        flexShrink: 0,
+                        display: "grid",
+                        placeItems: "center",
+                        border: `2px solid ${INK}`,
+                        fontFamily: "var(--font-manrope)",
+                        fontWeight: 900,
+                        fontSize: 16,
+                        color: gradeInk(m.grade),
+                        background: gradeInk(m.grade) === RED ? "transparent" : PAPER_2,
+                      }}
+                    >
+                      {m.grade}
+                    </span>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700 }}>
+                        {m.manager}
+                        {m.human && (
+                          <span
+                            title="Bu kulübü gerçek bir menajer yönetiyor"
+                            style={{
+                              fontSize: 9,
+                              letterSpacing: "0.1em",
+                              marginLeft: 7,
+                              padding: "1px 5px",
+                              color: PAPER,
+                              background: INK,
+                              verticalAlign: "middle",
+                            }}
+                          >
+                            İNSAN
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 12, color: INK_3 }}>{m.club}</div>
+                      <div style={{ fontSize: 12.5, color: INK_2, marginTop: 2 }}>
+                        {m.note}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </Section>
           )}
 
@@ -287,6 +422,85 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
             </Section>
           )}
 
+          {(sections.rumours.length > 0 || sections.letters.length > 0) && (
+            <div data-paper-grid style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 34 }}>
+              {sections.rumours.length > 0 && (
+                <Section title="Söylenti Masası" kicker="Doğrulanmadı">
+                  <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+                    {sections.rumours.map((t, i) => (
+                      <li
+                        key={`ru-${i}`}
+                        style={{
+                          fontSize: 14,
+                          lineHeight: 1.65,
+                          padding: "10px 0",
+                          borderBottom: `1px solid ${RULE_SOFT}`,
+                          display: "flex",
+                          gap: 10,
+                        }}
+                      >
+                        <span style={{ color: RED, fontWeight: 800 }}>»</span>
+                        <span>{t}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p style={{ fontSize: 11, color: INK_3, marginTop: 8, fontStyle: "italic" }}>
+                    Bu bölümdeki hiçbir bilgi teyit edilmemiştir ve edilmeyecektir.
+                  </p>
+                </Section>
+              )}
+              {sections.letters.length > 0 && (
+                <Section title="Okuyucu Mektupları" kicker="Posta">
+                  {sections.letters.map((l, i) => (
+                    <div
+                      key={`le-${i}`}
+                      style={{ padding: "10px 0", borderBottom: `1px solid ${RULE_SOFT}` }}
+                    >
+                      <p style={{ margin: 0, fontSize: 14, lineHeight: 1.65 }}>
+                        “{l.text}”
+                      </p>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          letterSpacing: "0.09em",
+                          textTransform: "uppercase",
+                          color: INK_3,
+                          marginTop: 5,
+                        }}
+                      >
+                        — {l.from}
+                      </div>
+                    </div>
+                  ))}
+                </Section>
+              )}
+            </div>
+          )}
+
+          {sections.predictions.length > 0 && (
+            <Section title="Falcı Köşesi" kicker="Kehanet">
+              <div
+                data-paper-grid
+                style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 30px" }}
+              >
+                {sections.predictions.map((p, i) => (
+                  <div
+                    key={`pr-${i}`}
+                    style={{ padding: "10px 0", borderBottom: `1px solid ${RULE_SOFT}` }}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>{p.fixture}</div>
+                    <div style={{ fontSize: 13.5, color: INK_2, marginTop: 3 }}>
+                      {p.call}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontSize: 11, color: INK_3, marginTop: 8, fontStyle: "italic" }}>
+                Tahminlerimiz tutmadığında bu köşe yayımlanmamış sayılır.
+              </p>
+            </Section>
+          )}
+
           {paper.funFact && (
             <div
               style={{
@@ -350,9 +564,22 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
           columns are what break it, so they collapse rather than the type
           shrinking to nothing. */}
       <style>{`
+        /* A drop cap is the single cheapest thing that makes a block of text
+           read as a newspaper rather than as a paragraph in an app. */
+        [data-newspaper] .paper-dropcap::first-letter {
+          float: left;
+          font-family: var(--font-manrope), Georgia, serif;
+          font-size: 3.1em;
+          line-height: 0.82;
+          font-weight: 900;
+          padding: 0.06em 0.1em 0 0;
+          color: ${RED};
+        }
         @media (max-width: 860px) {
           [data-paper-grid] { grid-template-columns: 1fr !important; }
           [data-newspaper] [data-lead] { grid-template-columns: 1fr !important; }
+          [data-newspaper] [data-lead-body],
+          [data-newspaper] [data-paper-column] { column-count: 1 !important; }
         }
       `}</style>
     </div>
@@ -468,16 +695,48 @@ function LeadStory({ paper }: { paper: NonNullable<NewspaperData> }) {
           >
             {cover.subhead}
           </p>
+
+          {/* The article proper, set in two columns with a drop cap — the
+              thing that makes a page read as newsprint rather than as a card
+              with a paragraph in it. */}
+          {sections.lead.length > 0 && (
+            <div
+              data-lead-body
+              style={{
+                marginTop: 14,
+                columnCount: 2,
+                columnGap: 26,
+                columnRule: `1px solid ${RULE_SOFT}`,
+                fontSize: 14.5,
+                lineHeight: 1.72,
+                color: INK_2,
+                textAlign: "justify",
+                hyphens: "auto",
+              }}
+            >
+              {sections.lead.map((para, i) => (
+                <p
+                  key={`lead-${i}`}
+                  style={{ margin: i === 0 ? 0 : "10px 0 0" }}
+                  className={i === 0 ? "paper-dropcap" : undefined}
+                >
+                  {para}
+                </p>
+              ))}
+            </div>
+          )}
+
           {heroReport && (
             <>
-              <p style={{ fontSize: 15.5, lineHeight: 1.72, color: INK_2, marginTop: 12 }}>
-                {heroReport.report}
-              </p>
+              <PullQuote text={heroReport.report} />
               {heroReport.scorers.length > 0 && (
-                <p style={{ fontSize: 13.5, lineHeight: 1.6, color: INK_3, marginTop: 8 }}>
+                <p style={{ fontSize: 13.5, lineHeight: 1.6, color: INK_3, marginTop: 10 }}>
                   <strong>Goller:</strong> {heroReport.scorers.join(", ")}
                 </p>
               )}
+              <p style={{ fontSize: 12, color: INK_3, marginTop: 6 }}>
+                Teknik direktörler: {heroReport.homeManager} — {heroReport.awayManager}
+              </p>
             </>
           )}
         </div>
@@ -821,6 +1080,75 @@ function CardPips({ yellows, reds }: { yellows: number; reds: number }) {
         />
       ))}
     </span>
+  );
+}
+
+/** Grade colour: only the failures are printed in red. */
+function gradeInk(grade: string): string {
+  if (grade === "A+" || grade === "A") return "#1d6b3a";
+  if (grade === "F" || grade === "D") return RED;
+  return INK;
+}
+
+/** A columnist's standing head, set like a newspaper by-line block. */
+function Byline({ name }: { name: string }) {
+  return (
+    <div style={{ width: 108, flexShrink: 0, textAlign: "center" }}>
+      <div
+        style={{
+          width: 62,
+          height: 62,
+          margin: "0 auto",
+          borderRadius: "50%",
+          border: `2px solid ${INK}`,
+          background: PAPER_2,
+          display: "grid",
+          placeItems: "center",
+          fontFamily: "var(--font-manrope)",
+          fontWeight: 900,
+          fontSize: 22,
+        }}
+      >
+        {name
+          .split(" ")
+          .map((w) => w[0])
+          .join("")
+          .slice(0, 2)}
+      </div>
+      <div style={{ fontSize: 12.5, fontWeight: 700, marginTop: 7, lineHeight: 1.25 }}>
+        {name}
+      </div>
+      <div
+        style={{
+          fontSize: 9.5,
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          color: INK_3,
+          marginTop: 3,
+        }}
+      >
+        Köşe Yazarı
+      </div>
+    </div>
+  );
+}
+
+/** The oversized quotation a broadsheet drops into a column. */
+function PullQuote({ text }: { text: string }) {
+  return (
+    <blockquote
+      style={{
+        margin: "16px 0 0",
+        padding: "12px 0 12px 18px",
+        borderLeft: `4px solid ${RED}`,
+        fontSize: 16.5,
+        lineHeight: 1.5,
+        fontStyle: "italic",
+        color: INK,
+      }}
+    >
+      {text}
+    </blockquote>
   );
 }
 

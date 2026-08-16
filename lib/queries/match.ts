@@ -94,8 +94,25 @@ export async function loadLatestMatch(
     xgAway: 0,
   };
   try {
-    stats = JSON.parse(fixture.statsJson) as MatchStats;
+    /*
+      MERGED over the defaults, not assigned in place of them.
+
+      Every match played before a stat existed has a `statsJson` without it,
+      and the panel reads `stats.xgHome.toFixed(1)` — which throws on
+      undefined and takes the whole İstatistik tab down with it. Assigning the
+      parsed object wholesale meant the fallback above only protected against
+      unparseable JSON, never against an OLD but perfectly valid shape, which
+      is the case that actually happens: every fixture in a live league.
+    */
+    const parsed = JSON.parse(fixture.statsJson) as Partial<MatchStats>;
+    if (parsed && typeof parsed === "object") stats = { ...stats, ...parsed };
   } catch {}
+  // A merge cannot fix a key that is present but null, and it cannot fix a
+  // number that arrived as a string from an older writer.
+  const num = (v: unknown, fallback: number) =>
+    typeof v === "number" && Number.isFinite(v) ? v : fallback;
+  stats.xgHome = num(stats.xgHome, 0);
+  stats.xgAway = num(stats.xgAway, 0);
 
   return {
     fixtureId: fixture.id,

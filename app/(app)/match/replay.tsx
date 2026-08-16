@@ -11,16 +11,17 @@
  * So the feed plays. Events arrive on a clock, the scoreboard is blank until
  * a goal actually goes in, and the clock holds longer on the moments that
  * matter (weight 3 = a goal) than on the ones that do not (weight 0 = a
- * corner). The manager can speed it up, pause it, or skip straight to the end
- * — the point is to offer the watch, not to enforce it.
+ * corner).
  *
- * Two rules this component obeys:
+ * IT DOES NOT START ON ITS OWN. Autoplaying meant that opening the page — to
+ * check a stat, to read one line again, to look at anything else — started a
+ * ninety-second animation you had not asked for and had to stop. Watching a
+ * replay is a thing you choose; the page opens on the team sheet and a button.
+ * Once you start it, the transport is yours: pause, 1×/2×/4×, skip, restart.
  *
- *  1. `prefers-reduced-motion` reveals everything immediately and hides the
- *     transport. Someone who has asked the system not to animate things has
- *     asked for the transcript, and they should get it without a fight.
- *  2. The autoplay only starts once. Re-rendering (a theme change, a resize)
- *     must not restart a match the user is halfway through watching.
+ * `prefers-reduced-motion` skips the whole apparatus and shows the full feed,
+ * because someone who has asked the system not to animate things has asked for
+ * the transcript.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -94,18 +95,21 @@ export function MatchReplay({
   const [shown, setShown] = useState(1);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState<Speed>(1);
-  const started = useRef(false);
+  /** False until the manager presses play (or reduced motion skips it). */
+  const [started, setStarted] = useState(false);
+  const revealedOnce = useRef(false);
   const feedRef = useRef<HTMLDivElement | null>(null);
 
   const total = events.length;
   const done = shown >= total;
 
-  // Autoplay exactly once, and never for a reduced-motion reader.
+  // A reduced-motion reader gets the whole thing at once, with no transport
+  // and no button to press. Nobody else is started automatically.
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
-    if (reduced) setShown(total);
-    else setPlaying(true);
+    if (!reduced || revealedOnce.current) return;
+    revealedOnce.current = true;
+    setStarted(true);
+    setShown(total);
   }, [reduced, total]);
 
   useEffect(() => {
@@ -117,10 +121,10 @@ export function MatchReplay({
   }, [playing, done, shown, speed, events, total]);
 
   useEffect(() => {
-    if (!done) return;
+    if (!done || !started) return;
     setPlaying(false);
     onReveal?.();
-  }, [done, onReveal]);
+  }, [done, started, onReveal]);
 
   // Keep the newest line in view while playing, but never yank the page
   // around when the reader has taken over and is scrolling back.
@@ -199,7 +203,7 @@ export function MatchReplay({
 
         <div style={{ flex: 1 }} />
 
-        {!reduced && (
+        {!reduced && started && (
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {done ? (
               <button
@@ -258,6 +262,50 @@ export function MatchReplay({
         <span style={{ "--fill": shown / total } as React.CSSProperties} />
       </div>
 
+      {/* ── Before it starts ───────────────────────────────────── */}
+      {!started && (
+        <div
+          style={{
+            padding: "28px 20px 24px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 12,
+            textAlign: "center",
+          }}
+        >
+          <p
+            className="t-caption"
+            style={{ fontSize: 13, lineHeight: 1.6, margin: 0, maxWidth: 380 }}
+          >
+            Maç {total} anlık olarak kaydedildi. Simülasyonu başlat, dakikalar
+            işlerken skoru sen de canlı gör — ya da doğrudan tam raporu aç.
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                setStarted(true);
+                setPlaying(true);
+              }}
+            >
+              <Play size={15} /> Simülasyonu Başlat
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                setStarted(true);
+                setShown(total);
+              }}
+            >
+              Tam Raporu Göster
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── The feed ───────────────────────────────────────────── */}
       <div
         ref={feedRef}
@@ -268,7 +316,7 @@ export function MatchReplay({
           display: "flex",
           flexDirection: "column",
           gap: 10,
-          minHeight: 240,
+          minHeight: started ? 240 : 0,
         }}
       >
         {visible.map((e, i) => (

@@ -28,6 +28,18 @@
   --danger: #ef4444;
   --gold: #facc15;
 
+  /*
+    Text that sits ON a filled accent, rather than beside it.
+
+    `--gold` is bright here and dark in the light theme — that inversion is
+    what keeps it legible AS TEXT in both. But a filled gold BUTTON needs the
+    opposite: near-black on bright gold in dark mode, white on dark gold in
+    light mode. The streak reward button hardcoded `#111`, so in light mode it
+    put near-black on a dark-gold fill and measured 3.19:1. A paired token is
+    the only way a filled surface can follow an inverting accent.
+  */
+  --on-gold: #111827;
+
   /* Position colours. These were a hardcoded hex map in lib/utils.ts, which
      meant they ignored the theme completely: the keeper's #facc15 measured
      1.24:1 against a white page — the squad screen's position bands, badges
@@ -137,6 +149,8 @@
   --warn: #9a4708;
   --danger: #b91c1c;
   --gold: #8a5a06;
+  /* Gold inverted to a dark fill here, so what sits on it has to invert too. */
+  --on-gold: #ffffff;
 
   /* Same hues, dark enough to read as text on white. */
   --pos-gk: #8a5a06;
@@ -579,6 +593,13 @@ body[data-modal-open="true"] { overflow: hidden; }
 
 .anim-slide-up { animation: slide-up var(--t) var(--ease) both; }
 .anim-slide-in-right { animation: slide-in-right var(--t) var(--ease) both; }
+
+/* One line of the squad board. The hover has to be quiet: thirty of these
+   sit in four columns, and anything with a shadow or a lift turns the page
+   into a field of moving parts as the cursor crosses it. */
+.squad-board-row { transition: background-color 140ms var(--ease); }
+.squad-board-row:hover { background: var(--panel-hover) !important; }
+.squad-board-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 /* Compact button — transport controls, inline row actions. Sized off the
    base .btn so it inherits every state (hover, focus ring, disabled). */

@@ -80,7 +80,9 @@ export function StreakBanner({ streak }: { streak: StreakInfo }) {
             fontSize: 11,
             borderRadius: 999,
             background: "var(--gold)",
-            color: "#111",
+            // Paired with --gold, which inverts between themes; see the note
+            // on --on-gold in app/globals.css.
+            color: "var(--on-gold)",
             border: "none",
             fontWeight: 700,
           }}
