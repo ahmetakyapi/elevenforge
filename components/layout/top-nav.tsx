@@ -139,7 +139,7 @@ export function TopNav({
                       ? "color-mix(in oklab, var(--accent) 30%, var(--border))"
                       : "transparent"
                   }`,
-                  transition: "all var(--t) var(--ease)",
+                  transition: "opacity var(--t) var(--ease), transform var(--t) var(--ease), color var(--t) var(--ease), background-color var(--t) var(--ease), border-color var(--t) var(--ease), box-shadow var(--t) var(--ease)",
                   whiteSpace: "nowrap",
                 }}
               >

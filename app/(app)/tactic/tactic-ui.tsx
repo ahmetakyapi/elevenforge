@@ -623,7 +623,7 @@ export default function TacticPage({
                     transform: "translate(-50%, -50%)",
                     cursor: "pointer",
                     userSelect: "none",
-                    transition: "all var(--t) var(--ease)",
+                    transition: "opacity var(--t) var(--ease), transform var(--t) var(--ease), color var(--t) var(--ease), background-color var(--t) var(--ease), border-color var(--t) var(--ease), box-shadow var(--t) var(--ease)",
                     zIndex: isSelected ? 10 : 1,
                   }}
                 >
@@ -683,7 +683,7 @@ export default function TacticPage({
                     background: isSelected
                       ? "color-mix(in oklab, var(--accent) 15%, var(--panel))"
                       : "var(--panel)",
-                    transition: "all var(--t) var(--ease)",
+                    transition: "opacity var(--t) var(--ease), transform var(--t) var(--ease), color var(--t) var(--ease), background-color var(--t) var(--ease), border-color var(--t) var(--ease), box-shadow var(--t) var(--ease)",
                   }}
                 >
                   <span
@@ -958,7 +958,7 @@ function SliderControl({
               fontFamily: "var(--font-jetbrains)",
               fontWeight: 600,
               fontSize: 12,
-              transition: "all var(--t) var(--ease)",
+              transition: "opacity var(--t) var(--ease), transform var(--t) var(--ease), color var(--t) var(--ease), background-color var(--t) var(--ease), border-color var(--t) var(--ease), box-shadow var(--t) var(--ease)",
             }}
           >
             {i + 1}

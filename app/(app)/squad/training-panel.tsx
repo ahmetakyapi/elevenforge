@@ -332,13 +332,17 @@ export function TrainingPanel({ squad }: { squad: Player[] }) {
                 >
                   <div
                     style={{
-                      width: `${pct}%`,
+                      // scaleX, not width — see the note on Bar in
+                      // components/ui/primitives.tsx.
+                      width: "100%",
                       height: "100%",
                       borderRadius: 999,
                       background: atCeiling
                         ? "color-mix(in oklab, var(--muted) 55%, transparent)"
                         : tint,
-                      transition: "width var(--t) var(--ease)",
+                      transformOrigin: "left",
+                      transform: `scaleX(${pct / 100})`,
+                      transition: "transform var(--t) var(--ease)",
                     }}
                   />
                 </div>

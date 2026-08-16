@@ -492,11 +492,7 @@ function SquadHero({
               letterSpacing: "-0.035em",
               lineHeight: 0.95,
               margin: 0,
-              background:
-                "linear-gradient(180deg, var(--text) 0%, color-mix(in oklab, var(--text) 55%, transparent) 120%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
+              color: "var(--text)",
             }}
           >
             {userClubName}
@@ -890,7 +886,7 @@ function PlayerCardGrid({
         cursor: "pointer",
         transform: localHover ? "translateY(-3px)" : "translateY(0)",
         boxShadow: localHover ? tier.glow : "var(--shadow-sm)",
-        transition: "all 260ms var(--ease)",
+        transition: "opacity 260ms var(--ease), transform 260ms var(--ease), color 260ms var(--ease), background-color 260ms var(--ease), border-color 260ms var(--ease), box-shadow 260ms var(--ease)",
       }}
     >
       {/* Tier accent stripe along the top edge */}
@@ -1143,10 +1139,12 @@ function PlayerCardGrid({
                 >
                   <div
                     style={{
-                      width: `${Math.min(100, Math.max(10, v))}%`,
+                      width: "100%",
                       height: "100%",
                       background: bandColor,
-                      transition: "width 400ms var(--ease)",
+                      transformOrigin: "left",
+                      transform: `scaleX(${(Math.min(100, Math.max(10, v))) / 100})`,
+                      transition: "transform 400ms var(--ease)",
                     }}
                   />
                 </div>
@@ -1236,10 +1234,12 @@ function PlayerCardGrid({
             >
               <div
                 style={{
-                  width: `${Math.max(2, Math.min(100, fit))}%`,
+                  width: "100%",
                   height: "100%",
                   background: fitTone,
-                  transition: "width 400ms var(--ease)",
+                  transformOrigin: "left",
+                  transform: `scaleX(${(Math.max(2, Math.min(100, fit))) / 100})`,
+                  transition: "transform 400ms var(--ease)",
                 }}
               />
             </div>
@@ -1676,11 +1676,7 @@ function PlayerSheet({
                 fontSize: "clamp(28px, 4vw, 42px)",
                 letterSpacing: "-0.03em",
                 lineHeight: 1,
-                background:
-                  "linear-gradient(180deg, var(--text) 0%, color-mix(in oklab, var(--text) 65%, transparent) 120%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
+                color: "var(--text)",
               }}
             >
               {p.n}
@@ -1947,7 +1943,7 @@ function PlayerSheet({
                       ? "2px solid var(--accent)"
                       : "2px solid transparent",
                   marginBottom: -1,
-                  transition: "all 200ms var(--ease)",
+                  transition: "opacity 200ms var(--ease), transform 200ms var(--ease), color 200ms var(--ease), background-color 200ms var(--ease), border-color 200ms var(--ease), box-shadow 200ms var(--ease)",
                 }}
               >
                 {l}
@@ -2016,8 +2012,10 @@ function PlayerSheet({
                             style={{
                               height: "100%",
                               background: tierColor(val),
-                              width: `${val}%`,
-                              transition: `width 700ms ${200 + gi * 100 + ri * 50}ms var(--ease)`,
+                              width: "100%",
+                              transformOrigin: "left",
+                              transform: `scaleX(${(val) / 100})`,
+                              transition: `transform 700ms ${200 + gi * 100 + ri * 50}ms var(--ease)`,
                             }}
                           />
                         </div>

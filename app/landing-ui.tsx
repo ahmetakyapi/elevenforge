@@ -163,7 +163,7 @@ function LandingNav() {
         right: 0,
         zIndex: 100,
         padding: solid ? "10px 28px" : "18px 28px",
-        transition: "all 300ms var(--ease)",
+        transition: "opacity 300ms var(--ease), transform 300ms var(--ease), color 300ms var(--ease), background-color 300ms var(--ease), border-color 300ms var(--ease), box-shadow 300ms var(--ease)",
         background: solid
           ? "color-mix(in oklab, var(--bg) 78%, transparent)"
           : "transparent",
@@ -345,11 +345,7 @@ function Hero({ y }: { y: number }) {
         >
           <span
             style={{
-              background:
-                "linear-gradient(180deg, var(--text) 0%, color-mix(in oklab, var(--text) 50%, transparent) 120%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
+              color: "var(--text)",
               display: "inline-block",
             }}
           >
@@ -357,11 +353,7 @@ function Hero({ y }: { y: number }) {
           </span>
           <span
             style={{
-              backgroundImage: "linear-gradient(100deg, #818cf8 0%, #10b981 50%, #22d3ee 100%)",
-              backgroundSize: "200% 100%",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
+              color: "var(--accent)",
               animation: "shimmer 6s linear infinite",
               display: "inline-block",
             }}
@@ -862,7 +854,7 @@ function CrewSection() {
           style={{
             opacity: on ? 1 : 0,
             transform: on ? "translateY(0)" : "translateY(40px)",
-            transition: "all 700ms var(--ease)",
+            transition: "opacity 700ms var(--ease), transform 700ms var(--ease), color 700ms var(--ease), background-color 700ms var(--ease), border-color 700ms var(--ease), box-shadow 700ms var(--ease)",
           }}
         >
           <span className="t-label" style={{ color: "var(--indigo)" }}>
@@ -927,7 +919,7 @@ function CrewSection() {
             margin: "0 auto",
             opacity: on ? 1 : 0,
             transform: on ? "scale(1)" : "scale(0.9)",
-            transition: "all 900ms var(--ease)",
+            transition: "opacity 900ms var(--ease), transform 900ms var(--ease), color 900ms var(--ease), background-color 900ms var(--ease), border-color 900ms var(--ease), box-shadow 900ms var(--ease)",
           }}
         >
           <OrbitRing clubs={CLUBS.slice(0, 8)} sizePct={88} crestSize={40} duration={40} y={y} />
@@ -1052,7 +1044,7 @@ function StadiumSection() {
             marginBottom: 50,
             opacity: on ? 1 : 0,
             transform: on ? "translateY(0)" : "translateY(30px)",
-            transition: "all 700ms var(--ease)",
+            transition: "opacity 700ms var(--ease), transform 700ms var(--ease), color 700ms var(--ease), background-color 700ms var(--ease), border-color 700ms var(--ease), box-shadow 700ms var(--ease)",
           }}
         >
           <span className="t-label" style={{ color: "var(--emerald)" }}>
@@ -1074,10 +1066,7 @@ function StadiumSection() {
               style={{
                 fontStyle: "italic",
                 fontWeight: 500,
-                background: "linear-gradient(100deg, var(--emerald), var(--cyan))",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
+                color: "var(--emerald)",
                 paddingRight: 4,
                 paddingBottom: 4,
                 display: "inline-block",
@@ -1110,7 +1099,7 @@ function StadiumSection() {
             alignItems: "center",
             opacity: on ? 1 : 0,
             transform: on ? "translateY(0)" : "translateY(40px)",
-            transition: "all 900ms 150ms var(--ease)",
+            transition: "opacity 900ms 150ms var(--ease), transform 900ms 150ms var(--ease), color 900ms 150ms var(--ease), background-color 900ms 150ms var(--ease), border-color 900ms 150ms var(--ease), box-shadow 900ms 150ms var(--ease)",
           }}
         >
           <HeroLiveCard />
@@ -1221,7 +1210,7 @@ function MarketSection() {
           marginBottom: 50,
           opacity: on ? 1 : 0,
           transform: on ? "translateY(0)" : "translateY(30px)",
-          transition: "all 700ms var(--ease)",
+          transition: "opacity 700ms var(--ease), transform 700ms var(--ease), color 700ms var(--ease), background-color 700ms var(--ease), border-color 700ms var(--ease), box-shadow 700ms var(--ease)",
         }}
       >
         <span className="t-label" style={{ color: "var(--cyan)" }}>
@@ -1405,7 +1394,7 @@ function TacticSection() {
             margin: "0 auto",
             opacity: on ? 1 : 0,
             transform: on ? "translateX(0)" : "translateX(-40px)",
-            transition: "all 800ms var(--ease)",
+            transition: "opacity 800ms var(--ease), transform 800ms var(--ease), color 800ms var(--ease), background-color 800ms var(--ease), border-color 800ms var(--ease), box-shadow 800ms var(--ease)",
           }}
         >
           <div
@@ -1568,7 +1557,7 @@ function TacticSection() {
           style={{
             opacity: on ? 1 : 0,
             transform: on ? "translateX(0)" : "translateX(40px)",
-            transition: "all 800ms 100ms var(--ease)",
+            transition: "opacity 800ms 100ms var(--ease), transform 800ms 100ms var(--ease), color 800ms 100ms var(--ease), background-color 800ms 100ms var(--ease), border-color 800ms 100ms var(--ease), box-shadow 800ms 100ms var(--ease)",
           }}
         >
           <span className="t-label" style={{ color: "var(--warn)" }}>
@@ -1586,10 +1575,7 @@ function TacticSection() {
             <span
               style={{
                 display: "inline-block",
-                background: "linear-gradient(100deg, var(--warn), var(--accent))",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
+                color: "var(--warn)",
                 animation: "dragPulse 2.4s var(--ease) infinite",
               }}
             >
@@ -1675,7 +1661,7 @@ function NewspaperStack() {
           marginBottom: 60,
           opacity: on ? 1 : 0,
           transform: on ? "translateY(0)" : "translateY(30px)",
-          transition: "all 700ms var(--ease)",
+          transition: "opacity 700ms var(--ease), transform 700ms var(--ease), color 700ms var(--ease), background-color 700ms var(--ease), border-color 700ms var(--ease), box-shadow 700ms var(--ease)",
         }}
       >
         <span className="t-label" style={{ color: "var(--gold)" }}>
@@ -1741,7 +1727,7 @@ function NewspaperStack() {
               border: "none",
               cursor: "pointer",
               background: active === i ? "var(--gold)" : "var(--border-strong)",
-              transition: "all 400ms var(--ease)",
+              transition: "opacity 400ms var(--ease), transform 400ms var(--ease), color 400ms var(--ease), background-color 400ms var(--ease), border-color 400ms var(--ease), box-shadow 400ms var(--ease)",
             }}
           />
         ))}
@@ -1792,7 +1778,7 @@ function NewspaperCard({
         transformStyle: "preserve-3d",
         transform,
         opacity: revealed ? (isActive ? 1 : 0.7) : 0,
-        transition: "all 900ms cubic-bezier(0.22, 1, 0.36, 1)",
+        transition: "opacity 900ms cubic-bezier(0.22, 1, 0.36, 1), transform 900ms cubic-bezier(0.22, 1, 0.36, 1), color 900ms cubic-bezier(0.22, 1, 0.36, 1), background-color 900ms cubic-bezier(0.22, 1, 0.36, 1), border-color 900ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 900ms cubic-bezier(0.22, 1, 0.36, 1)",
         zIndex: isActive ? 3 : 1,
         filter: isActive ? "none" : "blur(0.5px)",
       }}
@@ -2127,7 +2113,7 @@ function FaqBlock() {
           marginBottom: 40,
           opacity: on ? 1 : 0,
           transform: on ? "translateY(0)" : "translateY(30px)",
-          transition: "all 700ms var(--ease)",
+          transition: "opacity 700ms var(--ease), transform 700ms var(--ease), color 700ms var(--ease), background-color 700ms var(--ease), border-color 700ms var(--ease), box-shadow 700ms var(--ease)",
         }}
       >
         <span className="t-label">07 / SORU-CEVAP</span>
@@ -2228,7 +2214,7 @@ function ClosingCTA() {
           position: "relative",
           opacity: on ? 1 : 0,
           transform: on ? "scale(1)" : "scale(0.95)",
-          transition: "all 800ms var(--ease)",
+          transition: "opacity 800ms var(--ease), transform 800ms var(--ease), color 800ms var(--ease), background-color 800ms var(--ease), border-color 800ms var(--ease), box-shadow 800ms var(--ease)",
         }}
       >
         <h2
@@ -2239,11 +2225,7 @@ function ClosingCTA() {
             letterSpacing: "-0.05em",
             lineHeight: 0.9,
             margin: 0,
-            background:
-              "linear-gradient(180deg, var(--text) 0%, color-mix(in oklab, var(--text) 40%, transparent) 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
+            color: "var(--text)",
           }}
         >
           Akış&apos;ı{" "}
@@ -2252,9 +2234,6 @@ function ClosingCTA() {
               fontStyle: "italic",
               fontWeight: 600,
               background: "linear-gradient(100deg, #818cf8, #10b981)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
             }}
           >
             kur.

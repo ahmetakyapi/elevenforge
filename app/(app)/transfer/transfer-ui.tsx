@@ -567,7 +567,7 @@ function ModeTabs({
               fontWeight: 700,
               fontSize: 11,
               letterSpacing: "0.1em",
-              transition: "all 200ms",
+              transition: "opacity 200ms, transform 200ms, color 200ms, background-color 200ms, border-color 200ms, box-shadow 200ms",
             }}
           >
             {label}
@@ -829,7 +829,7 @@ function TransferRow({
         padding: 0,
         overflow: "hidden",
         position: "relative",
-        transition: "all 200ms var(--ease)",
+        transition: "opacity 200ms var(--ease), transform 200ms var(--ease), color 200ms var(--ease), background-color 200ms var(--ease), border-color 200ms var(--ease), box-shadow 200ms var(--ease)",
         borderColor: open
           ? "color-mix(in oklab, var(--accent) 40%, var(--border))"
           : undefined,

@@ -79,10 +79,13 @@ export function BoardBanner({
         >
           <div
             style={{
+              // scaleX rather than width — see Bar in components/ui/primitives.
               height: "100%",
-              width: `${confidence}%`,
+              width: "100%",
               background: tone.fg,
-              transition: "width .25s",
+              transformOrigin: "left",
+              transform: `scaleX(${confidence / 100})`,
+              transition: "transform .25s var(--ease)",
             }}
           />
         </div>

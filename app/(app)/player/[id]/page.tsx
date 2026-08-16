@@ -401,9 +401,11 @@ function Bar({
         <div
           style={{
             height: "100%",
-            width: `${pct}%`,
+            width: "100%",
             background: tint,
-            transition: "width .3s",
+            transformOrigin: "left",
+            transform: `scaleX(${(pct) / 100})`,
+            transition: "transform .3s",
           }}
         />
       </div>

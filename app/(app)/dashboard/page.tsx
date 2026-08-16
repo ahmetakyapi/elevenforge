@@ -337,11 +337,7 @@ export default async function DashboardPage() {
                 fontWeight: 800,
                 letterSpacing: "-0.04em",
                 lineHeight: 1,
-                background: "linear-gradient(180deg, var(--text) 0%, color-mix(in oklab, var(--text) 50%, transparent) 120%)",
-                WebkitBackgroundClip: "text",
-                backgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                color: "transparent",
+                color: "var(--text)",
               }}
             >
               {d.leagueInfo.weekNumber}

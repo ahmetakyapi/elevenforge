@@ -93,7 +93,7 @@ export function TweaksPanel() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          transition: "all var(--t) var(--ease)",
+          transition: "opacity var(--t) var(--ease), transform var(--t) var(--ease), color var(--t) var(--ease), background-color var(--t) var(--ease), border-color var(--t) var(--ease), box-shadow var(--t) var(--ease)",
         }}
       >
         <Settings size={16} strokeWidth={1.8} />

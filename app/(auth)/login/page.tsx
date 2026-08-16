@@ -219,7 +219,7 @@ function Checkbox({
         alignItems: "center",
         justifyContent: "center",
         cursor: "pointer",
-        transition: "all var(--t) var(--ease)",
+        transition: "opacity var(--t) var(--ease), transform var(--t) var(--ease), color var(--t) var(--ease), background-color var(--t) var(--ease), border-color var(--t) var(--ease), box-shadow var(--t) var(--ease)",
       }}
     >
       {checked && <Check size={11} strokeWidth={2.5} color="#fff" />}

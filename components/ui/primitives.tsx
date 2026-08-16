@@ -442,13 +442,24 @@ export function Bar({ value, max = 100, color, height = 4, showValue = false }: 
           overflow: "hidden",
         }}
       >
+        {/*
+          Full width, scaled horizontally — not an animated `width`.
+
+          Animating width relayouts the element on every frame of the
+          transition; scaleX runs on the compositor and touches no layout.
+          `transform-origin: left` is what makes it grow from the left edge
+          rather than the centre, which is the only reason the two look the
+          same at all.
+        */}
         <div
           style={{
-            width: `${pct}%`,
+            width: "100%",
             height: "100%",
             background: color || "var(--accent)",
             borderRadius: 999,
-            transition: "width 400ms var(--ease)",
+            transformOrigin: "left",
+            transform: `scaleX(${pct / 100})`,
+            transition: "transform 400ms var(--ease)",
           }}
         />
       </div>
