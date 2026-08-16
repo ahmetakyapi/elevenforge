@@ -533,6 +533,10 @@ a:focus-visible,
   .cup-tie::before { display: none; }
 }
 
+/* Squad table rows. */
+.squad-row { transition: background var(--t-fast) var(--ease); }
+.squad-row:hover { background: color-mix(in oklab, var(--panel-hover) 80%, transparent) !important; }
+
 /* Rival squad rows on /club/[id] — the whole row is the offer link. */
 .club-squad-row {
   transition: background var(--t-fast) var(--ease);

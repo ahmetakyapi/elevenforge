@@ -653,26 +653,7 @@ function SquadHero({
 // Role → the 3 attributes most relevant to that role. Strikers see
 // pace/shooting/physical; CBs see defending/physical/pace; etc. If a
 // role isn't mapped we fall back to a generic trio for that position.
-const ROLE_KEY_ATTRS: Record<string, Array<["pace" | "shooting" | "passing" | "defending" | "physical" | "goalkeeping", string]>> = {
-  GK:  [["goalkeeping", "SAV"], ["physical", "FIZ"], ["passing", "PAS"]],
-  CB:  [["defending", "DEF"], ["physical", "FIZ"], ["pace", "HIZ"]],
-  LB:  [["pace", "HIZ"], ["defending", "DEF"], ["passing", "PAS"]],
-  RB:  [["pace", "HIZ"], ["defending", "DEF"], ["passing", "PAS"]],
-  CDM: [["defending", "DEF"], ["passing", "PAS"], ["physical", "FIZ"]],
-  CM:  [["passing", "PAS"], ["defending", "DEF"], ["pace", "HIZ"]],
-  AM:  [["passing", "PAS"], ["shooting", "ŞUT"], ["pace", "HIZ"]],
-  LW:  [["pace", "HIZ"], ["shooting", "ŞUT"], ["passing", "PAS"]],
-  RW:  [["pace", "HIZ"], ["shooting", "ŞUT"], ["passing", "PAS"]],
-  ST:  [["shooting", "ŞUT"], ["pace", "HIZ"], ["physical", "FIZ"]],
-  CF:  [["shooting", "ŞUT"], ["passing", "PAS"], ["physical", "FIZ"]],
-};
 
-const POS_FALLBACK_ATTRS: Record<Position, Array<["pace" | "shooting" | "passing" | "defending" | "physical" | "goalkeeping", string]>> = {
-  GK:  [["goalkeeping", "SAV"], ["physical", "FIZ"], ["passing", "PAS"]],
-  DEF: [["defending", "DEF"], ["physical", "FIZ"], ["pace", "HIZ"]],
-  MID: [["passing", "PAS"], ["defending", "DEF"], ["pace", "HIZ"]],
-  FWD: [["shooting", "ŞUT"], ["pace", "HIZ"], ["physical", "FIZ"]],
-};
 
 // Tier palette: gives the OVR chip + the top edge a recognisable
 // colour so a quick scan distinguishes stars from squad depth.
@@ -829,6 +810,25 @@ function PositionBand({
   );
 }
 
+/**
+ * The squad card, built as a football card.
+ *
+ * The previous card was a small dashboard panel: a header row, a name, a meta
+ * line, three attribute bars and a footer strip. It carried the right data and
+ * none of the feeling — every player looked like every other player, and the
+ * difference between an 85 and a 68 was a number in a corner.
+ *
+ * A football card front-loads three things and lets everything else recede:
+ * the rating, the face of the player (his name), and the six attributes. The
+ * tier owns the card's colour, so a squad reads as a spread of gold, green and
+ * grey before a single number is read — which is exactly how you actually
+ * assess a squad.
+ *
+ * SIX ATTRIBUTES, ALWAYS. The old card showed three, chosen by role. That made
+ * cards incomparable: you could not tell whether the winger's missing DEF was
+ * 40 or 75. Six in a fixed order means any two cards can be read against each
+ * other, which is the whole point of a card.
+ */
 function PlayerCardGrid({
   p,
   i,
@@ -844,20 +844,25 @@ function PlayerCardGrid({
   compareMark?: "A" | "B" | null;
 }) {
   const [localHover, setLocalHover] = useState(false);
-  const potBuff = p.pot - p.ovr;
-  const statusStyles = STATUS_STYLE[p.status ?? "_"] ?? null;
   const tier = tierPalette(p.ovr);
-  const keyAttrs = ROLE_KEY_ATTRS[p.role] ?? POS_FALLBACK_ATTRS[p.pos];
-  const valueEur = p.val ?? 0;
+  const status = STATUS_STYLE[p.status ?? "_"] ?? null;
+  const growth = p.pot - p.ovr;
   const form = (p.form ?? []).slice(-5);
-  const avg = avgForm(p);
   const fit = p.fit ?? 0;
-  const mor = p.mor ?? 0;
-  const fitTone =
-    fit >= 90 ? "var(--emerald)" : fit >= 75 ? "var(--cyan)" : "var(--warn)";
+
+  // Fixed order, fixed labels — the FIFA convention, so the eye learns one
+  // layout and reads every card with it.
+  const STATS: Array<[keyof Player, string]> = [
+    ["pace", "HIZ"],
+    ["shooting", "ŞUT"],
+    ["passing", "PAS"],
+    ["defending", "DEF"],
+    ["physical", "FİZ"],
+    ["goalkeeping", "KAL"],
+  ];
 
   return (
-    <div
+    <article
       onClick={onClick}
       data-cmp={compareMark ?? undefined}
       onMouseEnter={() => {
@@ -868,46 +873,35 @@ function PlayerCardGrid({
         setLocalHover(false);
         onHover(null);
       }}
-      className="anim-slide-up"
+      className="anim-slide-up player-card"
       style={{
-        animationDelay: `${Math.min(i * 30, 360)}ms`,
+        animationDelay: `${Math.min(i * 26, 320)}ms`,
         position: "relative",
-        borderRadius: 16,
+        borderRadius: 18,
         overflow: "hidden",
-        background:
-          "linear-gradient(180deg, color-mix(in oklab, var(--panel-hover) 35%, var(--panel)) 0%, var(--panel) 60%, var(--panel-2) 100%)",
+        cursor: "pointer",
+        // The tier tints the whole card, not just a stripe. This is the one
+        // gradient here and it is a surface depth, not a colour transition —
+        // the same exemption the glass panels use.
+        background: `linear-gradient(168deg,
+          color-mix(in oklab, ${tier.accent} 20%, var(--panel)) 0%,
+          var(--panel) 46%,
+          var(--panel-2) 100%)`,
         border: compareMark
           ? "2px solid var(--accent)"
-          : `1px solid ${
-              localHover
-                ? `color-mix(in oklab, ${tier.accent} 50%, var(--border))`
-                : "var(--border)"
-            }`,
-        cursor: "pointer",
-        transform: localHover ? "translateY(-3px)" : "translateY(0)",
+          : `1px solid color-mix(in oklab, ${tier.accent} ${localHover ? 55 : 28}%, var(--border))`,
+        transform: localHover ? "translateY(-4px)" : "translateY(0)",
         boxShadow: localHover ? tier.glow : "var(--shadow-sm)",
-        transition: "opacity 260ms var(--ease), transform 260ms var(--ease), color 260ms var(--ease), background-color 260ms var(--ease), border-color 260ms var(--ease), box-shadow 260ms var(--ease)",
+        transition:
+          "transform 240ms var(--ease), box-shadow 240ms var(--ease), border-color 240ms var(--ease)",
       }}
     >
-      {/* Tier accent stripe along the top edge */}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 3,
-          background: `linear-gradient(90deg, ${tier.accent} 0%, color-mix(in oklab, ${tier.accent} 40%, transparent) 100%)`,
-          zIndex: 2,
-        }}
-      />
-
       {compareMark && (
-        <div
+        <span
           style={{
             position: "absolute",
             top: 10,
-            left: 10,
+            right: 10,
             zIndex: 5,
             width: 22,
             height: 22,
@@ -922,360 +916,241 @@ function PlayerCardGrid({
           }}
         >
           {compareMark}
-        </div>
+        </span>
       )}
 
-      {statusStyles && !compareMark && (
-        <div
-          style={{
-            position: "absolute",
-            top: 12,
-            left: 12,
-            padding: "3px 8px",
-            borderRadius: 6,
-            fontSize: 10,
-            fontFamily: "var(--font-jetbrains)",
-            fontWeight: 600,
-            letterSpacing: "0.04em",
-            background: statusStyles.bg,
-            color: statusStyles.c,
-            border: "1px solid currentColor",
-            zIndex: 2,
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
-          }}
-        >
-          <statusStyles.Icon size={10} strokeWidth={2.2} />
-          {statusStyles.label}
-        </div>
-      )}
-
-      <div style={{ position: "relative", padding: "16px 16px 14px", zIndex: 1 }}>
-        {/* Header row: pos + role aside, giant OVR right */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            gap: 10,
-            marginBottom: 10,
-            marginTop: statusStyles || compareMark ? 20 : 0,
-          }}
-        >
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <PosBadge pos={p.pos} showLabel />
-            <span
+      {/* ── Head: rating block on the left, identity on the right ────── */}
+      <div style={{ display: "flex", gap: 14, padding: "16px 16px 12px" }}>
+        <div style={{ textAlign: "center", flexShrink: 0, minWidth: 52 }}>
+          <div
+            style={{
+              fontFamily: "var(--font-manrope)",
+              fontSize: 42,
+              fontWeight: 800,
+              lineHeight: 0.92,
+              letterSpacing: "-0.045em",
+              color: tier.accent,
+            }}
+          >
+            {p.ovr}
+          </div>
+          <div
+            className="t-mono"
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: "0.08em",
+              color: tier.accent,
+              marginTop: 2,
+            }}
+          >
+            {p.pos}
+          </div>
+          {growth > 0 && (
+            <div
               className="t-mono"
+              title={`Potansiyel ${p.pot}`}
               style={{
-                fontSize: 10,
-                color: "var(--muted)",
-                letterSpacing: "0.09em",
+                fontSize: 9.5,
+                fontWeight: 700,
+                color: "var(--emerald)",
+                marginTop: 4,
               }}
             >
-              {p.role} · {p.nat}
-              {p.num !== undefined && ` · #${p.num}`}
-            </span>
+              ↑{growth}
+            </div>
+          )}
+        </div>
+
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div
+            style={{
+              fontFamily: "var(--font-manrope)",
+              fontWeight: 750,
+              fontSize: 16,
+              lineHeight: 1.15,
+              letterSpacing: "-0.02em",
+              color: "var(--text)",
+              // Two lines, then ellipsis: a long name must not push the stats
+              // grid down and make the cards different heights.
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+            title={p.n}
+          >
+            {p.n}
+          </div>
+          <div
+            className="t-mono"
+            style={{
+              fontSize: 10,
+              color: "var(--muted)",
+              marginTop: 4,
+              letterSpacing: "0.06em",
+            }}
+          >
+            {p.role} · {p.nat} · {p.age}y
+            {p.num !== undefined && ` · #${p.num}`}
           </div>
           <div
             style={{
               display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-              gap: 2,
+              alignItems: "center",
+              gap: 6,
+              marginTop: 7,
+              flexWrap: "wrap",
             }}
           >
-            <div
-              style={{
-                fontFamily: "var(--font-manrope)",
-                fontWeight: 800,
-                fontSize: 34,
-                letterSpacing: "-0.04em",
-                lineHeight: 1,
-                color: tier.accent,
-                textShadow: localHover
-                  ? `0 0 18px color-mix(in oklab, ${tier.accent} 55%, transparent)`
-                  : "none",
-                transition: "text-shadow 260ms var(--ease)",
-              }}
-            >
-              {p.ovr}
-            </div>
             <span
               className="t-mono"
               style={{
-                fontSize: 9,
-                letterSpacing: "0.14em",
+                fontSize: 9.5,
                 fontWeight: 700,
+                letterSpacing: "0.07em",
+                padding: "2px 7px",
+                borderRadius: 5,
+                background: `color-mix(in oklab, ${tier.accent} 16%, transparent)`,
                 color: tier.accent,
-                opacity: 0.85,
               }}
             >
               {tier.label}
             </span>
-          </div>
-        </div>
-
-        {/* Name */}
-        <div
-          style={{
-            fontFamily: "var(--font-manrope)",
-            fontWeight: 700,
-            fontSize: 17,
-            letterSpacing: "-0.015em",
-            lineHeight: 1.15,
-            color: "var(--text)",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            marginBottom: 6,
-          }}
-          title={p.n}
-        >
-          {p.n}
-        </div>
-
-        {/* Secondary meta line: age · value · potential arrow */}
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            alignItems: "center",
-            marginBottom: 14,
-            flexWrap: "wrap",
-          }}
-        >
-          <AgePill age={p.age} size="sm" />
-          <span
-            className="t-mono"
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              color: "var(--emerald)",
-            }}
-          >
-            {fmtEUR(valueEur)}
-          </span>
-          {potBuff > 0 && (
-            <span
-              className="t-mono"
-              title={`Potansiyel: ${p.pot}`}
-              style={{
-                fontSize: 10,
-                fontWeight: 600,
-                padding: "2px 6px",
-                borderRadius: 999,
-                background:
-                  "color-mix(in oklab, var(--gold) 14%, transparent)",
-                color: "var(--gold)",
-                letterSpacing: "0.02em",
-              }}
-            >
-              ↑ +{potBuff}
-            </span>
-          )}
-        </div>
-
-        {/* Role-aware attribute strip — 3 mini bars */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)",
-            gap: 10,
-            paddingTop: 10,
-            borderTop: "1px solid var(--border)",
-          }}
-        >
-          {keyAttrs.map(([key, label]) => {
-            const v = (p[key] as number | undefined) ?? p.ovr;
-            const bandColor =
-              v >= 85
-                ? "var(--gold)"
-                : v >= 78
-                  ? "var(--emerald)"
-                  : v >= 70
-                    ? "var(--cyan)"
-                    : "var(--muted-2)";
-            return (
-              <div
-                key={key}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 4,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "baseline",
-                  }}
-                >
-                  <span
-                    className="t-label"
-                    style={{ fontSize: 9, letterSpacing: "0.1em" }}
-                  >
-                    {label}
-                  </span>
-                  <span
-                    className="t-mono"
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: bandColor,
-                    }}
-                  >
-                    {v}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    height: 3,
-                    borderRadius: 3,
-                    background: "var(--panel-2)",
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      background: bandColor,
-                      transformOrigin: "left",
-                      transform: `scaleX(${(Math.min(100, Math.max(10, v))) / 100})`,
-                      transition: "transform 400ms var(--ease)",
-                    }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/*
-          Form, condition and headroom.
-
-          The card carried only numbers — rating, age, value, three attributes
-          — while the three things you actually read a squad for were rendered
-          nowhere in this view: how a player is playing, whether he is fit
-          enough to start, and whether he still has room to grow. All three
-          were already loaded (loadSquad returns form/fit/mor) and only the
-          table view ever showed them. A shape you can scan beats a number you
-          have to compare.
-        */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            marginTop: 12,
-            paddingTop: 10,
-            borderTop: "1px solid var(--border)",
-          }}
-        >
-          {/* Last five ratings, oldest → newest. Absent before kick-off, when
-              a placeholder would only crowd the condition bar. */}
-          {form.length > 0 && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-end",
-              gap: 2,
-              height: 18,
-              flex: "0 0 auto",
-            }}
-            title={`Son ${form.length} maç: ${form.join(" · ")} (ort. ${avg.toFixed(2)})`}
-          >
-            {form.map((f, j) => (
-              <span
-                key={`fm-${j}`}
-                style={{
-                  width: 5,
-                  // Ratings run 0-10; floor the bar so a bad game is still a
-                  // visible mark rather than nothing at all.
-                  height: `${Math.max(22, Math.min(100, (f / 10) * 100))}%`,
-                  borderRadius: 2,
-                  background: formTone(f),
-                  opacity: 0.55 + (j / Math.max(1, form.length - 1)) * 0.45,
-                }}
-              />
-            ))}
-          </div>
-          )}
-
-          {/* Condition — the reason a starter is on the bench. */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "baseline",
-                marginBottom: 3,
-              }}
-            >
-              <span className="t-label" style={{ fontSize: 9, letterSpacing: "0.1em" }}>
-                KONDİSYON
-              </span>
+            {status && (
               <span
                 className="t-mono"
-                style={{ fontSize: 10, fontWeight: 700, color: fitTone }}
+                style={{
+                  fontSize: 9,
+                  fontWeight: 700,
+                  padding: "2px 6px",
+                  borderRadius: 5,
+                  background: status.bg,
+                  color: status.c,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 3,
+                }}
               >
-                {fit}
+                <status.Icon size={9} strokeWidth={2.4} />
+                {status.label}
               </span>
-            </div>
-            <div
-              style={{
-                height: 3,
-                borderRadius: 3,
-                background: "var(--panel-2)",
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  background: fitTone,
-                  transformOrigin: "left",
-                  transform: `scaleX(${(Math.max(2, Math.min(100, fit))) / 100})`,
-                  transition: "transform 400ms var(--ease)",
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Morale, as five pips rather than a number nobody calibrates. */}
-          <div
-            style={{ display: "flex", gap: 2, flex: "0 0 auto" }}
-            title={`Moral ${mor}/5`}
-          >
-            {[1, 2, 3, 4, 5].map((n) => (
-              <span
-                key={`mo-${n}`}
-                style={{
-                  width: 4,
-                  height: 4,
-                  borderRadius: 999,
-                  background:
-                    n <= mor
-                      ? mor >= 4
-                        ? "var(--emerald)"
-                        : mor >= 3
-                          ? "var(--cyan)"
-                          : "var(--warn)"
-                      : "var(--panel-2)",
-                }}
-              />
-            ))}
+            )}
           </div>
         </div>
       </div>
-    </div>
+
+      {/* ── Six attributes, two columns of three ─────────────────────── */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "6px 16px",
+          padding: "0 16px 12px",
+        }}
+      >
+        {STATS.map(([key, label]) => {
+          const v = (p[key] as number | undefined) ?? 0;
+          return (
+            <div
+              key={key as string}
+              style={{
+                display: "flex",
+                alignItems: "baseline",
+                gap: 7,
+              }}
+            >
+              <span
+                className="t-mono"
+                style={{
+                  fontSize: 13,
+                  fontWeight: 800,
+                  minWidth: 22,
+                  color: attrTone(v),
+                }}
+              >
+                {v}
+              </span>
+              <span
+                className="t-label"
+                style={{ fontSize: 9.5, letterSpacing: "0.1em" }}
+              >
+                {label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Foot: value, condition, form ─────────────────────────────── */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "9px 16px",
+          borderTop: "1px solid var(--border)",
+          background: "color-mix(in oklab, var(--bg-2) 55%, transparent)",
+        }}
+      >
+        <span
+          className="t-mono"
+          style={{ fontSize: 12.5, fontWeight: 700, color: "var(--emerald)" }}
+        >
+          {fmtEUR(p.val ?? 0)}
+        </span>
+
+        <span
+          className="t-mono"
+          title={`Kondisyon ${fit}`}
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            marginLeft: "auto",
+            color:
+              fit >= 90
+                ? "var(--emerald)"
+                : fit >= 75
+                  ? "var(--cyan)"
+                  : "var(--warn)",
+          }}
+        >
+          {fit}
+        </span>
+
+        <div
+          style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 14 }}
+          title={
+            form.length
+              ? `Son ${form.length} maç: ${form.join(" · ")}`
+              : "Henüz maç oynamadı"
+          }
+        >
+          {form.map((f, j) => (
+            <span
+              key={`f-${j}`}
+              style={{
+                width: 4,
+                height: `${Math.max(24, Math.min(100, (f / 10) * 100))}%`,
+                borderRadius: 1.5,
+                background: formTone(f),
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </article>
   );
 }
 
-/** Match-rating colour band, shared by the card sparkline. */
+/**
+ * Attribute colour band.
+ *
+ * The same thresholds a football card uses, so 90+ reads as exceptional at a
+ * glance and a 45 reads as a hole — without the reader having to know what
+ * "good" is for that attribute.
+ */
+/** Match-rating colour band, shared by the card's form sparkline. */
 function formTone(rating: number): string {
   if (rating >= 8) return "var(--gold)";
   if (rating >= 7) return "var(--emerald)";
@@ -1283,14 +1158,14 @@ function formTone(rating: number): string {
   return "var(--muted-2)";
 }
 
-/**
- * Status chips.
- *
- * The labels used to lead with an emoji (🩹 / 🟥 / 💰 / 💪). Emoji render
- * differently on every platform — weight, colour and metrics all shift — so a
- * chip that lines up on macOS breaks on Windows, and they cannot take the
- * theme's colour. lucide, like every other icon in the app.
- */
+function attrTone(v: number): string {
+  if (v >= 88) return "var(--gold)";
+  if (v >= 78) return "var(--emerald)";
+  if (v >= 68) return "var(--cyan)";
+  if (v >= 55) return "var(--text-2)";
+  return "var(--muted)";
+}
+
 const STATUS_STYLE: Record<
   string,
   { bg: string; c: string; label: string; Icon: LucideIcon }
@@ -1322,6 +1197,22 @@ const STATUS_STYLE: Record<
 };
 
 // ─── Player table (list view) ───────────────────────────────
+/**
+ * The dense view.
+ *
+ * This is not a smaller version of the card grid — it answers a different
+ * question. The cards are for judging one player; the table is for comparing
+ * thirty, which means every column has to be a number you can scan down. So it
+ * shows all six attributes as figures rather than three as bars: a bar tells
+ * you "quite high", and comparing quite-high to quite-high down a column is
+ * exactly the thing a table exists to make unnecessary.
+ *
+ * It is a real table element. The previous version was nested divs with a
+ * `gridTemplateColumns` string repeated in two places — headers and rows drift
+ * apart the moment a column is added, and a screen reader gets a pile of
+ * unlabelled text. `position: sticky` on the head keeps the labels while you
+ * scroll a thirty-player squad.
+ */
 function PlayerTable({
   list,
   onSelect,
@@ -1329,176 +1220,248 @@ function PlayerTable({
   list: Player[];
   onSelect: (p: Player) => void;
 }) {
+  const COLS: Array<[keyof Player, string]> = [
+    ["pace", "HIZ"],
+    ["shooting", "ŞUT"],
+    ["passing", "PAS"],
+    ["defending", "DEF"],
+    ["physical", "FİZ"],
+    ["goalkeeping", "KAL"],
+  ];
+
   return (
     <div
-      className="glass"
       data-dense-table
       data-dense-table-xwide
-      style={{ padding: 0, overflow: "hidden" }}
+      style={{
+        borderRadius: 16,
+        border: "1px solid var(--border)",
+        background: "var(--panel)",
+        overflow: "auto",
+      }}
     >
-      <div
+      <table
         style={{
-          display: "grid",
-          gridTemplateColumns:
-            "40px 1fr 100px 70px 90px 100px 100px 70px 90px 60px",
-          gap: 12,
-          padding: "12px 18px",
-          borderBottom: "1px solid var(--border)",
-          background: "var(--panel-2)",
+          width: "100%",
+          borderCollapse: "collapse",
+          fontSize: 13,
         }}
       >
-        {[
-          "#",
-          "OYUNCU",
-          "POS",
-          "OVR",
-          "POT",
-          "YAŞ",
-          "FORM",
-          "FIT",
-          "DEĞER",
-          "DURUM",
-        ].map((h) => (
-          <span key={h} className="t-label" style={{ fontSize: 10 }}>
-            {h}
-          </span>
-        ))}
-      </div>
-      {list.map((p, i) => (
-        <div
-          key={p.num ?? p.n}
-          onClick={() => onSelect(p)}
-          className="anim-slide-up"
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "40px 1fr 100px 70px 90px 100px 100px 70px 90px 60px",
-            gap: 12,
-            padding: "12px 18px",
-            alignItems: "center",
-            borderBottom:
-              i < list.length - 1 ? "1px solid var(--border)" : "none",
-            cursor: "pointer",
-            transition: "background 200ms var(--ease)",
-            animationDelay: `${Math.min(i * 20, 300)}ms`,
-          }}
-        >
-          <span
-            className="t-mono"
-            style={{ color: "var(--muted)", fontSize: 13 }}
-          >
-            {p.num ?? "?"}
-          </span>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                background: `linear-gradient(135deg, ${posColor(
-                  p.pos,
-                )}, color-mix(in oklab, ${posColor(p.pos)} 30%, var(--bg-2)))`,
-                color: "#fff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: 700,
-                fontSize: 12,
-                fontFamily: "var(--font-jetbrains)",
-              }}
-            >
-              {p.n
-                .split(" ")
-                .map((s) => s[0])
-                .join("")
-                .slice(0, 2)}
-            </div>
-            <div style={{ minWidth: 0, overflow: "hidden" }}>
-              <div
+        <thead>
+          <tr>
+            {[
+              ["", "left"],
+              ["OYUNCU", "left"],
+              ["OVR", "center"],
+              ["POT", "center"],
+              ["YAŞ", "center"],
+              ...COLS.map(([, l]) => [l, "center"] as [string, string]),
+              ["KOND", "center"],
+              ["FORM", "center"],
+              ["DEĞER", "right"],
+            ].map(([label, align], idx) => (
+              <th
+                key={`${label}-${idx}`}
+                className="t-label"
                 style={{
-                  fontSize: 14,
-                  fontWeight: 600,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
+                  position: "sticky",
+                  top: 0,
+                  zIndex: 1,
+                  fontSize: 9.5,
+                  fontWeight: 700,
+                  letterSpacing: "0.1em",
+                  textAlign: align as "left" | "center" | "right",
+                  padding: "11px 8px",
+                  background: "var(--panel-2)",
+                  borderBottom: "1px solid var(--border)",
                   whiteSpace: "nowrap",
                 }}
-                title={p.n}
               >
-                {p.n}
-              </div>
-              <div className="t-caption" style={{ fontSize: 11 }}>
-                {p.role} · {p.nat}
-              </div>
-            </div>
-          </div>
-          <PosBadge pos={p.pos} showLabel />
-          <OvrChip ovr={p.ovr} size="sm" />
-          <div>
-            <Bar value={p.pot} color="var(--gold)" height={4} />
-            <span
-              className="t-mono"
-              style={{ fontSize: 10, color: "var(--muted)" }}
-            >
-              {p.ovr}→{p.pot}
-            </span>
-          </div>
-          <AgePill age={p.age} size="sm" />
-          <div style={{ display: "flex", gap: 2 }}>
-            {(p.form ?? []).map((f, j) => (
-              <span
-                key={`f-${j}`}
-                style={{
-                  flex: 1,
-                  height: 14,
-                  borderRadius: 2,
-                  background:
-                    f >= 8
-                      ? "var(--gold)"
-                      : f >= 7
-                        ? "var(--emerald)"
-                        : f >= 6
-                          ? "var(--cyan)"
-                          : "var(--muted-2)",
-                }}
-              />
+                {label}
+              </th>
             ))}
-          </div>
-          <Bar
-            value={p.fit ?? 0}
-            height={4}
-            color={
-              (p.fit ?? 0) >= 90
-                ? "var(--emerald)"
-                : (p.fit ?? 0) >= 75
-                  ? "var(--cyan)"
-                  : "var(--warn)"
-            }
-          />
-          <Currency value={p.val ?? 0} size={13} />
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            {(() => {
-              const Icon = STATUS_ICON[p.status ?? "_"];
-              return Icon ? (
-                <Icon
-                  size={13}
-                  strokeWidth={2}
-                  style={{ color: STATUS_STYLE[p.status ?? "_"]?.c }}
-                />
-              ) : null;
-            })()}
-          </div>
-        </div>
-      ))}
+          </tr>
+        </thead>
+        <tbody>
+          {list.map((p, i) => {
+            const tier = tierPalette(p.ovr);
+            const status = STATUS_STYLE[p.status ?? "_"] ?? null;
+            const growth = p.pot - p.ovr;
+            const fit = p.fit ?? 0;
+            return (
+              <tr
+                key={p.num ?? p.n}
+                onClick={() => onSelect(p)}
+                className="squad-row"
+                style={{
+                  cursor: "pointer",
+                  background:
+                    i % 2 === 0
+                      ? "color-mix(in oklab, var(--panel-2) 38%, transparent)"
+                      : "transparent",
+                }}
+              >
+                <td style={{ padding: "8px 8px 8px 14px", width: 30 }}>
+                  <PosBadge pos={p.pos} size={20} />
+                </td>
+
+                <td style={{ padding: "8px", minWidth: 190 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 7,
+                      minWidth: 0,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontWeight: 620,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {p.n}
+                    </span>
+                    {status && (
+                      <status.Icon
+                        size={11}
+                        strokeWidth={2.2}
+                        style={{ color: status.c, flexShrink: 0 }}
+                        aria-label={status.label}
+                      />
+                    )}
+                  </div>
+                  <span
+                    className="t-mono"
+                    style={{ fontSize: 9.5, color: "var(--muted)" }}
+                  >
+                    {p.role} · {p.nat}
+                    {p.num !== undefined && ` · #${p.num}`}
+                  </span>
+                </td>
+
+                <td style={{ padding: "8px", textAlign: "center" }}>
+                  <span
+                    className="t-mono"
+                    style={{ fontSize: 15, fontWeight: 800, color: tier.accent }}
+                  >
+                    {p.ovr}
+                  </span>
+                </td>
+
+                <td style={{ padding: "8px", textAlign: "center" }}>
+                  <span
+                    className="t-mono"
+                    style={{
+                      fontSize: 12,
+                      color: growth > 0 ? "var(--emerald)" : "var(--muted)",
+                    }}
+                  >
+                    {p.pot}
+                    {growth > 0 && (
+                      <span style={{ fontSize: 9.5 }}> +{growth}</span>
+                    )}
+                  </span>
+                </td>
+
+                <td
+                  className="t-mono"
+                  style={{
+                    padding: "8px",
+                    textAlign: "center",
+                    fontSize: 12,
+                    color: "var(--muted)",
+                  }}
+                >
+                  {p.age}
+                </td>
+
+                {/* All six, as figures. This is the column you scan. */}
+                {COLS.map(([key]) => {
+                  const v = (p[key] as number | undefined) ?? 0;
+                  return (
+                    <td
+                      key={key as string}
+                      className="t-mono"
+                      style={{
+                        padding: "8px",
+                        textAlign: "center",
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        color: attrTone(v),
+                      }}
+                    >
+                      {v}
+                    </td>
+                  );
+                })}
+
+                <td
+                  className="t-mono"
+                  style={{
+                    padding: "8px",
+                    textAlign: "center",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color:
+                      fit >= 90
+                        ? "var(--emerald)"
+                        : fit >= 75
+                          ? "var(--cyan)"
+                          : "var(--warn)",
+                  }}
+                >
+                  {fit}
+                </td>
+
+                <td style={{ padding: "8px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-end",
+                      justifyContent: "center",
+                      gap: 2,
+                      height: 13,
+                    }}
+                  >
+                    {(p.form ?? []).slice(-5).map((f, j) => (
+                      <span
+                        key={`f-${j}`}
+                        style={{
+                          width: 3.5,
+                          height: `${Math.max(24, Math.min(100, (f / 10) * 100))}%`,
+                          borderRadius: 1.5,
+                          background: formTone(f),
+                        }}
+                      />
+                    ))}
+                  </div>
+                </td>
+
+                <td
+                  className="t-mono"
+                  style={{
+                    padding: "8px 14px 8px 8px",
+                    textAlign: "right",
+                    fontSize: 12.5,
+                    fontWeight: 650,
+                    color: "var(--emerald)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {fmtEUR(p.val ?? 0)}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
 
-const STATUS_ICON: Record<string, LucideIcon> = {
-  injured: BandageIcon,
-  suspended: Square,
-  training: Dumbbell,
-  listed: Tag,
-};
 
 // ─── Player sheet (modal detail) ─────────────────────────────
 function PlayerSheet({
