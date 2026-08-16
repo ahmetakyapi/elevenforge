@@ -7,6 +7,10 @@ import { db } from "@/lib/db";
 import { transferListings } from "@/lib/schema";
 import { requireLeagueContext } from "@/lib/session";
 import { euroAmountSchema, uuidSchema, validate } from "@/lib/validation";
+import {
+  transferWindow,
+  windowClosedError,
+} from "@/lib/transfer-window";
 
 type AutoBid = { clubId: string; maxCents: number };
 
@@ -76,6 +80,14 @@ export async function placeAutoBid(input: {
   maxEur: number;
 }) {
   const ctx = await requireLeagueContext();
+  // Transfer window. Actions that ACQUIRE or LIST a player are gated; actions
+  // that unwind a commitment (withdrawing a listing, a bid or an offer) stay
+  // open, because trapping someone in a deal they no longer want is not what
+  // a closed window means.
+  {
+    const w = transferWindow(ctx.league);
+    if (!w.open) return windowClosedError(w) as { ok: false; error: string };
+  }
   const parsed = validate(
     z.object({ listingId: uuidSchema, maxEur: euroAmountSchema }),
     input,

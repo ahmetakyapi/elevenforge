@@ -86,6 +86,49 @@ export default function TransferMarketUi({ data }: { data: TransferPageData }) {
 
   return (
     <div style={{ maxWidth: 1400, margin: "0 auto", padding: "20px 28px" }}>
+      {/* Window state, stated up front. A closed market that only reveals
+          itself when a button is pressed reads as a broken button. */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "10px 14px",
+          borderRadius: 12,
+          marginBottom: 14,
+          border: `1px solid color-mix(in oklab, ${
+            data.window.open ? "var(--emerald)" : "var(--warn, #f59e0b)"
+          } 35%, var(--border))`,
+          background: `color-mix(in oklab, ${
+            data.window.open ? "var(--emerald)" : "var(--warn, #f59e0b)"
+          } 10%, transparent)`,
+        }}
+      >
+        <span
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: 999,
+            flexShrink: 0,
+            background: data.window.open
+              ? "var(--emerald)"
+              : "var(--warn, #f59e0b)",
+          }}
+        />
+        <span style={{ fontSize: 13, fontWeight: 600 }}>
+          {data.window.label}
+        </span>
+        <span className="t-caption" style={{ fontSize: 11.5 }}>
+          {data.window.open
+            ? data.window.closesAtWeek !== null
+              ? `${data.window.closesAtWeek}. hafta sonunda kapanıyor`
+              : ""
+            : data.window.opensAtWeek !== null
+              ? `${data.window.opensAtWeek}. haftada yeniden açılıyor`
+              : "Sezon sonunda yeniden açılıyor"}
+        </span>
+      </div>
+
       {data.returnedScouts.length > 0 && (
         <ReturnedScoutsBanner scouts={data.returnedScouts} />
       )}

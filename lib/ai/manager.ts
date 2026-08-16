@@ -23,7 +23,7 @@
  * Everything here is deterministic per club per day (see dailyRng) and
  * idempotent via clubs.aiLastRunAt, so a retried cron does not double-spend.
  */
-import { and, eq, gt, inArray, isNull, lt, ne, or } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, lt, ne, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { autoLineup, isAvailable } from "@/lib/lineup";
 import {
@@ -38,6 +38,7 @@ import { cancelBidsForListings } from "@/lib/jobs/bids";
 import {
   clubs,
   feedEvents,
+  leagues,
   players,
   transferBids,
   transferHistory,
@@ -50,6 +51,7 @@ import { SPONSORS } from "@/lib/sponsors";
 import { STAFF } from "@/lib/staff";
 import { syncInactiveManagers } from "./inactivity";
 import { dailyRng, traitForClub, type AiTrait } from "./profile";
+import { transferWindow } from "@/lib/transfer-window";
 
 /** A squad this size can always field 11 plus cover for injuries. */
 const HARD_MIN_SQUAD = 16;
@@ -1004,6 +1006,13 @@ async function respondToOffers(
   club: Club,
   squad: DBPlayer[],
   trait: AiTrait,
+  /**
+   * When false, the club may only REJECT. Accepting moves a player between
+   * clubs and countering names a price that becomes bindable the moment the
+   * window reopens — both are trading, and trading is what a closed window
+   * stops.
+   */
+  marketOpen = true,
 ): Promise<number> {
   const incoming = await db
     .select()
@@ -1053,7 +1062,7 @@ async function respondToOffers(
     );
     const amount = Number(offer.amountCents);
 
-    if (amount >= askingPrice) {
+    if (amount >= askingPrice && marketOpen) {
       // Accept: move the player and settle up, guarded at every step.
       const paid = await debitClub(offer.fromClubId, amount, undefined, {
         kind: "transfer_in",
@@ -1114,8 +1123,12 @@ async function respondToOffers(
       continue;
     }
 
-    if (amount >= askingPrice * 0.72) {
-      // Close enough to talk: name a price.
+    if (amount >= askingPrice * 0.72 && marketOpen) {
+      // Close enough to talk: name a price. Also behind the window: a counter
+      // is a priced commitment that acceptCounterOffer can convert the instant
+      // the market reopens, and 'countered' is not touched by the stale-offer
+      // sweep (which only expires 'pending'), so one named during a closed
+      // window would sit there indefinitely.
       await db
         .update(transferOffers)
         .set({
@@ -1204,6 +1217,24 @@ export async function runAiManagers(
         : eq(clubs.aiManaged, true),
     );
 
+  // Which leagues are in a transfer window, looked up once for the whole
+  // sweep. runAiManagers never touched the leagues table before; without this
+  // the bots would keep trading straight through a closed window while every
+  // human action was refused, which is worse than having no window at all.
+  const leagueRows = await db
+    .select({
+      id: leagues.id,
+      weekNumber: leagues.weekNumber,
+      seasonLength: leagues.seasonLength,
+    })
+    .from(leagues)
+    .where(
+      opts.leagueId ? eq(leagues.id, opts.leagueId) : sql`true`,
+    );
+  const windowByLeague = new Map(
+    leagueRows.map((l) => [l.id, transferWindow(l)]),
+  );
+
   const result: AiTickResult = {
     clubsManaged: 0,
     renewed: 0,
@@ -1248,16 +1279,36 @@ export async function runAiManagers(
       .from(players)
       .where(eq(players.clubId, club.id));
 
+    // Everything that puts a player on the market or acquires one waits for
+    // the window. emergencyCover and emergencySales deliberately do NOT: a
+    // club with ten players or a club €50M in the red has to be able to dig
+    // itself out, and a window that can trap a club in an unplayable state is
+    // a rule that breaks the game rather than shaping it.
+    const marketOpen = windowByLeague.get(club.leagueId)?.open ?? true;
+
     result.emergency += await emergencyCover(club, squad);
-    result.offersHandled += await respondToOffers(club, squad, trait);
+    // respondToOffers accepts pending offers, and accepting is a complete
+    // inter-club transfer — debit, move, credit, history row. It used to run
+    // ABOVE this flag, so a bot honoured offers while the market was shut
+    // while the identical human action (respondToTransferOffer) was refused.
+    // Same act, two answers, depending on who performed it.
+    //
+    // Rejecting stays available while closed: that is unwinding a commitment,
+    // like withdrawing a listing or a bid, and leaving offers unanswered would
+    // only make them pile up.
+    result.offersHandled += await respondToOffers(club, squad, trait, marketOpen);
     result.emergencySales += await emergencySales(club, squad, trait);
     result.renewed += await renewExpiringContracts(club, squad, trait);
-    result.listed += await listSurplus(club, squad, trait, rng);
-    result.listed += await listQualitySurplus(club, squad, trait, rng);
-    result.bidsPlaced += await bidOnAuctions(club, squad, trait, rng);
-    result.signed += await signFreeAgents(club, squad, trait);
-    result.bought += await buyFromMarket(club, squad, trait, rng);
-    result.offersSent += await sendOffers(club, squad, trait, rng);
+    if (marketOpen) {
+      result.listed += await listSurplus(club, squad, trait, rng);
+      result.listed += await listQualitySurplus(club, squad, trait, rng);
+      result.bidsPlaced += await bidOnAuctions(club, squad, trait, rng);
+    }
+    if (marketOpen) {
+      result.signed += await signFreeAgents(club, squad, trait);
+      result.bought += await buyFromMarket(club, squad, trait, rng);
+      result.offersSent += await sendOffers(club, squad, trait, rng);
+    }
 
     const dev = await developClub(club, squad, trait, rng);
     result.trained += dev.trained;

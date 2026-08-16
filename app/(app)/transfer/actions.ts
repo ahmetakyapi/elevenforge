@@ -21,9 +21,21 @@ import {
 import { euroAmountSchema, uuidSchema, validate } from "@/lib/validation";
 import type { Position } from "@/types";
 import { cancelBidsForListings } from "@/lib/jobs/bids";
+import {
+  transferWindow,
+  windowClosedError,
+} from "@/lib/transfer-window";
 
 export async function buyListing(listingId: string) {
   const ctx = await requireLeagueContext();
+  // Transfer window. Actions that ACQUIRE or LIST a player are gated; actions
+  // that unwind a commitment (withdrawing a listing, a bid or an offer) stay
+  // open, because trapping someone in a deal they no longer want is not what
+  // a closed window means.
+  {
+    const w = transferWindow(ctx.league);
+    if (!w.open) return windowClosedError(w) as { ok: false; error: string };
+  }
   const parsedId = validate(uuidSchema, listingId);
   if (!parsedId.ok) return parsedId;
   const row = (
@@ -178,6 +190,14 @@ export async function listPlayer(input: {
   priceEur: number;
 }) {
   const ctx = await requireLeagueContext();
+  // Transfer window. Actions that ACQUIRE or LIST a player are gated; actions
+  // that unwind a commitment (withdrawing a listing, a bid or an offer) stay
+  // open, because trapping someone in a deal they no longer want is not what
+  // a closed window means.
+  {
+    const w = transferWindow(ctx.league);
+    if (!w.open) return windowClosedError(w) as { ok: false; error: string };
+  }
   // Without this, `priceEur: NaN` sailed through both range comparisons
   // (NaN < min and NaN > max are each false) and landed in a bigint column.
   const parsed = validate(listInputSchema, input);

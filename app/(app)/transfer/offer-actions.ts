@@ -15,6 +15,10 @@ import {
 } from "@/lib/schema";
 import { requireLeagueContext } from "@/lib/session";
 import { euroAmountSchema, uuidSchema, validate } from "@/lib/validation";
+import {
+  transferWindow,
+  windowClosedError,
+} from "@/lib/transfer-window";
 
 const OFFER_TTL_MS = 3 * 24 * 3600 * 1000;
 const MAX_PENDING_OFFERS = 5;
@@ -35,6 +39,14 @@ export async function sendTransferOffer(input: {
   amountEur: number;
 }) {
   const ctx = await requireLeagueContext();
+  // Transfer window. Actions that ACQUIRE or LIST a player are gated; actions
+  // that unwind a commitment (withdrawing a listing, a bid or an offer) stay
+  // open, because trapping someone in a deal they no longer want is not what
+  // a closed window means.
+  {
+    const w = transferWindow(ctx.league);
+    if (!w.open) return windowClosedError(w) as { ok: false; error: string };
+  }
   const parsed = validate(
     z.object({ playerId: uuidSchema, amountEur: euroAmountSchema }),
     input,
@@ -152,6 +164,14 @@ export async function respondToTransferOffer(input: {
   counterEur?: number;
 }) {
   const ctx = await requireLeagueContext();
+  // Transfer window. Actions that ACQUIRE or LIST a player are gated; actions
+  // that unwind a commitment (withdrawing a listing, a bid or an offer) stay
+  // open, because trapping someone in a deal they no longer want is not what
+  // a closed window means.
+  {
+    const w = transferWindow(ctx.league);
+    if (!w.open) return windowClosedError(w) as { ok: false; error: string };
+  }
   const parsed = validate(
     z.object({
       offerId: uuidSchema,
@@ -317,6 +337,14 @@ export async function respondToTransferOffer(input: {
 /** Accept a counter-offer the selling club named. */
 export async function acceptCounterOffer(input: { offerId: string }) {
   const ctx = await requireLeagueContext();
+  // Transfer window. Actions that ACQUIRE or LIST a player are gated; actions
+  // that unwind a commitment (withdrawing a listing, a bid or an offer) stay
+  // open, because trapping someone in a deal they no longer want is not what
+  // a closed window means.
+  {
+    const w = transferWindow(ctx.league);
+    if (!w.open) return windowClosedError(w) as { ok: false; error: string };
+  }
   const parsed = validate(z.object({ offerId: uuidSchema }), input);
   if (!parsed.ok) return parsed;
 

@@ -7,7 +7,7 @@
  *  - 0-3 new bot-market listings are added from random unlisted bot-club
  *    players so the market always has fresh stock.
  */
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { creditClub, debitClub } from "@/lib/money";
 import {
@@ -15,8 +15,10 @@ import {
   feedEvents,
   players,
   transferHistory,
+  leagues,
   transferListings,
 } from "@/lib/schema";
+import { transferWindow } from "@/lib/transfer-window";
 
 export async function runTransferBots(opts: { leagueId?: string } = {}) {
   const leaguesToRun = opts.leagueId
@@ -26,7 +28,31 @@ export async function runTransferBots(opts: { leagueId?: string } = {}) {
   let purchased = 0;
   let created = 0;
 
+  // Window state per league, in one query. This job never read the leagues
+  // table either — it groups clubs by leagueId and works from that — so the
+  // lookup has to be added rather than threaded through.
+  const windowById = new Map(
+    (
+      await db
+        .select({
+          id: leagues.id,
+          weekNumber: leagues.weekNumber,
+          seasonLength: leagues.seasonLength,
+        })
+        .from(leagues)
+        .where(
+          opts.leagueId ? eq(leagues.id, opts.leagueId) : sql`true`,
+        )
+    ).map((l) => [l.id, transferWindow(l)]),
+  );
+
   for (const { id: leagueId } of leaguesToRun) {
+    // Nothing moves between clubs while the window is shut — not the
+    // auto-bid settlement below, not the bot purchases, not the free-agent
+    // top-up. A market that keeps trading for bots while refusing every human
+    // action is worse than no window at all.
+    if (!(windowById.get(leagueId)?.open ?? true)) continue;
+
     // 0. Process auto-bids first. For every active listing where the
     //    current price is <= a watcher's max bid, the highest watcher wins
     //    and the listing closes. This runs before bot random purchases so

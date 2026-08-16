@@ -10,6 +10,10 @@ import {
   transferWishlist,
 } from "@/lib/schema";
 import type { LeagueContext } from "@/lib/session";
+import {
+  transferWindow,
+  type TransferWindowState,
+} from "@/lib/transfer-window";
 
 export type TransferListingView = {
   id: string;
@@ -119,6 +123,7 @@ export type TransferPageData = {
   crestLookup: CrestLookup;
   userClub: { id: string; name: string } & CrestInfo;
   balanceEur: number;
+  window: TransferWindowState;
 };
 
 export async function loadTransferData(
@@ -424,6 +429,7 @@ export async function loadTransferData(
   }
 
   return {
+    window: transferWindow(league),
     listings,
     globalTicker,
     myListings,

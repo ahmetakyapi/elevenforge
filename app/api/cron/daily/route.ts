@@ -30,6 +30,7 @@
 import { NextResponse } from "next/server";
 import { verifyCron } from "@/lib/cron/verify";
 import { resolveTransferBids } from "@/lib/jobs/bids";
+import { closeMarketsOutsideWindow } from "@/lib/jobs/market-reset";
 import {
   processScoutReturns,
   runAiManagers,
@@ -60,6 +61,9 @@ import {
  *                   ai-managers, because that is where bots place their bids;
  *                   before transfer-bots, whose free-agent top-up counts open
  *                   listings and must not restock against ones about to close.
+ *  8b. window-close — a league whose transfer window has just shut has its
+ *                   leftover listings and offers expired, so nothing agreed
+ *                   on the last open day is honoured after the deadline.
  *  9. transfer-bots — market activity on the freshly decayed prices.
  * 10. newspaper   — reports the results, so it runs last.
  */
@@ -72,6 +76,7 @@ const STEPS = [
   { name: "scout-returns", run: () => processScoutReturns() },
   { name: "price-decay", run: () => runPriceDecay() },
   { name: "bids", run: () => resolveTransferBids() },
+  { name: "window-close", run: () => closeMarketsOutsideWindow() },
   { name: "transfer-bots", run: () => runTransferBots() },
   { name: "newspaper", run: () => runWeeklyNewspaper() },
 ] as const;

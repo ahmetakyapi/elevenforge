@@ -7,6 +7,10 @@ import { feedEvents, players } from "@/lib/schema";
 import { FREE_AGENT_FEE_RATE } from "@/lib/economy";
 import { creditClub, debitClub } from "@/lib/money";
 import { requireLeagueContext } from "@/lib/session";
+import {
+  transferWindow,
+  windowClosedError,
+} from "@/lib/transfer-window";
 
 /**
  * Sign a free agent (player with clubId=null in the same league). Costs
@@ -19,6 +23,14 @@ import { requireLeagueContext } from "@/lib/session";
  */
 export async function signFreeAgent(input: { playerId: string }) {
   const ctx = await requireLeagueContext();
+  // Transfer window. Actions that ACQUIRE or LIST a player are gated; actions
+  // that unwind a commitment (withdrawing a listing, a bid or an offer) stay
+  // open, because trapping someone in a deal they no longer want is not what
+  // a closed window means.
+  {
+    const w = transferWindow(ctx.league);
+    if (!w.open) return windowClosedError(w) as { ok: false; error: string };
+  }
   const [p] = await db
     .select()
     .from(players)

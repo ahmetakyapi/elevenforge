@@ -21,6 +21,10 @@ import { db } from "@/lib/db";
 import { players, transferBids, transferListings } from "@/lib/schema";
 import { requireLeagueContext } from "@/lib/session";
 import { MAX_LISTING_MULTIPLIER } from "@/lib/economy";
+import {
+  transferWindow,
+  windowClosedError,
+} from "@/lib/transfer-window";
 
 const bidSchema = z.object({
   listingId: z.string().uuid(),
@@ -36,6 +40,14 @@ export async function placeBid(input: {
     return { ok: false as const, error: "Geçersiz teklif." };
   }
   const ctx = await requireLeagueContext();
+  // Transfer window. Actions that ACQUIRE or LIST a player are gated; actions
+  // that unwind a commitment (withdrawing a listing, a bid or an offer) stay
+  // open, because trapping someone in a deal they no longer want is not what
+  // a closed window means.
+  {
+    const w = transferWindow(ctx.league);
+    if (!w.open) return windowClosedError(w) as { ok: false; error: string };
+  }
   const amountCents = parsed.data.amountEur * 100;
 
   const [listing] = await db

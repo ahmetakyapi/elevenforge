@@ -10,7 +10,11 @@ import { and, eq, lt, lte } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { debitClub } from "@/lib/money";
 import { attributesFor } from "@/lib/attributes";
-import { feedEvents, players, scouts, clubs } from "@/lib/schema";
+import {
+  transferWindow,
+  windowClosedError,
+} from "@/lib/transfer-window";
+import { feedEvents, leagues, players, scouts, clubs } from "@/lib/schema";
 import type { Position } from "@/types";
 import { marketValueCents, wageFromValueCents } from "@/lib/economy";
 
@@ -359,6 +363,22 @@ export async function claimScoutPlayer(
     return { ok: false, error: "Bu kaşif senin değil." };
   }
   if (s.status !== "returned") return { ok: false, error: "Geçersiz kaşif" };
+
+  // Claiming a scouted player adds him to the squad and charges the club for
+  // him — that is an acquisition, whatever the route, so it waits for the
+  // window like every other one. The scout may still RETURN and its report may
+  // still be read while closed; only the signing waits.
+  const [lg] = await db
+    .select({
+      weekNumber: leagues.weekNumber,
+      seasonLength: leagues.seasonLength,
+    })
+    .from(leagues)
+    .where(eq(leagues.id, s.leagueId));
+  if (lg) {
+    const w = transferWindow(lg);
+    if (!w.open) return windowClosedError(w);
+  }
   if (!s.resultsJson) return { ok: false, error: "Aday yok" };
   let candidates: ScoutCandidate[] = [];
   try {

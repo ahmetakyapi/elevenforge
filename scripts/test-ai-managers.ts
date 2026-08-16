@@ -26,6 +26,7 @@ import {
   leagues,
 } from "../lib/schema";
 import { assertLocalDatabase } from "./guard-remote-db";
+import { transferWindow } from "../lib/transfer-window";
 
 let bad = 0;
 const ok = (cond: boolean, msg: string) => {
@@ -41,6 +42,28 @@ async function main() {
   const [league] = await db.select().from(leagues).limit(1);
   if (!league) throw new Error("seed first");
   const leagueId = league.id;
+
+  // Pin the week to an OPEN transfer window, deliberately.
+  //
+  // The seeded league sits at week 7 of 34, which the window function reports
+  // as closed — so every market assertion below would fail for a reason that
+  // has nothing to do with what it is testing. Setting it explicitly also
+  // means a future change to the window boundaries fails HERE, loudly, rather
+  // than leaving these tests passing or failing by accident.
+  {
+    const [lg] = await db.select().from(leagues).where(eq(leagues.id, leagueId));
+    let openWeek = 0;
+    for (let w = 0; w <= lg.seasonLength; w++) {
+      if (transferWindow({ weekNumber: w, seasonLength: lg.seasonLength }).open) {
+        openWeek = w;
+        break;
+      }
+    }
+    await db
+      .update(leagues)
+      .set({ weekNumber: openWeek })
+      .where(eq(leagues.id, leagueId));
+  }
 
   console.log("\n=== AI manager tick ===");
   const before = await db

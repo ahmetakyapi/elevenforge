@@ -23,9 +23,10 @@
  * wipe every other league's market too. Everything here is scoped to one
  * league, and the tests below assert it.
  */
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { transferListings, transferOffers } from "@/lib/schema";
+import { leagues, transferListings, transferOffers } from "@/lib/schema";
+import { transferWindow } from "@/lib/transfer-window";
 import { releasePlayers } from "./price-decay";
 import { cancelBidsForListings } from "./bids";
 
@@ -36,6 +37,16 @@ export type MarketResetResult = {
   bidsCancelled: number;
 };
 
+/**
+ * Expire everything still open in one league's market.
+ *
+ * Shared by the season roll and by the transfer-window close, because they
+ * want the same thing for the same reason: a price agreed under one set of
+ * conditions must not be executable under another. The season roll reprices
+ * every player; the window close ends the period in which trading was allowed.
+ * Leaving offers alive across either boundary is what let a bot honour a
+ * pending offer — a complete inter-club transfer — days after the market shut.
+ */
 export async function closeMarketForSeasonRoll(
   leagueId: string,
 ): Promise<MarketResetResult> {
@@ -101,4 +112,61 @@ export async function closeMarketForSeasonRoll(
     offersExpired: offers.length,
     bidsCancelled,
   };
+}
+
+/**
+ * Sweep any league whose transfer window has just shut.
+ *
+ * Runs on every game-loop tick and is a no-op while a window is open or when
+ * a closed league has already been swept — the emptiness of the second query
+ * is what makes it idempotent, so there is no marker to maintain.
+ *
+ * Without this, offers and listings created legally on the last open day stay
+ * live for their full three-day TTL and get honoured after the market shuts.
+ */
+export async function closeMarketsOutsideWindow(
+  opts: { leagueId?: string } = {},
+): Promise<{ leaguesClosed: number; offersExpired: number; listingsCleared: number }> {
+  const rows = await db
+    .select({
+      id: leagues.id,
+      weekNumber: leagues.weekNumber,
+      seasonLength: leagues.seasonLength,
+    })
+    .from(leagues)
+    .where(opts.leagueId ? eq(leagues.id, opts.leagueId) : sql`true`);
+
+  let leaguesClosed = 0;
+  let offersExpired = 0;
+  let listingsCleared = 0;
+  for (const l of rows) {
+    if (transferWindow(l).open) continue;
+    const [open] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(transferOffers)
+      .where(
+        and(
+          eq(transferOffers.leagueId, l.id),
+          or(
+            eq(transferOffers.status, "pending"),
+            eq(transferOffers.status, "countered"),
+          ),
+        ),
+      );
+    const [live] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(transferListings)
+      .where(
+        and(
+          eq(transferListings.leagueId, l.id),
+          eq(transferListings.status, "active"),
+        ),
+      );
+    if (open.n === 0 && live.n === 0) continue;
+    const res = await closeMarketForSeasonRoll(l.id);
+    leaguesClosed++;
+    offersExpired += res.offersExpired;
+    listingsCleared += res.listingsCleared;
+  }
+  return { leaguesClosed, offersExpired, listingsCleared };
 }
