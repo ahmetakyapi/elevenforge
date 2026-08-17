@@ -18,6 +18,7 @@ import {
   users,
 } from "@/lib/schema";
 import { SQUAD_PACKS, SQUAD_PACKS_D2 } from "@/lib/squad-packs";
+import { packPlayerRows, tierFor } from "@/lib/league-setup";
 import { matchKickoff } from "@/lib/match-time";
 import { deriveShortName } from "@/lib/utils";
 import { roundRobin as sharedRoundRobin } from "@/lib/jobs/season";
@@ -218,23 +219,6 @@ function generateName(r: () => number): { name: string; nat: string } {
 
 // Secondary roles for the Fenerbahçe 2025-26 squad (Haziran 2026).
 // Keys must match `n` field in squad-packs.ts FENERBAHCE pack exactly.
-const HAND_SECONDARY: Record<string, string[]> = {
-  "Milan Škriniar": ["LB"],
-  "Nélson Semedo": ["CB"],
-  "Mert Müldür": ["CB"],
-  "Jayden Oosterwolde": ["CB", "LW"],
-  "Archie Brown": ["LW"],
-  "N'Golo Kanté": ["CM"],
-  "Mateo Guendouzi": ["CDM", "AM"],
-  "İsmail Yüksek": ["CDM", "AM"],
-  Fred: ["CDM"],
-  "Marco Asensio": ["RW", "LW"],
-  "Oğuz Aydın": ["LW", "AM"],
-  "Kerem Aktürkoğlu": ["RW", "ST"],
-  Talisca: ["AM", "CF"],
-  "Dorgeles Nene": ["CF"],
-  "Sidiki Cherif": ["CF"],
-};
 
 // Per-role attribute offsets from overall. Clamped into [30, 99] after
 // sampling. Keeps strikers' finishing above their tackling even at equal
@@ -516,34 +500,6 @@ export async function createStarterLeague(input: {
     // can never drift apart — and so the number a club starts season one with
     // is computed the same way as the one it starts season five with, rather
     // than by a hand-kept table that only the league creator ever consulted.
-    type TierMeta = { prestige: number; balance: number };
-    // One entry per pack, in SQUAD_PACKS order. Derived rather than indexed
-    // blindly: the league grew from 16 to 18 clubs and a fixed-length table
-    // silently handed `undefined` to the last two.
-    const TIER_TEMPLATE: TierMeta[] = [
-      { prestige: 82, balance: 33_000_000_000 }, //  0 Fenerbahçe (user)
-      { prestige: 85, balance: 34_000_000_000 }, //  1 Galatasaray
-      { prestige: 78, balance: 30_000_000_000 }, //  2 Beşiktaş
-      { prestige: 76, balance: 28_000_000_000 }, //  3 Trabzonspor
-      { prestige: 66, balance: 26_000_000_000 }, //  4 Başakşehir
-      { prestige: 60, balance: 25_000_000_000 }, //  5 Samsunspor
-      { prestige: 56, balance: 24_000_000_000 }, //  6 Göztepe
-      { prestige: 48, balance: 23_000_000_000 }, //  7 Çaykur Rizespor
-      { prestige: 46, balance: 23_000_000_000 }, //  8 Alanyaspor
-      { prestige: 46, balance: 23_000_000_000 }, //  9 Konyaspor
-      { prestige: 44, balance: 22_000_000_000 }, // 10 Kasımpaşa
-      { prestige: 40, balance: 21_000_000_000 }, // 11 Gaziantep FK
-      { prestige: 38, balance: 20_000_000_000 }, // 12 Kocaelispor
-      { prestige: 38, balance: 20_000_000_000 }, // 13 Eyüpspor
-      { prestige: 34, balance: 19_000_000_000 }, // 14 Gençlerbirliği
-      { prestige: 30, balance: 18_000_000_000 }, // 15 Çorum FK (promoted)
-      { prestige: 30, balance: 18_000_000_000 }, // 16 Amed SK (promoted)
-      { prestige: 28, balance: 18_000_000_000 }, // 17 Erzurumspor (promoted)
-    ];
-    /** Fallback so an added pack can never produce an undefined tier. */
-    const tierFor = (i: number): TierMeta =>
-      TIER_TEMPLATE[i] ?? { prestige: 30, balance: 18_000_000_000 };
-
     // Both tiers are created up front: the second division is a real league
     // that plays its own calendar, not a holding pen. Clubs move between them
     // at the season roll (lib/jobs/promotion.ts).
@@ -557,8 +513,7 @@ export async function createStarterLeague(input: {
       const { pack, division } = ALL_PACKS[i];
       const meta = pack.club;
       // Second-division clubs are poorer and less prestigious across the board.
-      const tier =
-        division === 2 ? { prestige: 24, balance: 12_000_000_000 } : tierFor(i);
+      const tier = tierFor(i, division);
       const personality =
         i === 0
           ? BOT_PERSONALITIES[0] // user defaults to balanced 4-3-3
@@ -608,44 +563,7 @@ export async function createStarterLeague(input: {
     for (const [idx, club] of clubRows.entries()) {
       const r = rng(club.id.charCodeAt(0) * 997 + idx * 31 + Date.now());
       const pack = ALL_PACKS[idx].pack;
-      for (const p of pack.players) {
-        const offsets = ROLE_ATTR_OFFSETS[p.role] ?? ROLE_ATTR_OFFSETS.CM;
-        const packValue =
-          p.val != null ? p.val * 100 : marketValueCents(p.ovr, p.pot, p.age);
-        allPlayers.push({
-          leagueId: league.id,
-          clubId: club.id,
-          name: p.n,
-          position: p.pos,
-          role: p.role,
-          secondaryRoles: JSON.stringify(HAND_SECONDARY[p.n] ?? []),
-          jerseyNumber: p.num ?? null,
-          age: p.age,
-          nationality: p.nat,
-          overall: p.ovr,
-          potential: p.pot,
-          pace: rollAttr(p.ovr, offsets.pace, r),
-          shooting: rollAttr(p.ovr, offsets.shooting, r),
-          passing: rollAttr(p.ovr, offsets.passing, r),
-          defending: rollAttr(p.ovr, offsets.defending, r),
-          physical: rollAttr(p.ovr, offsets.physical, r),
-          goalkeeping: rollAttr(p.ovr, offsets.goalkeeping, r),
-          fitness: p.fit ?? 90,
-          morale: p.mor ?? 4,
-          // Derive rather than fall back to a constant. The pack generator
-          // does emit val/wage, but when it once did not, `?? 1_000_000` gave
-          // every player in the game the same €1M price and the same wage —
-          // silently, because a constant is a perfectly valid number. Falling
-          // back to the curve means a missing field costs accuracy, not the
-          // entire economy.
-          marketValueCents: packValue,
-          status:
-            p.status && p.status !== "listed"
-              ? (p.status as "active" | "injured" | "suspended" | "training")
-              : "active",
-          lastRatings: JSON.stringify(p.form ?? []),
-        });
-      }
+      allPlayers.push(...packPlayerRows(league.id, club.id, pack, r));
     }
     await db.insert(players).values(allPlayers);
 
