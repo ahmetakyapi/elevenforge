@@ -24,6 +24,7 @@ import {
 import {
   MAX_LISTING_MULTIPLIER,
   MIN_LISTING_MULTIPLIER,
+  seasonBudgetCents,
 } from "../lib/economy";
 
 /**
@@ -356,6 +357,29 @@ async function main() {
     `    balances €${Math.min(...balances).toFixed(0)}M .. €${Math.max(...balances).toFixed(0)}M`,
   );
   ok(broke === 0, `no club is worse than -€50M (${broke} bankrupt)`);
+
+  /*
+    And it did not run away UPWARDS either, which is the failure the season
+    budget reset exists to prevent.
+
+    With wages removed money only flows in. Left alone, every club would be
+    holding billions within a few seasons and the transfer market would stop
+    meaning anything — the exact failure the economy was rebalanced to fix in
+    the first place. So the roll closes the books and reopens each club on a
+    prestige-scaled budget (lib/economy.ts).
+
+    The ceiling is generous — a club can legitimately be sitting on its
+    opening budget plus the champion's prize plus a season's unspent income
+    when this runs. What it catches is the shape of the failure: unbounded
+    growth, where season four looks like season one times four.
+  */
+  const richest = Math.max(...allClubs.map((c) => Number(c.balanceCents)));
+  const ceiling = seasonBudgetCents(100) * 4;
+  ok(
+    richest <= ceiling,
+    `no club has hoarded across seasons ` +
+      `(en zengin €${(richest / 100 / 1e6).toFixed(0)}M, tavan €${(ceiling / 100 / 1e6).toFixed(0)}M)`,
+  );
 
   // 10. Promotion and relegation actually moved clubs between the tiers.
   //

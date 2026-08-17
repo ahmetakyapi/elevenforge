@@ -165,11 +165,27 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
     season: league.seasonNumber,
     standings: rankedStandings,
   });
+  /*
+    Prize money is worked out here and PAID BELOW, after the budgets reset.
+
+    Paying it here was a bug I introduced with the reset: the champion was
+    credited €35M and then, forty lines later in the same function, had its
+    balance overwritten by the opening budget. Winning the league paid a prize
+    that ceased to exist before anyone could see it, and nothing would have
+    reported that — the ledger showed the credit, the club just never had it.
+
+    Landing it on top of the new budget is also the better game. The reset
+    makes every season a fresh financial run, which is what stops clubs
+    hoarding, but it also means a season's achievements have to buy something
+    or the whole year evaporates. They buy next season: the champion opens
+    with its budget plus €35M, and that is a real, earned head start.
+  */
   const prizes = SEASON_PRIZES_CENTS;
+  const prizeByClub = new Map<string, { amount: number; rank: number }>();
   for (let rank = 0; rank < Math.min(4, standings.length); rank++) {
-    await creditClub(standings[rank].id, prizes[rank], undefined, {
-      kind: "prize",
-      note: `Lig ${rank + 1}. sıra`,
+    prizeByClub.set(standings[rank].id, {
+      amount: prizes[rank],
+      rank: rank + 1,
     });
   }
 
@@ -398,6 +414,15 @@ export async function rollSeasonIfDone(leagueId: string): Promise<{
     .where(eq(clubs.leagueId, leagueId));
   for (const c of budgetRows) {
     await resetClubBalance(c.id, seasonBudgetCents(c.prestige));
+    // The prize lands ON TOP of the opening budget, not before it — see the
+    // note where prizeByClub is built.
+    const prize = prizeByClub.get(c.id);
+    if (prize) {
+      await creditClub(c.id, prize.amount, undefined, {
+        kind: "prize",
+        note: `Lig ${prize.rank}. sıra — sezon ödülü`,
+      });
+    }
     await db
       .update(clubs)
       .set({
