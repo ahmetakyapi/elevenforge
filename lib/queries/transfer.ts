@@ -1,5 +1,6 @@
 import { and, desc, eq, gte } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { parseStaffJson } from "@/lib/staff";
 import {
   clubs,
   players,
@@ -43,6 +44,20 @@ export type TransferListingView = {
   topBidEur: number | null;
   /** The caller's own live bid, so the row can say "you are leading". */
   myBidEur: number | null;
+  /**
+   * The attributes, so the market row can show what you are buying.
+   *
+   * The squad screen, the player card and the scout report all print six
+   * attributes; the market — the one screen where you commit money to a
+   * player you have never seen — printed none. A rating and an age are not
+   * enough to tell a quick winger from a slow one.
+   */
+  pace: number;
+  shooting: number;
+  passing: number;
+  defending: number;
+  physical: number;
+  goalkeeping: number;
 };
 
 export type GlobalTransferView = {
@@ -137,6 +152,14 @@ export type TransferPageData = {
    * there was no way to tell whether you had one running or three.
    */
   activeScouts: ActiveScoutView[];
+  /**
+   * The chief scout's tier, 0-3. Read by the scout screen because it decides
+   * two things the manager needs to know BEFORE committing €500K: how long
+   * the trip takes, and how far up the game the department can see (a club
+   * with nobody in the role is not told about Mbappé — see scoutReach in
+   * lib/jobs/scout.ts).
+   */
+  scoutTier: number;
   returnedScouts: ReturnedScoutView[];
   marketStats: MarketStatsView;
   userSquad: SellRowView[];
@@ -258,6 +281,12 @@ export async function loadTransferData(
         bidCount: bidStats.get(r.listing.id)?.count ?? 0,
         topBidEur: bidStats.get(r.listing.id)?.top ?? null,
         myBidEur: bidStats.get(r.listing.id)?.mine ?? null,
+        pace: r.player.pace,
+        shooting: r.player.shooting,
+        passing: r.player.passing,
+        defending: r.player.defending,
+        physical: r.player.physical,
+        goalkeeping: r.player.goalkeeping,
       };
     });
 
@@ -476,6 +505,7 @@ export async function loadTransferData(
     myListings,
     activeScout,
     activeScouts,
+    scoutTier: parseStaffJson(club.staffJson).scout?.tier ?? 0,
     returnedScouts,
     marketStats,
     userSquad,

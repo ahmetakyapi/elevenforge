@@ -26,7 +26,8 @@
     "db:repair-leagues": "tsx scripts/repair-empty-leagues.ts",
     "db:add-d2": "tsx scripts/add-second-division.ts",
     "test:window": "DATABASE_URL= tsx scripts/test-transfer-window.ts",
-    "test:balance": "DATABASE_URL= tsx scripts/test-balance.ts"
+    "test:balance": "DATABASE_URL= tsx scripts/test-balance.ts",
+    "db:normalize-economy": "tsx scripts/normalize-economy.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.4.4",

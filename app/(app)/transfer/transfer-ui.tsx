@@ -22,6 +22,10 @@ import { Field, SliderField } from "@/components/ui/form";
 import { useToast } from "@/components/ui/toast";
 import { NAT_FLAGS, NAT_NAMES, fmtEUR, tierColor } from "@/lib/utils";
 import type { Position } from "@/types";
+import {
+  findScoutCandidates,
+  SCOUT_NATIONALITIES,
+} from "@/lib/scout-pool";
 import type {
   CrestLookup,
   MyListingView,
@@ -354,7 +358,13 @@ export default function TransferMarketUi({ data }: { data: TransferPageData }) {
         </div>
       </div>
 
-      {showScout && <ScoutModal onClose={() => setShowScout(false)} />}
+      {showScout && (
+        <ScoutModal
+          onClose={() => setShowScout(false)}
+          scoutTier={data.scoutTier}
+          inField={data.activeScouts.length}
+        />
+      )}
     </div>
   );
 }
@@ -609,6 +619,31 @@ function ReturnedScoutsBanner({
       )}
     </div>
   );
+}
+
+/**
+ * The attributes a market row prints, by position.
+ *
+ * Three, matching the squad board — this is a scanning surface, and six
+ * numbers per row across twenty rows is a wall. The player sheet has all six
+ * for when you are deciding rather than browsing.
+ */
+const MARKET_ATTRS: Record<
+  "GK" | "DEF" | "MID" | "FWD",
+  Array<[keyof TransferListingView & ("pace"|"shooting"|"passing"|"defending"|"physical"|"goalkeeping"), string]>
+> = {
+  GK: [["goalkeeping", "KAL"], ["physical", "FİZ"], ["passing", "PAS"]],
+  DEF: [["defending", "DEF"], ["physical", "FİZ"], ["pace", "HIZ"]],
+  MID: [["passing", "PAS"], ["defending", "DEF"], ["physical", "FİZ"]],
+  FWD: [["shooting", "ŞUT"], ["pace", "HIZ"], ["physical", "FİZ"]],
+};
+
+/** Same colour bands as the squad board, so 78 means one thing app-wide. */
+function marketAttrTone(v: number): string {
+  if (v >= 85) return "var(--gold)";
+  if (v >= 76) return "var(--emerald)";
+  if (v >= 66) return "var(--cyan)";
+  return "var(--muted)";
 }
 
 /** Same colour bands as the squad card, so 78 means one thing app-wide. */
@@ -1065,6 +1100,35 @@ function TransferRow({
             >
               {listing.sellerClubName ?? "Bot pazarı"}
             </span>
+          </div>
+
+          {/* What you are actually buying.
+              The squad screen, the player card and the scout report all print
+              attributes; the market — the one screen where you commit money to
+              a player you have never seen — printed none. A rating and an age
+              cannot tell a quick winger from a slow one. Three, not six: the
+              ones that decide this position's job, at a density a list of
+              twenty rows can carry. */}
+          <div style={{ display: "flex", gap: 9, marginTop: 1 }}>
+            {MARKET_ATTRS[listing.position].map(([key, label]) => {
+              const v = listing[key];
+              return (
+                <span
+                  key={key}
+                  style={{ display: "inline-flex", alignItems: "baseline", gap: 3 }}
+                >
+                  <span
+                    className="t-mono"
+                    style={{ fontSize: 10.5, fontWeight: 800, color: marketAttrTone(v) }}
+                  >
+                    {v}
+                  </span>
+                  <span className="t-label" style={{ fontSize: 8, letterSpacing: "0.1em" }}>
+                    {label}
+                  </span>
+                </span>
+              );
+            })}
           </div>
         </div>
 
@@ -1549,26 +1613,95 @@ function ScoutActiveCard({
   );
 }
 
-function ScoutModal({ onClose }: { onClose: () => void }) {
+/**
+ * The scouting desk.
+ *
+ * ─── What was wrong ─────────────────────────────────────────────────────
+ *
+ * Two dropdowns and a slider, and every one of them lied or hid something:
+ *
+ *   - FIVE countries, hardcoded, out of the twenty-one the pool actually
+ *     covers. Most of the game's best players were unreachable because a
+ *     `<select>` had never been updated.
+ *   - "Kaşifi Yolla (~8 saat)". The trip has been three hours since the scout
+ *     was reworked, and less with a chief scout on the payroll.
+ *   - No way to know whether a brief was worth sending. You paid €500K, waited,
+ *     and found out. A brief matching nobody — a 34-year-old Georgian keeper —
+ *     cost exactly the same as a good one and came back with invented players.
+ *   - Nothing suggested the chief scout did anything, so nobody would hire one.
+ *
+ * ─── What it does now ───────────────────────────────────────────────────
+ *
+ * It answers the brief BEFORE you commit. The pool is real data (see
+ * lib/scout-pool.ts) and it is a plain module with no server dependency, so
+ * this screen can run the same filter the job will run and say exactly how
+ * many real footballers match, and the best rating among them — which is what
+ * the €500K is actually buying.
+ *
+ * That turns a form into a decision: widen the ages, change country, drop the
+ * position filter, and watch the number move.
+ */
+function ScoutModal({
+  onClose,
+  scoutTier,
+  inField,
+}: {
+  onClose: () => void;
+  scoutTier: number;
+  inField: number;
+}) {
   const toast = useToast();
   const [nat, setNat] = useState("BR");
   const [pos, setPos] = useState<Position | "ANY">("FWD");
+  const [ageMin, setAgeMin] = useState(17);
   const [ageMax, setAgeMax] = useState(24);
   const [pending, startTransition] = useTransition();
+
+  const hours = Math.max(1, 3 - scoutTier * 0.5);
+  const full = inField >= 3;
+
+  /*
+    What this brief is worth.
+
+    Runs the same reach the job runs, minus its luck term: `scoutReach` in
+    lib/jobs/scout.ts widens the visible band with the chief scout's tier, so
+    what is shown here is the honest ceiling of what THIS department can find
+    rather than what the whole pool contains. A club with nobody in the role
+    genuinely cannot see the top of the game, and the panel says so.
+  */
+  const preview = useMemo(() => {
+    const maxOverall = Math.round(
+      70 + Math.min(1, 0.34 + scoutTier * 0.11 + 0.22) * 25,
+    );
+    const matches = findScoutCandidates({
+      nat,
+      position: pos,
+      ageMin,
+      ageMax,
+      minOverall: 0,
+      maxOverall,
+      exclude: new Set<string>(),
+    });
+    return {
+      count: matches.length,
+      best: matches.reduce((m, p) => Math.max(m, p.overall), 0),
+      sample: matches.slice(0, 3),
+    };
+  }, [nat, pos, ageMin, ageMax, scoutTier]);
 
   const submit = () =>
     startTransition(async () => {
       const res = await sendScoutAction({
         targetNationality: nat,
         targetPosition: pos,
-        ageMin: 17,
+        ageMin,
         ageMax,
       });
       if (res.ok) {
         toast({
           icon: "🛰",
           title: "Kaşif yollandı",
-          body: `${nat} · ${pos} · ~8 saat`,
+          body: `${NAT_NAMES[nat] ?? nat} · ${pos} · ~${hours} saat sonra döner`,
           accent: "var(--indigo)",
         });
         onClose();
@@ -1588,12 +1721,13 @@ function ScoutModal({ onClose }: { onClose: () => void }) {
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0,0,0,0.55)",
-        backdropFilter: "blur(4px)",
+        background: "rgba(0,0,0,0.6)",
+        backdropFilter: "blur(6px)",
         zIndex: 200,
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
+        padding: 20,
       }}
     >
       <div
@@ -1602,19 +1736,21 @@ function ScoutModal({ onClose }: { onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
         className="glass"
         style={{
-          maxWidth: 480,
+          maxWidth: 560,
           width: "100%",
+          maxHeight: "90vh",
+          overflowY: "auto",
           background: "var(--bg-2)",
-          borderRadius: 16,
-          padding: 24,
-          animation: "slide-up 260ms var(--ease)",
+          borderRadius: 18,
+          padding: 22,
+          animation: "modal-in 260ms var(--ease)",
         }}
       >
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center",
+            alignItems: "flex-start",
             marginBottom: 16,
           }}
         >
@@ -1622,75 +1758,169 @@ function ScoutModal({ onClose }: { onClose: () => void }) {
             <span className="t-label" style={{ color: "var(--indigo)" }}>
               KAŞİF
             </span>
-            <div className="t-h2" style={{ marginTop: 6 }}>
+            <div className="t-h2" style={{ marginTop: 5, fontSize: 22 }}>
               Yeni Görev
             </div>
+            <div className="t-caption" style={{ fontSize: 11.5, marginTop: 4 }}>
+              {inField} / 3 kaşif sahada · her rapor 3 aday getirir, birini
+              imzalarsın
+            </div>
           </div>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={onClose}
-          >
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
             <X size={16} strokeWidth={1.6} />
           </button>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 15 }}>
           <Field label="Hedef ülke">
-            <select
-              className="input"
-              value={nat}
-              onChange={(e) => setNat(e.target.value)}
-            >
-              <option value="BR">🇧🇷 Brezilya</option>
-              <option value="AR">🇦🇷 Arjantin</option>
-              <option value="DE">🇩🇪 Almanya</option>
-              <option value="FR">🇫🇷 Fransa</option>
-              <option value="TR">🇹🇷 Türkiye</option>
-            </select>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+              {SCOUT_NATIONALITIES.map((code) => (
+                <button
+                  key={code}
+                  type="button"
+                  className={`chip ${nat === code ? "active" : ""}`}
+                  onClick={() => setNat(code)}
+                  title={NAT_NAMES[code] ?? code}
+                  style={{ cursor: "pointer", fontSize: 11.5, padding: "5px 9px" }}
+                >
+                  {NAT_FLAGS[code] ?? "🏳"} {code}
+                </button>
+              ))}
+            </div>
           </Field>
+
           <Field label="Mevki">
-            <select
-              className="input"
-              value={pos}
-              onChange={(e) => setPos(e.target.value as Position | "ANY")}
-            >
-              <option value="GK">GK</option>
-              <option value="DEF">DEF</option>
-              <option value="MID">MID</option>
-              <option value="FWD">FWD</option>
-              <option value="ANY">Herhangi</option>
-            </select>
+            <div style={{ display: "flex", gap: 5 }}>
+              {(["GK", "DEF", "MID", "FWD", "ANY"] as const).map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  className={`chip ${pos === k ? "active" : ""}`}
+                  onClick={() => setPos(k)}
+                  style={{ cursor: "pointer", flex: 1, justifyContent: "center" }}
+                >
+                  {k === "ANY" ? "Farketmez" : k}
+                </button>
+              ))}
+            </div>
           </Field>
-          <Field label={`Yaş aralığı · 17-${ageMax}`}>
-            <input
-              type="range"
-              min={20}
-              max={35}
-              value={ageMax}
-              onChange={(e) => setAgeMax(+e.target.value)}
-              style={{ accentColor: "var(--accent)" }}
-            />
+
+          <Field label={`Yaş aralığı · ${ageMin} – ${ageMax}`}>
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              <input
+                type="range"
+                min={16}
+                max={38}
+                value={ageMin}
+                onChange={(e) => setAgeMin(Math.min(+e.target.value, ageMax))}
+                style={{ accentColor: "var(--accent)", flex: 1 }}
+                aria-label="En küçük yaş"
+              />
+              <input
+                type="range"
+                min={16}
+                max={38}
+                value={ageMax}
+                onChange={(e) => setAgeMax(Math.max(+e.target.value, ageMin))}
+                style={{ accentColor: "var(--accent)", flex: 1 }}
+                aria-label="En büyük yaş"
+              />
+            </div>
           </Field>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              padding: "8px 0",
-            }}
-          >
-            <span style={{ color: "var(--muted)" }}>Maliyet</span>
-            <Currency value={500_000} size={14} color="var(--warn)" />
-          </div>
-          <button
-            type="button"
-            className="btn btn-primary"
-            style={{ justifyContent: "center" }}
-            disabled={pending}
-            onClick={submit}
-          >
-            {pending ? "Gönderiliyor…" : "Kaşifi Yolla (~8 saat)"}
-          </button>
         </div>
+
+        <div
+          style={{
+            marginTop: 16,
+            padding: 14,
+            borderRadius: 12,
+            background: "var(--panel-2)",
+            border: `1px solid ${
+              preview.count > 0
+                ? "color-mix(in oklab, var(--emerald) 32%, var(--border))"
+                : "color-mix(in oklab, var(--warn) 38%, var(--border))"
+            }`,
+          }}
+        >
+          <span className="t-label" style={{ fontSize: 9.5 }}>
+            BU BRİFE UYAN GERÇEK OYUNCU
+          </span>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 6 }}>
+            <span
+              className="t-mono"
+              style={{
+                fontSize: 26,
+                fontWeight: 800,
+                color: preview.count > 0 ? "var(--emerald)" : "var(--warn)",
+              }}
+            >
+              {preview.count}
+            </span>
+            {preview.count > 0 && (
+              <span className="t-caption" style={{ fontSize: 12 }}>
+                en iyisi{" "}
+                <span className="t-mono" style={{ color: "var(--gold)", fontWeight: 700 }}>
+                  {preview.best}
+                </span>{" "}
+                reyting
+              </span>
+            )}
+          </div>
+          <p className="t-caption" style={{ fontSize: 11.5, margin: "8px 0 0", lineHeight: 1.55 }}>
+            {preview.count > 0 ? (
+              <>
+                {preview.sample.map((p) => p.name).join(", ")}
+                {preview.count > 3 && ` ve ${preview.count - 3} isim daha`} —
+                kaşif bunların arasından üç aday getirir.
+              </>
+            ) : (
+              <>
+                Bu tarife uyan tanınmış oyuncu yok. Kaşif yine de gider ama
+                kurgusal oyuncularla döner — yaş aralığını genişlet ya da başka
+                bir ülke seç.
+              </>
+            )}
+          </p>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            gap: 14,
+            marginTop: 14,
+            flexWrap: "wrap",
+            fontSize: 11.5,
+            color: "var(--muted)",
+          }}
+        >
+          <span>
+            Ücret <strong style={{ color: "var(--text-2)" }}>€500K</strong>
+          </span>
+          <span>
+            Dönüş <strong style={{ color: "var(--text-2)" }}>~{hours} saat</strong>
+          </span>
+          <span>
+            Baş kaşif{" "}
+            <strong style={{ color: scoutTier > 0 ? "var(--emerald)" : "var(--warn)" }}>
+              {scoutTier > 0 ? `T${scoutTier}` : "yok"}
+            </strong>
+            {scoutTier === 0 && " — oyunun en üst seviyesini göremezsin"}
+          </span>
+        </div>
+
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={pending || full}
+          onClick={submit}
+          style={{ width: "100%", justifyContent: "center", marginTop: 16 }}
+        >
+          {full
+            ? "Üç kaşif de sahada"
+            : pending
+              ? "Gönderiliyor…"
+              : "Kaşifi Yolla · €500K"}
+        </button>
       </div>
     </div>
   );
