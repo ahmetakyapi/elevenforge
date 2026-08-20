@@ -967,6 +967,7 @@ function PitchSlot({
         </div>
       </div>
       <div
+        data-pitch-name
         style={{
           background: "rgba(0,0,0,0.7)",
           padding: "2px 7px",
@@ -985,6 +986,7 @@ function PitchSlot({
         {player.n}
       </div>
       <div
+        data-pitch-meta
         style={{
           fontFamily: "var(--font-jetbrains)",
           fontSize: 8,

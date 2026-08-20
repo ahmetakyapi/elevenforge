@@ -787,8 +787,33 @@ body[data-modal-open="true"] { overflow: hidden; }
   [style*="grid-template-columns:minmax(0, 1.3fr) minmax(0, 1fr)"],
   [style*="grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr)"],
   [style*="grid-template-columns:minmax(0, 1.4fr) minmax(0, 1fr)"],
-  [style*="grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr)"] {
-    grid-template-columns: 1fr !important;
+  [style*="grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr)"],
+  [data-tactic-layout] {
+    /*
+      minmax(0, 1fr), NOT 1fr.
+
+      `1fr` is shorthand for `minmax(auto, 1fr)`, and an `auto` minimum
+      resolves to the track's max-content size — so a single-column grid
+      still grows to fit whatever its widest child wants to be, and the
+      collapse achieves nothing. Measured on the tactic screen at 390px:
+      the rule below WAS applying, the grid WAS one column, and that one
+      column was 3,830px wide because a row of formation chips inside it
+      refused to wrap.
+
+      The zero minimum is what actually lets the track shrink; `min-width: 0`
+      on the children is the same fix for the flex/grid item default, which
+      is likewise `auto`.
+    */
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  [style*="grid-template-columns:minmax(0, 1.4fr) minmax(0, 1fr)"] > *,
+  [style*="grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr)"] > *,
+  [style*="grid-template-columns:minmax(0, 1.3fr) minmax(0, 1fr)"] > *,
+  [style*="grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr)"] > *,
+  [style*="grid-template-columns:1fr 1fr"] > *,
+  [style*="grid-template-columns: 1fr 1fr"] > *,
+  [data-tactic-layout] > * {
+    min-width: 0;
   }
   [style*="grid-template-columns:repeat(4"],
   [style*="grid-template-columns: repeat(4"] {
@@ -960,6 +985,21 @@ body[data-modal-open="true"] { overflow: hidden; }
      so we set a sensible min-height. */
   [data-tactic-pitch] {
     min-height: 380px !important;
+  }
+
+  /*
+    Name plates come off the pitch on phones.
+
+    Eleven of them at 140px wide do not fit across 390px, so they overlapped
+    each other and the shirts underneath — the midfield three were a single
+    illegible smear. The shirt number and the position/rating line still say
+    who each disc is, the tap target is unchanged, and the full name is one
+    tap away in the player sheet.
+  */
+  [data-pitch-name] { display: none !important; }
+  [data-pitch-meta] {
+    font-size: 7.5px !important;
+    letter-spacing: 0.04em !important;
   }
 
   /* Tactic layout on mobile: re-order so the user sees PITCH → BENCH on the
@@ -1162,6 +1202,28 @@ body[data-modal-open="true"] { overflow: hidden; }
     overflow: hidden !important;
     text-overflow: ellipsis !important;
   }
+
+  /*
+    Icon-only buttons in the top bar.
+
+    Measured at 390px: the right-hand cluster overflowed the viewport by 12px
+    on every screen in the app, and because an ancestor clips rather than
+    scrolls, the balance was simply cut off rather than reachable. The label
+    is the widest part and the icon already carries the meaning — the words
+    stay in `title` for anyone hovering with a pointer.
+  */
+  .btn-label-mobile-hidden { display: none !important; }
+
+  /*
+    Nothing in the bar may force it wider than the screen.
+
+    `min-width: 0` is the fix for the flex-item default of `min-width: auto`,
+    which refuses to shrink a child below its content width no matter what
+    max-widths are set on it — the reason the league switcher's ellipsis was
+    never reached.
+  */
+  [data-topnav-container] > * { min-width: 0; }
+  [data-topnav-right] { min-width: 0; flex-shrink: 1; }
 
   /* Toast stack: right-aligned 360px is fine at desktop but clips off
      the left on phones; re-anchor to bottom-centre and lift above the

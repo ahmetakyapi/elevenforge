@@ -16,6 +16,7 @@ import {
 import { Crest, GlassCard } from "@/components/ui/primitives";
 import { Field } from "@/components/ui/form";
 import { useToast } from "@/components/ui/toast";
+import { copyText } from "@/lib/clipboard";
 import { switchLeagueAction } from "@/app/(app)/switch-league-action";
 import { createNewLeague, joinByInvite } from "./actions";
 
@@ -88,13 +89,16 @@ function LobbyEntry({
     });
   };
 
-  const handleCopy = (code: string) => {
-    navigator.clipboard?.writeText(code);
+  // The toast used to fire regardless of whether the copy succeeded — and
+  // the promise was never awaited, so a refusal surfaced as an unhandled
+  // rejection while the user was being told it had worked. See lib/clipboard.ts.
+  const handleCopy = async (code: string) => {
+    const ok = await copyText(code);
     toast({
-      icon: "📋",
-      title: "Davet kodu kopyalandı",
-      body: code,
-      accent: "var(--emerald)",
+      icon: ok ? "📋" : "⚠",
+      title: ok ? "Davet kodu kopyalandı" : "Kopyalanamadı",
+      body: ok ? code : `Kodu elle kopyala: ${code}`,
+      accent: ok ? "var(--emerald)" : "var(--warn)",
     });
   };
 
@@ -547,7 +551,17 @@ function CreateWizard({
                 type="button"
                 className="btn btn-sm btn-primary"
                 onClick={() => {
-                  if (createdCode) navigator.clipboard?.writeText(createdCode);
+                  if (!createdCode) return;
+                  // Same rule as the other copy buttons: report what actually
+                  // happened, never assume. See lib/clipboard.ts.
+                  void copyText(createdCode).then((ok) =>
+                    toast({
+                      icon: ok ? "📋" : "⚠",
+                      title: ok ? "Davet kodu kopyalandı" : "Kopyalanamadı",
+                      body: ok ? createdCode : `Kodu elle kopyala: ${createdCode}`,
+                      accent: ok ? "var(--emerald)" : "var(--warn)",
+                    }),
+                  );
                 }}
               >
                 Kopyala

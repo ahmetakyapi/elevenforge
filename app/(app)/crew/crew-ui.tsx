@@ -266,12 +266,20 @@ export default function CrewUi({ data }: { data: CrewPageData }) {
             ))}
           </div>
           <div
+            data-chat-composer
             style={{
               padding: "12px 18px",
               borderTop: "1px solid var(--border)",
               display: "flex",
               gap: 8,
               alignItems: "center",
+              // The emoji row, the input and the send button share one flex
+              // line. At phone width the emoji row and the input each claim
+              // their content width, and the button — last in the line — was
+              // pushed 80px off the right edge, where the body's
+              // `overflow-x: hidden` clipped it. You could type a message and
+              // not be able to send it.
+              flexWrap: "wrap",
             }}
           >
             <div style={{ display: "flex", gap: 2 }}>
@@ -289,6 +297,10 @@ export default function CrewUi({ data }: { data: CrewPageData }) {
             </div>
             <input
               className="input"
+              // Without an explicit basis a flex input refuses to shrink
+              // below its default size, which is what forced the wrap in the
+              // first place.
+              style={{ flex: "1 1 140px", minWidth: 0 }}
               placeholder="Mesajını yaz…"
               value={input}
               onChange={(e) => setInput(e.target.value)}

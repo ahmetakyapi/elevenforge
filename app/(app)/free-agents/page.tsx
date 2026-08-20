@@ -47,9 +47,13 @@ export default async function FreeAgentsPage() {
       {agents.length === 0 ? (
         <GlassCard pad={0} hover={false} className="glass-hero">
           <EmptyState
-            Icon={UserX}
+            // A rendered element, not the component: this is a Server
+            // Component and EmptyState is a client one. See the note on
+            // EmptyStateProps — passing `Icon={UserX}` crashed this page
+            // whenever the pool happened to be empty.
+            icon={<UserX size={26} strokeWidth={1.7} />}
             title="Havuz şu an boş"
-            description="Sezon sonunda sözleşmesi biten oyuncular bu havuza düşer. Bir sezon daha oyna, üst sıralar için bedava imza fırsatları burada belirir."
+            description="Şu anda kulübü olmayan oyuncu yok. Bir kulüp oyuncusunu serbest bıraktığında ya da altyapıdan fazla oyuncu çıktığında burada belirirler."
             tint="var(--muted)"
             compact
           />

@@ -124,15 +124,24 @@ export function PushSubscribeButton() {
       title={subscribed ? "Bildirimleri kapat" : "Bildirimleri aç"}
       style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
     >
+      {/* The label is hidden on phones (see .btn-label-mobile-hidden in
+          app/globals.css). "Bildirimleri Aç" is the widest thing in the top
+          bar and it was pushing the balance chip 12px off the right edge of
+          a 390px viewport on every single screen — while the icon says the
+          same thing and the title attribute carries the words. */}
       {subscribed ? (
         <>
           <Bell size={14} strokeWidth={1.6} style={{ color: "var(--emerald)" }} />
-          <span style={{ fontSize: 11 }}>Açık</span>
+          <span className="btn-label-mobile-hidden" style={{ fontSize: 11 }}>
+            Açık
+          </span>
         </>
       ) : (
         <>
           <BellOff size={14} strokeWidth={1.6} />
-          <span style={{ fontSize: 11 }}>Bildirimleri Aç</span>
+          <span className="btn-label-mobile-hidden" style={{ fontSize: 11 }}>
+            Bildirimleri Aç
+          </span>
         </>
       )}
     </button>

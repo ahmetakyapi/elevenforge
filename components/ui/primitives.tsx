@@ -281,8 +281,27 @@ export function UserAvatar({ name, size = 24 }: UserAvatarProps) {
 // Replaces the plain `<GlassCard>…text…</GlassCard>` empty states scattered
 // across match, newspaper, crew, free-agents. Gives every blank state the
 // same rhythm: icon-in-a-tinted-disc, title, description, optional action.
+//
+// `Icon` TAKES A COMPONENT, and this file is a client module — so a SERVER
+// component that renders an EmptyState is passing a function across the
+// server/client boundary, which React refuses:
+//
+//   Functions cannot be passed directly to Client Components unless you
+//   explicitly expose it by marking it with "use server".
+//
+// That is what took /free-agents down, and it only showed up when the pool
+// was empty — the branch that renders the EmptyState is the branch nobody
+// hit while there were free agents to list. A crash that hides behind a
+// data condition is exactly the kind that reaches production.
+//
+// `icon` takes a rendered ELEMENT instead, which serialises fine from either
+// side. `Icon` is kept for the client-side callers that already use it, and
+// because removing it would be a wider edit than the bug warrants — but a
+// server component must use `icon`.
 type EmptyStateProps = {
   Icon?: LucideIcon;
+  /** A rendered icon element. Use this from Server Components. */
+  icon?: ReactNode;
   title: string;
   description?: ReactNode;
   action?: ReactNode;
@@ -291,6 +310,7 @@ type EmptyStateProps = {
 };
 export function EmptyState({
   Icon,
+  icon,
   title,
   description,
   action,
@@ -311,7 +331,7 @@ export function EmptyState({
         margin: "0 auto",
       }}
     >
-      {Icon && (
+      {(Icon || icon) && (
         <div
           style={{
             width: compact ? 44 : 60,
@@ -326,7 +346,7 @@ export function EmptyState({
             boxShadow: `0 8px 24px -10px color-mix(in oklab, ${tint} 40%, transparent), inset 0 1px 0 color-mix(in oklab, ${tint} 30%, transparent)`,
           }}
         >
-          <Icon size={compact ? 20 : 26} strokeWidth={1.7} />
+          {Icon ? <Icon size={compact ? 20 : 26} strokeWidth={1.7} /> : icon}
         </div>
       )}
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
