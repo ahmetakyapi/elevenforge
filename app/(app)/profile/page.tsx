@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { Award, Briefcase, ListOrdered, Trophy, User2 } from "lucide-react";
 import { requireLeagueContext } from "@/lib/session";
-import { loadManagerProfile } from "@/lib/queries/manager-profile";
+import {
+  loadManagerProfile,
+  type ManagerProfile,
+} from "@/lib/queries/manager-profile";
 import { fmtEUR } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -176,55 +179,165 @@ export default async function ProfilePage() {
         </div>
       </div>
 
-      {/* Trophy cabinet */}
+      {/*
+        The trophy cabinet.
+
+        This matters more than it used to. Money no longer carries across a
+        season — every club opens the year on a prestige-scaled budget (see
+        lib/economy.ts) — so what a manager actually accumulates over time is
+        exactly this: the squad they built, and what they won with it. A
+        one-line list under a "VİTRİN" label was the right size for a
+        decoration and the wrong size for the game's only lasting record.
+
+        Grouped by trophy TYPE rather than listed by date, because the
+        question a cabinet answers is "how many championships", not "what
+        happened on the fourth of March".
+      */}
+      <TrophyCabinet trophies={p.trophies} />
+    </div>
+  );
+}
+
+function TrophyCabinet({
+  trophies,
+}: {
+  trophies: ManagerProfile["trophies"];
+}) {
+  // One entry per kind, newest first inside each, so the shelf reads as
+  // "three championships" rather than as a timeline.
+  const byKind = new Map<
+    string,
+    { label: string; emoji: string; tint: string; items: typeof trophies }
+  >();
+  for (const t of trophies) {
+    const g = byKind.get(t.code) ?? {
+      label: t.label,
+      emoji: t.emoji,
+      tint: t.tint,
+      items: [] as typeof trophies,
+    };
+    g.items.push(t);
+    byKind.set(t.code, g);
+  }
+  const groups = [...byKind.values()].sort(
+    (a, b) => b.items.length - a.items.length,
+  );
+
+  return (
+    <div
+      style={{
+        padding: "18px 20px",
+        background: "var(--panel)",
+        border: "1px solid var(--border)",
+        borderRadius: 14,
+      }}
+    >
       <div
-        style={{
-          padding: "16px 18px",
-          background: "var(--panel)",
-          border: "1px solid var(--border)",
-          borderRadius: 12,
-        }}
+        style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}
       >
         <span className="t-label">VİTRİN</span>
-        {p.trophies.length === 0 ? (
-          <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 10 }}>
-            Henüz kupa yok. İlk şampiyonluğa hadi.
-          </div>
-        ) : (
+        <span className="t-caption" style={{ fontSize: 11 }}>
+          Sezon sonunda kasa sıfırlanır — kalan tek şey burası.
+        </span>
+        <span
+          className="t-mono"
+          style={{ marginLeft: "auto", fontSize: 13, fontWeight: 800 }}
+        >
+          {trophies.length}
+        </span>
+      </div>
+
+      {groups.length === 0 ? (
+        <div
+          style={{
+            marginTop: 16,
+            padding: "28px 20px",
+            textAlign: "center",
+            border: "1px dashed var(--border-strong)",
+            borderRadius: 12,
+          }}
+        >
+          <div style={{ fontSize: 30, opacity: 0.5 }}>🏆</div>
+          <div style={{ fontWeight: 600, marginTop: 8 }}>Vitrin boş</div>
           <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-              gap: 10,
-              marginTop: 12,
-            }}
+            className="t-caption"
+            style={{ fontSize: 12, marginTop: 4, lineHeight: 1.6 }}
           >
-            {p.trophies.map((t, i) => (
-              <div
-                key={i}
-                style={{
-                  padding: "12px 14px",
-                  borderRadius: 10,
-                  background: `color-mix(in oklab, ${t.tint} 12%, transparent)`,
-                  border: `1px solid color-mix(in oklab, ${t.tint} 30%, var(--border))`,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                }}
-              >
-                <span style={{ fontSize: 24 }}>{t.emoji}</span>
-                <div>
-                  <div style={{ fontWeight: 600, color: t.tint }}>{t.label}</div>
-                  <div style={{ fontSize: 11, color: "var(--muted)" }}>
-                    {t.leagueName}
-                    {t.season !== null && ` · Sezon ${t.season}`}
+            Şampiyonluk, kupa, yükselme ve yenilmez sezon buraya işlenir.
+            Kadronu kur, sezonu bitir — ilk kupa en zoru.
+          </div>
+        </div>
+      ) : (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))",
+            gap: 12,
+            marginTop: 16,
+          }}
+        >
+          {groups.map((g) => (
+            <div
+              key={g.label}
+              style={{
+                padding: "14px 16px",
+                borderRadius: 12,
+                background: `color-mix(in oklab, ${g.tint} 10%, transparent)`,
+                border: `1px solid color-mix(in oklab, ${g.tint} 32%, var(--border))`,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 26 }}>{g.emoji}</span>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontWeight: 700, color: g.tint, fontSize: 14 }}>
+                    {g.label}
                   </div>
                 </div>
+                <span
+                  className="t-mono"
+                  style={{ fontSize: 20, fontWeight: 800, color: g.tint }}
+                >
+                  ×{g.items.length}
+                </span>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 5,
+                  marginTop: 10,
+                }}
+              >
+                {g.items
+                  .slice()
+                  .sort((a, b) => (b.season ?? 0) - (a.season ?? 0))
+                  .map((t, i) => (
+                    <span
+                      key={i}
+                      className="t-mono"
+                      title={`${t.leagueName}${t.season !== null ? ` · Sezon ${t.season}` : ""}`}
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: "3px 7px",
+                        borderRadius: 5,
+                        background: "var(--panel-2)",
+                        border: "1px solid var(--border)",
+                        color: "var(--text-2)",
+                      }}
+                    >
+                      {t.season !== null ? `S${t.season}` : "—"} ·{" "}
+                      {t.leagueName.length > 12
+                        ? `${t.leagueName.slice(0, 12)}…`
+                        : t.leagueName}
+                    </span>
+                  ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -23,6 +23,7 @@ import { useToast } from "@/components/ui/toast";
 import { playFriendly, toggleTraining } from "./actions";
 import { FormationSwitcher } from "./formation-switcher";
 import { SquadBoard } from "./squad-board";
+import type { FriendlyAllowance } from "@/lib/queries/friendlies";
 import { TrainingPanel } from "./training-panel";
 import { ComparePanel } from "./compare-panel";
 import {
@@ -45,6 +46,8 @@ export type SquadUiProps = {
   trainingLevel: number;
   /** Head coach staff tier, 0-3. */
   coachTier: number;
+  /** Today's friendly allowance, so the cap is visible before it refuses. */
+  friendly: FriendlyAllowance;
 };
 
 type PosFilter = Position | "ALL";
@@ -64,6 +67,7 @@ export default function SquadPage({
   formation,
   trainingLevel,
   coachTier,
+  friendly,
 }: SquadUiProps) {
   const [filter, setFilter] = useState<PosFilter>("ALL");
   const [q, setQ] = useState("");
@@ -157,6 +161,7 @@ export default function SquadPage({
         squad={squad}
         trainingLevel={trainingLevel}
         coachTier={coachTier}
+        friendly={friendly}
       />
 
       {/* Toolbar */}

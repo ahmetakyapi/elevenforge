@@ -5,7 +5,8 @@ import { AlertTriangle, Dumbbell, Plus, X, Zap } from "lucide-react";
 import { OvrChip, PosBadge } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/toast";
 import { posColor } from "@/lib/utils";
-import { setTrainingFocus, toggleTraining } from "./actions";
+import { playFriendly, setTrainingFocus, toggleTraining } from "./actions";
+import type { FriendlyAllowance } from "@/lib/queries/friendlies";
 import {
   ATTR_LABEL,
   PRIMARY_ATTR,
@@ -72,10 +73,13 @@ export function TrainingPanel({
   squad,
   trainingLevel,
   coachTier,
+  friendly,
 }: {
   squad: Player[];
   trainingLevel: number;
   coachTier: number;
+  /** Today's friendly allowance — see lib/queries/friendlies.ts. */
+  friendly: FriendlyAllowance;
 }) {
   const progressCtx = { trainingLevel, coachTier };
   const [pending, startTransition] = useTransition();
@@ -149,6 +153,51 @@ export function TrainingPanel({
 
   const filled = GROUPS.filter(({ pos }) => bySlot.get(pos)).length;
 
+  /*
+    ── Friendlies ────────────────────────────────────────────────────────
+
+    A friendly restored fitness, lifted morale and rolled the progression
+    curve — a genuine mechanic — and the only way to reach it was a button
+    buried in an individual player's sheet. You had to already know it
+    existed, already know it was capped at three a day, and already know
+    which player you wanted, before you could find it. Most of that is not
+    discoverable from a button inside a dialog.
+
+    It belongs here because it answers the same question the training slots
+    answer: how do I make this squad better. The candidate is whoever most
+    needs it — lowest fitness among the fit-to-play — because that is what a
+    friendly is actually for.
+  */
+  const friendlyPick = useMemo(
+    () =>
+      squad
+        .filter(
+          (p) =>
+            p.id &&
+            p.status !== "injured" &&
+            p.status !== "suspended" &&
+            p.status !== "listed",
+        )
+        .sort((a, b) => (a.fit ?? 100) - (b.fit ?? 100))[0],
+    [squad],
+  );
+
+  const runFriendly = (p: Player) => {
+    startTransition(async () => {
+      const res = await playFriendly(p.id!);
+      if (res.ok) {
+        pushToast({
+          icon: "⚡",
+          title: `${p.n} dostluk maçında oynadı`,
+          body: `Kondisyon ${res.fitness}${res.ovrBump ? " · bir basamak yükseldi" : ""} · ${res.remaining} hak kaldı`,
+          accent: "var(--emerald)",
+        });
+      } else {
+        pushToast({ title: "Olmadı", body: res.error, accent: "var(--danger)" });
+      }
+    });
+  };
+
   return (
     <section
       style={{
@@ -209,51 +258,85 @@ export function TrainingPanel({
 
           if (!p) {
             const pick = suggestionFor(pos);
+            /*
+              An empty slot is ONE LINE, not a card.
+
+              All four rendered as 132px boxes carrying a sentence that said
+              nothing ("Slot boş — bu mevkiden bir oyuncu gelişmiyor" is the
+              slot being empty, restated) plus one button. Four of them cost
+              ~200px at the top of the squad screen — the screen whose whole
+              problem was that you had to scroll to see your own squad — to
+              tell you that nothing was happening.
+
+              The suggestion is the only thing here worth space, so the row IS
+              the suggestion: tap it and that player starts training.
+            */
             return (
-              <div
+              <button
                 key={pos}
+                type="button"
+                disabled={pending || !pick}
+                onClick={() => pick && run(pick.id!, true, pick.n)}
+                title={
+                  pick
+                    ? `${pick.n} antrenmana alınsın — haftada yaklaşık +${previewFor(pick, progressCtx).perWeek.toFixed(1)}`
+                    : "Bu mevkide gelişebilecek oyuncu yok"
+                }
                 style={{
-                  borderRadius: 14,
-                  border: "1px dashed var(--border-strong)",
-                  background: "color-mix(in oklab, var(--bg-2) 60%, transparent)",
-                  padding: 14,
                   display: "flex",
-                  flexDirection: "column",
-                  gap: 10,
-                  minHeight: 132,
+                  alignItems: "center",
+                  gap: 8,
+                  width: "100%",
+                  textAlign: "left",
+                  font: "inherit",
+                  color: "inherit",
+                  padding: "9px 12px",
+                  borderRadius: 12,
+                  border: "1px dashed var(--border-strong)",
+                  background: "color-mix(in oklab, var(--bg-2) 55%, transparent)",
+                  cursor: pick ? "pointer" : "default",
+                  opacity: pick ? 1 : 0.6,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <PosBadge pos={pos} size={20} />
-                  <span className="t-label" style={{ fontSize: 10.5 }}>
-                    {label.toUpperCase()}
-                  </span>
-                </div>
-                <span className="t-caption" style={{ fontSize: 11, flex: 1 }}>
-                  Slot boş — bu mevkiden bir oyuncu gelişmiyor.
+                <PosBadge pos={pos} size={18} />
+                <span className="t-label" style={{ fontSize: 9.5 }}>
+                  {label.toUpperCase()}
                 </span>
                 {pick ? (
-                  <button
-                    type="button"
-                    disabled={pending}
-                    onClick={() => run(pick.id!, true, pick.n)}
-                    className="btn btn-ghost btn-sm"
-                    style={{ justifyContent: "flex-start", gap: 8 }}
-                  >
-                    <Plus size={13} strokeWidth={1.8} />
-                    <span style={{ fontSize: 12 }}>
-                      {pick.n}{" "}
-                      <span className="t-mono">
-                        +{previewFor(pick, progressCtx).perWeek.toFixed(1)}/hf
-                      </span>
+                  <>
+                    <Plus
+                      size={12}
+                      strokeWidth={2}
+                      style={{ color: tint, marginLeft: "auto", flexShrink: 0 }}
+                    />
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        maxWidth: 118,
+                      }}
+                    >
+                      {pick.n}
                     </span>
-                  </button>
+                    <span
+                      className="t-mono"
+                      style={{ fontSize: 10.5, color: tint, flexShrink: 0 }}
+                    >
+                      +{previewFor(pick, progressCtx).perWeek.toFixed(1)}
+                    </span>
+                  </>
                 ) : (
-                  <span className="t-caption" style={{ fontSize: 10.5 }}>
-                    Bu mevkide gelişebilecek oyuncu yok.
+                  <span
+                    className="t-caption"
+                    style={{ fontSize: 10.5, marginLeft: "auto" }}
+                  >
+                    aday yok
                   </span>
                 )}
-              </div>
+              </button>
             );
           }
 
@@ -451,6 +534,67 @@ export function TrainingPanel({
             </div>
           );
         })}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          flexWrap: "wrap",
+          marginTop: 12,
+          paddingTop: 12,
+          borderTop: "1px solid var(--border)",
+        }}
+      >
+        <Zap size={14} strokeWidth={1.8} style={{ color: "var(--gold)" }} />
+        <span className="t-label" style={{ fontSize: 10 }}>
+          DOSTLUK MAÇI
+        </span>
+        <span style={{ display: "inline-flex", gap: 3 }}>
+          {Array.from({ length: friendly.cap }).map((_, i) => (
+            <span
+              key={i}
+              title={
+                i < friendly.remaining ? "Kullanılabilir" : "Bugün kullanıldı"
+              }
+              style={{
+                width: 16,
+                height: 5,
+                borderRadius: 3,
+                background:
+                  i < friendly.remaining ? "var(--gold)" : "var(--panel-2)",
+              }}
+            />
+          ))}
+        </span>
+        <span className="t-caption" style={{ fontSize: 11 }}>
+          {friendly.remaining > 0
+            ? `${friendly.remaining} hak kaldı · €150K · kondisyon ve moral yükselir, gelişim şansı verir`
+            : "Bugünlük bitti — 24 saat içinde yenilenir"}
+        </span>
+
+        <div style={{ flex: 1 }} />
+
+        {friendlyPick && friendly.remaining > 0 ? (
+          <button
+            type="button"
+            className="btn btn-sm btn-outline"
+            disabled={pending}
+            onClick={() => runFriendly(friendlyPick)}
+            title={`En yorgun oyuncun — kondisyon ${friendlyPick.fit ?? 0}`}
+          >
+            <Zap size={12} strokeWidth={2} />
+            {friendlyPick.n} ile oyna
+            <span className="t-mono" style={{ opacity: 0.7 }}>
+              {friendlyPick.fit ?? 0}
+            </span>
+          </button>
+        ) : (
+          <span className="t-caption" style={{ fontSize: 10.5 }}>
+            {friendly.remaining === 0 ? "" : "Uygun oyuncu yok"}
+          </span>
+        )}
       </div>
     </section>
   );

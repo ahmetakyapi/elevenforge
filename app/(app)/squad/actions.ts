@@ -5,7 +5,11 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { marketValueCents } from "@/lib/economy";
 import { debitClub } from "@/lib/money";
-import { friendlyGrowthChance } from "@/lib/progression";
+import {
+  friendlyGrowthChance,
+  FRIENDLY_COST_CENTS,
+  FRIENDLY_DAILY_CAP,
+} from "@/lib/progression";
 import { autoLineup } from "@/lib/lineup";
 import { clubs, feedEvents, friendlies, players } from "@/lib/schema";
 import { parseStaffJson } from "@/lib/staff";
@@ -27,9 +31,6 @@ const ALLOWED_FORMATIONS = [
   "4-1-4-1",
 ] as const satisfies readonly string[];
 
-/** €150K per friendly. */
-const FRIENDLY_COST_CENTS = 15_000_000;
-const FRIENDLY_DAILY_CAP = 3;
 
 /**
  * Toggle a player into / out of training mode.
@@ -215,7 +216,7 @@ export async function playFriendly(playerId: string) {
     fitness: newFit,
     morale: newMor,
     ovrBump,
-    remaining: 3 - within.length - 1,
+    remaining: FRIENDLY_DAILY_CAP - within.length - 1,
   };
 }
 

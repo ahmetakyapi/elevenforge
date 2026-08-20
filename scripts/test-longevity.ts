@@ -140,8 +140,42 @@ async function main() {
   let worstListingRatio = 1;
   let worstListingLabel = "—";
 
+  /*
+    Promotion has to be sampled after EVERY roll, not once at the end.
+
+    The end-state check counted how many clubs currently in the top flight
+    were not in it at the start — which is the NET membership change, not
+    whether promotion happened. Relegated clubs are far stronger than the
+    division they drop into, so they tend to come straight back up: measured
+    over four seasons the same three yo-yoed, season history correctly
+    recorded twelve promotions, and the net difference was zero. The test
+    failed while the mechanic worked perfectly.
+
+    Counting the clubs that changed tier at each roll measures the thing the
+    assertion is actually about, and cannot be cancelled out by a club
+    bouncing back.
+  */
+  let seasonsWithPromotion = 0;
+  let totalPromoted = 0;
+  let totalRelegated = 0;
+  let prevD1 = new Set(startD1);
+
   for (let i = 0; i < SEASONS; i++) {
     await playSeason(leagueId);
+
+    {
+      const nowTop = await db
+        .select({ id: clubs.id })
+        .from(clubs)
+        .where(and(eq(clubs.leagueId, leagueId), eq(clubs.division, 1)));
+      const nowD1 = new Set(nowTop.map((c) => c.id));
+      const up = [...nowD1].filter((id) => !prevD1.has(id)).length;
+      const down = [...prevD1].filter((id) => !nowD1.has(id)).length;
+      if (up > 0) seasonsWithPromotion++;
+      totalPromoted += up;
+      totalRelegated += down;
+      prevD1 = nowD1;
+    }
 
     // Every surviving listing must quote a price that is still in band against
     // the player's CURRENT value. Measured on originalPriceCents, not
@@ -393,11 +427,18 @@ async function main() {
     d1.length === startD1Size,
     `top flight still holds ${startD1Size} clubs (has ${d1.length})`,
   );
-  const movedUp = d1.filter((c) => !startD1.has(c.id)).length;
-  const movedDown = d2.filter((c) => startD1.has(c.id)).length;
-  ok(movedUp > 0, `${movedUp} clubs promoted into the top flight over ${SEASONS} seasons`);
-  ok(movedDown > 0, `${movedDown} clubs relegated out of it`);
-  ok(movedUp === movedDown, `promotions match relegations (${movedUp} vs ${movedDown})`);
+  ok(
+    seasonsWithPromotion === SEASONS,
+    `every roll moved clubs between the tiers (${seasonsWithPromotion}/${SEASONS} sezon)`,
+  );
+  ok(
+    totalPromoted > 0 && totalRelegated > 0,
+    `${totalPromoted} yükselme, ${totalRelegated} düşme toplamda`,
+  );
+  ok(
+    totalPromoted === totalRelegated,
+    `promotions match relegations (${totalPromoted} vs ${totalRelegated})`,
+  );
 
   const promotedRows = await db
     .select({ id: seasonHistory.id })

@@ -138,6 +138,18 @@ export function growthLabel(perWeek: number): {
 }
 
 /**
+ * What a friendly costs, and how many you get.
+ *
+ * These lived in app/(app)/squad/actions.ts, which is a `"use server"` module
+ * — and such a module may only export async functions, so exporting them for
+ * the UI to read was not possible from there. They belong here anyway: the
+ * cap is what bounds the mechanic below, and a rule the screen cannot see is
+ * a rule the player only discovers by being refused.
+ */
+export const FRIENDLY_COST_CENTS = 15_000_000; // €150K
+export const FRIENDLY_DAILY_CAP = 3;
+
+/**
  * The friendly-match boost.
  *
  * A friendly is a shortcut: it buys roughly two days of training for a fee,

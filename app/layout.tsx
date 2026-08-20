@@ -50,6 +50,14 @@ export default function RootLayout({
     <html
       lang="tr"
       data-theme="dark"
+      /*
+        Next asks for this explicitly when the document sets
+        `scroll-behavior: smooth`. Without it Next disables smooth scrolling
+        during route transitions defensively, because a smooth scroll racing a
+        navigation lands the reader partway up the previous page. Declaring it
+        keeps the smooth scroll for in-page anchors and tells Next we meant it.
+      */
+      data-scroll-behavior="smooth"
       data-accent="indigo"
       suppressHydrationWarning
       className={`${manrope.variable} ${jetbrainsMono.variable}`}

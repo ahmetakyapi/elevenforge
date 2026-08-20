@@ -1,6 +1,7 @@
 import { LiveRefresh } from "@/components/dashboard-auto-refresh";
 import { requireLeagueContext } from "@/lib/session";
 import { loadSquad } from "@/lib/queries/squad";
+import { loadFriendlyAllowance } from "@/lib/queries/friendlies";
 import { parseStaffJson } from "@/lib/staff";
 import SquadUi from "./squad-ui";
 
@@ -8,7 +9,10 @@ export const dynamic = "force-dynamic";
 
 export default async function SquadPage() {
   const ctx = await requireLeagueContext();
-  const squad = await loadSquad(ctx);
+  const [squad, friendly] = await Promise.all([
+    loadSquad(ctx),
+    loadFriendlyAllowance(ctx.club.id),
+  ]);
   return (
     <>
       <LiveRefresh intervalMs={60_000} />
@@ -28,6 +32,7 @@ export default async function SquadPage() {
         formation={ctx.club.formation}
         trainingLevel={ctx.club.trainingLevel}
         coachTier={parseStaffJson(ctx.club.staffJson).headCoach?.tier ?? 0}
+        friendly={friendly}
       />
     </>
   );
