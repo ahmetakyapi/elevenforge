@@ -18,7 +18,7 @@ import { Field } from "@/components/ui/form";
 import { useToast } from "@/components/ui/toast";
 import { copyText } from "@/lib/clipboard";
 import { switchLeagueAction } from "@/app/(app)/switch-league-action";
-import { createNewLeague, joinByInvite } from "./actions";
+import { createNewLeague, joinByInvite, previewInvite } from "./actions";
 
 export type LobbyLeagueRow = {
   clubId: string;
@@ -652,6 +652,15 @@ function VisOption({
   );
 }
 
+/**
+ * Joining a league, in two steps: find it, then choose who you are.
+ *
+ * It used to be one step — type the code, and the server handed you whichever
+ * bot club happened to sort first by UUID. That could be the title favourite,
+ * a relegation candidate, or a club in a second division you were never told
+ * existed. Joining is the first decision a manager makes and it shapes the
+ * whole season; it should be a decision.
+ */
 function JoinFlow({
   onBack,
   onJoined,
@@ -661,85 +670,288 @@ function JoinFlow({
 }) {
   const [code, setCode] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  type Preview = Extract<
+    Awaited<ReturnType<typeof previewInvite>>,
+    { ok: true }
+  >;
+  const [preview, setPreview] = useState<Preview | null>(null);
+  const [chosen, setChosen] = useState<string | null>(null);
+  const [teamName, setTeamName] = useState("");
   const [pending, startTransition] = useTransition();
   const toast = useToast();
 
-  const submit = () => {
+  const lookup = () => {
     if (code.length < 4) {
       setErr("Davet kodu çok kısa.");
       return;
     }
     setErr(null);
     startTransition(async () => {
-      const res = await joinByInvite({ inviteCode: code });
+      const res = await previewInvite({ inviteCode: code });
       if (!res.ok) {
         setErr(res.error);
+        return;
+      }
+      setPreview(res);
+      setChosen(res.clubs[0]?.id ?? null);
+    });
+  };
+
+  const join = () => {
+    if (!chosen) return;
+    startTransition(async () => {
+      const res = await joinByInvite({
+        inviteCode: code,
+        clubId: chosen,
+        teamName: teamName.trim() || undefined,
+      });
+      if (!res.ok) {
+        setErr(res.error);
+        // The club may have been taken while the picker was open. Refresh the
+        // list rather than leaving a stale one on screen.
+        const again = await previewInvite({ inviteCode: code });
+        if (again.ok) {
+          setPreview(again);
+          setChosen(again.clubs[0]?.id ?? null);
+        }
         return;
       }
       toast({
         icon: "✅",
         title: "Lige katıldın",
-        body: "Bot kulüplerden biri sana devredildi.",
+        body: "Kulüp senin. Kadroyu incelemekle başla.",
         accent: "var(--emerald)",
       });
       onJoined();
     });
   };
 
+  // ── Step 1: the code ────────────────────────────────────────────────
+  if (!preview) {
+    return (
+      <div style={{ maxWidth: 480, margin: "0 auto", padding: "80px 24px" }}>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={onBack}>
+          <ChevronLeft size={14} strokeWidth={1.6} /> Geri
+        </button>
+        <div className="t-h1" style={{ marginTop: 20 }}>
+          Davet kodu
+        </div>
+        <div style={{ color: "var(--muted)", fontSize: 14, marginTop: 6 }}>
+          Arkadaşın sana 6 haneli bir kod yolladı.
+        </div>
+        <input
+          className={`input ${err ? "invalid" : code.length >= 4 ? "valid" : ""}`}
+          style={{
+            marginTop: 28,
+            fontFamily: "var(--font-jetbrains)",
+            fontSize: 24,
+            textAlign: "center",
+            letterSpacing: "0.4em",
+            padding: "20px 16px",
+          }}
+          value={code}
+          onChange={(e) => {
+            setCode(e.target.value.toUpperCase());
+            if (err) setErr(null);
+          }}
+          onKeyDown={(e) => e.key === "Enter" && lookup()}
+          maxLength={6}
+          autoFocus
+        />
+        {err && (
+          <div
+            style={{ color: "var(--danger)", fontSize: 13, marginTop: 10 }}
+            role="alert"
+          >
+            {err}
+          </div>
+        )}
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={lookup}
+          disabled={pending || code.length < 4}
+          style={{ width: "100%", justifyContent: "center", marginTop: 20 }}
+        >
+          {pending ? "Aranıyor…" : "Ligi Bul"}
+        </button>
+      </div>
+    );
+  }
+
+  // ── Step 2: which club ──────────────────────────────────────────────
+  const { league, clubs: available } = preview;
+  const byDivision = [1, 2]
+    .map((d) => ({ division: d, list: available.filter((c) => c.division === d) }))
+    .filter((g) => g.list.length > 0);
+
   return (
-    <div style={{ maxWidth: 480, margin: "0 auto", padding: "80px 24px" }}>
-      <button type="button" className="btn btn-ghost btn-sm" onClick={onBack}>
-        <ChevronLeft size={14} strokeWidth={1.6} /> Geri
-      </button>
-      <div className="t-h1" style={{ marginTop: 20 }}>
-        Davet kodu
-      </div>
-      <div
-        style={{ color: "var(--muted)", fontSize: 14, marginTop: 6 }}
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px 80px" }}>
+      <button
+        type="button"
+        className="btn btn-ghost btn-sm"
+        onClick={() => {
+          setPreview(null);
+          setErr(null);
+        }}
       >
-        Arkadaşın sana 6 haneli bir kod yolladı.
+        <ChevronLeft size={14} strokeWidth={1.6} /> Kodu değiştir
+      </button>
+
+      <div className="t-h1" style={{ marginTop: 18 }}>
+        {league.name}
       </div>
+      <div style={{ color: "var(--muted)", fontSize: 14, marginTop: 6 }}>
+        Sezon {league.seasonNumber} · Hafta {league.weekNumber}/{league.seasonLength} ·
+        maçlar {league.matchTime}&apos;de · {available.length} kulüp müsait.
+        Hangisini devralacağını sen seç — bu kararı sonradan değiştiremezsin.
+      </div>
+
       <input
-        className={`input ${err ? "invalid" : code.length >= 4 ? "valid" : ""}`}
-        style={{
-          marginTop: 28,
-          fontFamily: "var(--font-jetbrains)",
-          fontSize: 24,
-          textAlign: "center",
-          letterSpacing: "0.4em",
-          padding: "20px 16px",
-        }}
-        value={code}
-        onChange={(e) => {
-          setCode(e.target.value.toUpperCase());
-          if (err) setErr(null);
-        }}
-        maxLength={6}
+        className="input"
+        placeholder="Kulübüne isim ver (boş bırakırsan mevcut ismi kalır)"
+        value={teamName}
+        onChange={(e) => setTeamName(e.target.value)}
+        style={{ marginTop: 20, maxWidth: 420 }}
+        maxLength={28}
       />
+
+      {byDivision.map(({ division, list }) => (
+        <section key={division} style={{ marginTop: 26 }}>
+          <span className="t-label">
+            {division === 1 ? "SÜPER LİG" : "1. LİG"} · {list.length} kulüp
+          </span>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+              gap: 10,
+              marginTop: 12,
+            }}
+          >
+            {list.map((c) => {
+              const active = chosen === c.id;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setChosen(c.id)}
+                  aria-pressed={active}
+                  style={{
+                    textAlign: "left",
+                    font: "inherit",
+                    color: "inherit",
+                    cursor: "pointer",
+                    padding: 14,
+                    borderRadius: 14,
+                    background: active
+                      ? "color-mix(in oklab, var(--accent) 12%, var(--panel))"
+                      : "var(--panel)",
+                    border: active
+                      ? "1px solid var(--accent)"
+                      : "1px solid var(--border)",
+                    transition: "border-color 160ms var(--ease), background-color 160ms var(--ease)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <Crest
+                      clubId={c.id}
+                      size={30}
+                      club={{ color: c.color, color2: c.color2, short: c.shortName }}
+                    />
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14 }}>{c.name}</div>
+                      <div className="t-caption" style={{ fontSize: 11 }}>
+                        {c.city}
+                      </div>
+                    </div>
+                    <span
+                      className="t-mono"
+                      title="Kadro ortalaması"
+                      style={{
+                        fontSize: 17,
+                        fontWeight: 800,
+                        color:
+                          c.avgOverall >= 78
+                            ? "var(--gold)"
+                            : c.avgOverall >= 73
+                              ? "var(--emerald)"
+                              : c.avgOverall >= 68
+                                ? "var(--cyan)"
+                                : "var(--muted)",
+                      }}
+                    >
+                      {c.avgOverall.toFixed(1)}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 12,
+                      marginTop: 10,
+                      fontSize: 11,
+                      color: "var(--muted)",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <span>{c.squadSize} oyuncu</span>
+                    <span>Bütçe €{(c.budgetEur / 1_000_000).toFixed(0)}M</span>
+                    <span>Prestij {c.prestige}</span>
+                  </div>
+
+                  {c.starName && (
+                    <div style={{ fontSize: 11.5, marginTop: 6 }}>
+                      <span style={{ color: "var(--muted)" }}>Yıldızı: </span>
+                      <span style={{ fontWeight: 600 }}>{c.starName}</span>{" "}
+                      <span className="t-mono" style={{ color: "var(--gold)" }}>
+                        {c.starOverall}
+                      </span>
+                    </div>
+                  )}
+
+                  <div
+                    className="t-mono"
+                    style={{
+                      fontSize: 10,
+                      marginTop: 8,
+                      color: active ? "var(--accent)" : "var(--muted-2)",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    {c.expectation.toUpperCase()}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ))}
+
       {err && (
         <div
-          style={{
-            marginTop: 12,
-            padding: "10px 14px",
-            borderRadius: 10,
-            background: "color-mix(in oklab, var(--danger) 10%, transparent)",
-            border:
-              "1px solid color-mix(in oklab, var(--danger) 40%, var(--border))",
-            color: "var(--danger)",
-            fontSize: 13,
-          }}
+          style={{ color: "var(--danger)", fontSize: 13, marginTop: 16 }}
+          role="alert"
         >
           {err}
         </div>
       )}
+
       <button
         type="button"
-        className="btn btn-primary btn-lg"
-        style={{ marginTop: 16, width: "100%", justifyContent: "center" }}
-        onClick={submit}
-        disabled={pending}
+        className="btn btn-primary"
+        onClick={join}
+        disabled={pending || !chosen}
+        style={{
+          justifyContent: "center",
+          marginTop: 24,
+          width: "100%",
+          maxWidth: 420,
+        }}
       >
-        {pending ? "Katılıyorsun…" : "Katıl"}
+        {pending
+          ? "Katılınıyor…"
+          : `${available.find((c) => c.id === chosen)?.name ?? "Kulüp"} ile başla`}
       </button>
     </div>
   );

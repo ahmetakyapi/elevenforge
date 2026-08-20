@@ -29,6 +29,22 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   /**
+   * Pin the workspace root.
+   *
+   * There is a stray `package-lock.json` in the home directory, so Next
+   * inferred `/Users/ahmet` as the project root and printed a warning nobody
+   * read. It is not cosmetic: the inferred root is what the dev server
+   * watches, and watching a directory several levels above the project makes
+   * file change detection unreliable. It is the best explanation for the
+   * thing that cost four debugging cycles in this project — edits to
+   * app/globals.css not taking effect until `.next` was deleted by hand,
+   * repeatedly, while the file on disk was already correct.
+   */
+  turbopack: {
+    root: __dirname,
+  },
+
+  /**
    * Leave PGlite to Node.
    *
    * PGlite is the local-development database (lib/db.ts picks it whenever
