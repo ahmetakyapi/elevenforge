@@ -14,11 +14,11 @@
 name: game-loop
 
 on:
-  schedule:
-    # Top of every hour, UTC. GitHub queues scheduled runs and may start them
-    # several minutes late under load; that is harmless here, because the work
-    # is "play whatever is now due" rather than "fire at exactly HH:00".
-    - cron: "0 * * * *"
+  # schedule:
+  #   # Top of every hour, UTC. GitHub queues scheduled runs and may start them
+  #   # several minutes late under load; that is harmless here, because the work
+  #   # is "play whatever is now due" rather than "fire at exactly HH:00".
+  #   - cron: "0 * * * *"
   # Lets you run the loop by hand from the Actions tab — useful after a
   # deploy, or to catch a league up without waiting for the hour.
   workflow_dispatch:
