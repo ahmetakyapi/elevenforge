@@ -83,10 +83,7 @@ export default function LoginPage() {
               width: "100%",
             }}
           >
-            <span className="t-eyebrow" style={{ color: "var(--indigo)" }}>
-              Giriş
-            </span>
-            <div className="t-h1" style={{ marginTop: 8, marginBottom: 8 }}>
+            <div className="t-h1" style={{ marginBottom: 8 }}>
               Tekrar hoş geldin.
             </div>
             <div style={{ color: "var(--muted)", fontSize: 14, marginBottom: 24 }}>

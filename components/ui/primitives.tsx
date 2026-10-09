@@ -393,13 +393,12 @@ export function GlassCard({
   );
 }
 
-// ─── SectionHead — label + title + optional right slot ────────
+// ─── SectionHead — title + optional right slot ────────────────
 type SectionHeadProps = {
-  label?: string;
   title?: ReactNode;
   right?: ReactNode;
 };
-export function SectionHead({ label, title, right }: SectionHeadProps) {
+export function SectionHead({ title, right }: SectionHeadProps) {
   return (
     <div
       style={{
@@ -410,10 +409,7 @@ export function SectionHead({ label, title, right }: SectionHeadProps) {
         gap: 12,
       }}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        {label && <span className="t-eyebrow">{label}</span>}
-        {title && <span className="t-h2">{title}</span>}
-      </div>
+      {title && <span className="t-h2">{title}</span>}
       {right}
     </div>
   );

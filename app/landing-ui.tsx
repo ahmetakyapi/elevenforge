@@ -854,15 +854,11 @@ function CrewSection() {
             transition: "opacity 700ms var(--ease), transform 700ms var(--ease), color 700ms var(--ease), background-color 700ms var(--ease), border-color 700ms var(--ease), box-shadow 700ms var(--ease)",
           }}
         >
-          <span className="t-eyebrow" style={{ color: "var(--indigo)" }}>
-            01 / Akış
-          </span>
           <h2
             className="t-h1"
             style={{
               fontSize: "clamp(40px, 5vw, 64px)",
               letterSpacing: "-0.03em",
-              marginTop: 12,
               lineHeight: 1.05,
             }}
           >
@@ -1044,15 +1040,11 @@ function StadiumSection() {
             transition: "opacity 700ms var(--ease), transform 700ms var(--ease), color 700ms var(--ease), background-color 700ms var(--ease), border-color 700ms var(--ease), box-shadow 700ms var(--ease)",
           }}
         >
-          <span className="t-eyebrow" style={{ color: "var(--emerald)" }}>
-            02 / Canlı Maç
-          </span>
           <h2
             className="t-h1"
             style={{
               fontSize: "clamp(40px, 5vw, 64px)",
               letterSpacing: "-0.03em",
-              marginTop: 12,
               lineHeight: 1.12,
               paddingBottom: 8,
             }}
@@ -1209,15 +1201,11 @@ function MarketSection() {
           transition: "opacity 700ms var(--ease), transform 700ms var(--ease), color 700ms var(--ease), background-color 700ms var(--ease), border-color 700ms var(--ease), box-shadow 700ms var(--ease)",
         }}
       >
-        <span className="t-eyebrow" style={{ color: "var(--cyan)" }}>
-          03 / Paylaşılan Evren
-        </span>
         <h2
           className="t-h1"
           style={{
             fontSize: "clamp(40px, 5vw, 64px)",
             letterSpacing: "-0.03em",
-            marginTop: 12,
             lineHeight: 1.05,
           }}
         >
@@ -1554,15 +1542,11 @@ function TacticSection() {
             transition: "opacity 800ms 100ms var(--ease), transform 800ms 100ms var(--ease), color 800ms 100ms var(--ease), background-color 800ms 100ms var(--ease), border-color 800ms 100ms var(--ease), box-shadow 800ms 100ms var(--ease)",
           }}
         >
-          <span className="t-eyebrow" style={{ color: "var(--warn)" }}>
-            04 / Taktik
-          </span>
           <h2
             className="t-h1"
             style={{
               fontSize: "clamp(40px, 5vw, 64px)",
               letterSpacing: "-0.03em",
-              marginTop: 12,
               lineHeight: 1.05,
             }}
           >
@@ -1658,15 +1642,11 @@ function NewspaperStack() {
           transition: "opacity 700ms var(--ease), transform 700ms var(--ease), color 700ms var(--ease), background-color 700ms var(--ease), border-color 700ms var(--ease), box-shadow 700ms var(--ease)",
         }}
       >
-        <span className="t-eyebrow" style={{ color: "var(--gold)" }}>
-          05 / Gazete
-        </span>
         <h2
           className="t-h1"
           style={{
             fontSize: "clamp(40px, 5vw, 64px)",
             letterSpacing: "-0.03em",
-            marginTop: 12,
             lineHeight: 1.05,
           }}
         >
@@ -2015,15 +1995,11 @@ function TestimonialWall() {
       data-lp-section style={{ padding: "120px 32px", maxWidth: 1300, margin: "0 auto" }}
     >
       <div style={{ textAlign: "center", marginBottom: 50 }}>
-        <span className="t-eyebrow" style={{ color: "var(--danger)" }}>
-          06 / Akıştan
-        </span>
         <h2
           className="t-h1"
           style={{
             fontSize: "clamp(36px, 4.5vw, 56px)",
             letterSpacing: "-0.03em",
-            marginTop: 12,
             lineHeight: 1.05,
           }}
         >
@@ -2106,14 +2082,12 @@ function FaqBlock() {
           transition: "opacity 700ms var(--ease), transform 700ms var(--ease), color 700ms var(--ease), background-color 700ms var(--ease), border-color 700ms var(--ease), box-shadow 700ms var(--ease)",
         }}
       >
-        <span className="t-eyebrow">07 / Soru-Cevap</span>
         <h2
           className="t-h1"
           style={{
             fontSize: "clamp(36px, 4.5vw, 56px)",
             letterSpacing: "-0.03em",
-            marginTop: 12,
-          }}
+            }}
         >
           Sık sorulanlar.
         </h2>

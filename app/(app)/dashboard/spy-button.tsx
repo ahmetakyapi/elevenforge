@@ -83,11 +83,8 @@ export function SpyButton() {
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
-                <span className="t-eyebrow" style={{ color: "var(--indigo)" }}>
-                  Casus Raporu
-                </span>
-                <div className="t-h2" style={{ marginTop: 4 }}>
-                  {report.targetName}
+                <div className="t-h2">
+                  Casus Raporu · {report.targetName}
                 </div>
               </div>
               <button

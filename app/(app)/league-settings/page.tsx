@@ -26,10 +26,7 @@ export default async function LeagueSettingsPage() {
           <Settings size={22} strokeWidth={1.6} />
         </div>
         <div>
-          <span className="t-eyebrow" style={{ color: "var(--indigo)" }}>
-            Lig Ayarları
-          </span>
-          <div className="t-h1" style={{ marginTop: 4 }}>
+          <div className="t-h1">
             {ctx.league.name}
           </div>
           <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>

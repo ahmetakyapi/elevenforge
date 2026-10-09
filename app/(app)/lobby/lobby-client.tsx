@@ -104,10 +104,7 @@ function LobbyEntry({
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 24px" }}>
-      <span className="t-eyebrow" style={{ color: "var(--indigo)" }}>
-        Lig
-      </span>
-      <div className="t-h1" style={{ marginTop: 8 }}>
+      <div className="t-h1">
         Ligine başla.
       </div>
       <div

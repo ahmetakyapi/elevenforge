@@ -89,7 +89,7 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
   if (offers.length === 0) {
     return (
       <section className="space-y-3" style={PANEL_CONTAINER}>
-        <SectionHead label="Pazarlık" title="Transfer Teklifleri" />
+        <SectionHead title="Transfer Teklifleri" />
         <p className="rounded-xl border border-white/8 bg-white/[0.02] px-4 py-6 text-center text-xs text-muted">
           Henüz teklif yok. Listede olmayan bir oyuncu için kulübüne doğrudan
           teklif götürebilirsin — oyuncu sayfasındaki <strong>Teklif Yap</strong>{" "}
@@ -102,7 +102,6 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
   return (
     <section className="space-y-4" style={PANEL_CONTAINER}>
       <SectionHead
-        label="Pazarlık"
         title="Transfer Teklifleri"
         right={
           <span className="font-mono text-[12px] text-muted">

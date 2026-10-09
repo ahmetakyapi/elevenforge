@@ -182,8 +182,10 @@ export default function TransferMarketUi({ data }: { data: TransferPageData }) {
                 }}
               >
                 <div>
-                  <span className="t-eyebrow">Transfer Pazarı</span>
-                  <div className="t-h1" style={{ marginTop: 6, fontSize: 28 }}>
+                  <div className="t-h1" style={{ fontSize: 28 }}>
+                    Transfer Pazarı
+                  </div>
+                  <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>
                     {sorted.length} oyuncu
                   </div>
                 </div>
@@ -294,8 +296,7 @@ export default function TransferMarketUi({ data }: { data: TransferPageData }) {
           <MarketStats stats={data.marketStats} />
           <GlassCard pad={16} hover={false}>
             <SectionHead
-              label="SENİN LİSTELERİN"
-              title={<span style={{ fontSize: 16 }}>Satışta</span>}
+              title={<span style={{ fontSize: 16 }}>Satıştaki Oyuncuların</span>}
             />
             <div
               style={{ display: "flex", flexDirection: "column", gap: 8 }}
@@ -337,10 +338,9 @@ export default function TransferMarketUi({ data }: { data: TransferPageData }) {
           {data.activeScouts.length > 0 && (
             <GlassCard pad={16} hover={false}>
               <SectionHead
-                label="SAHADAKİ KAŞİFLER"
                 title={
                   <span style={{ fontSize: 16 }}>
-                    {data.activeScouts.length} / 3 görevde
+                    Sahadaki Kaşifler · {data.activeScouts.length} / 3
                   </span>
                 }
               />
@@ -805,7 +805,7 @@ function MarketStats({
   ];
   return (
     <GlassCard pad={16} hover={false}>
-      <SectionHead label="Piyasa" title={<span style={{ fontSize: 16 }}>Özet</span>} />
+      <SectionHead title={<span style={{ fontSize: 16 }}>Piyasa Özeti</span>} />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         {items.map((s) => (
           <div
@@ -1346,8 +1346,7 @@ function SellTab({ userSquad }: { userSquad: SellRowView[] }) {
         }}
       >
         <div>
-          <span className="t-eyebrow">Kendi Oyuncuların</span>
-          <div className="t-h1" style={{ marginTop: 6, fontSize: 28 }}>
+          <div className="t-h1" style={{ fontSize: 28 }}>
             Listele &amp; Sat
           </div>
         </div>
@@ -1744,11 +1743,8 @@ function ScoutModal({
           }}
         >
           <div>
-            <span className="t-eyebrow" style={{ color: "var(--indigo)" }}>
-              Kaşif
-            </span>
-            <div className="t-h2" style={{ marginTop: 5, fontSize: 22 }}>
-              Yeni Görev
+            <div className="t-h2" style={{ fontSize: 22 }}>
+              Yeni Kaşif Görevi
             </div>
             <div className="t-caption" style={{ fontSize: 12, marginTop: 4 }}>
               {inField} / 3 kaşif sahada · her rapor 3 aday getirir, birini

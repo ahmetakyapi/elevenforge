@@ -31,10 +31,7 @@ export default async function FreeAgentsPage() {
           <UserPlus size={22} strokeWidth={1.6} />
         </div>
         <div>
-          <span className="t-eyebrow" style={{ color: "var(--emerald)" }}>
-            Serbest Oyuncular
-          </span>
-          <div className="t-h1" style={{ marginTop: 4 }}>
+          <div className="t-h1">
             Bonservisle imzala
           </div>
           <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>

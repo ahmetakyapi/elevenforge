@@ -44,10 +44,7 @@ export default async function CupPage() {
           <Trophy size={22} strokeWidth={1.6} />
         </div>
         <div>
-          <span className="t-eyebrow" style={{ color: "var(--gold)" }}>
-            Kupa
-          </span>
-          <div className="t-h1" style={{ marginTop: 4 }}>
+          <div className="t-h1">
             Sezon {season} Kupası
           </div>
           <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>

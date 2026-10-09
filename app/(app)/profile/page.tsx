@@ -44,10 +44,7 @@ export default async function ProfilePage() {
           <User2 size={36} strokeWidth={1.6} style={{ color: "#fff" }} />
         </div>
         <div>
-          <span className="t-eyebrow" style={{ color: "var(--indigo)" }}>
-            Menajer Profili
-          </span>
-          <div className="t-h1" style={{ marginTop: 4 }}>
+          <div className="t-h1">
             {p.name}
           </div>
           <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>

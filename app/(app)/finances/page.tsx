@@ -59,11 +59,11 @@ export default async function FinancesPage() {
           <Wallet size={22} strokeWidth={1.6} />
         </div>
         <div>
-          <span className="t-eyebrow" style={{ color: "var(--emerald)" }}>
-            Finans · Son 30 Gün
-          </span>
-          <div className="t-h1" style={{ marginTop: 4 }}>
+          <div className="t-h1">
             {ctx.club.name}
+          </div>
+          <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>
+            Finans · son 30 gün
           </div>
         </div>
       </div>

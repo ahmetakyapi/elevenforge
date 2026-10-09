@@ -432,7 +432,6 @@ export default async function DashboardPage() {
       >
         <GlassCard pad={20} hover={false}>
           <SectionHead
-            label="Lig Tablosu"
             title={`${d.leagueInfo.name} · Sezon ${d.leagueInfo.seasonNumber}`}
             right={
               <div
@@ -584,7 +583,6 @@ export default async function DashboardPage() {
         </GlassCard>
         <GlassCard pad={20} hover={false}>
           <SectionHead
-            label="Aktivite"
             title="Crew feed'i"
             right={
               <Link

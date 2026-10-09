@@ -386,8 +386,7 @@ export default function TacticPage({
         }}
       >
         <div>
-          <span className="t-eyebrow">Taktik</span>
-          <div className="t-h1" style={{ marginTop: 6 }}>
+          <div className="t-h1">
             İlk 11
           </div>
         </div>

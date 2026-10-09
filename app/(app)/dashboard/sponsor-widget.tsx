@@ -136,11 +136,8 @@ export function SponsorWidget({
               overflow: "auto",
             }}
           >
-            <span className="t-eyebrow" style={{ color: "var(--indigo)" }}>
+            <div className="t-h2">
               Sponsor Teklifleri
-            </span>
-            <div className="t-h2" style={{ marginTop: 4 }}>
-              Sözleşme imzala
             </div>
             <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>
               Prestij {prestige} — daha yüksek tiere geçmek için sezon yarışında üst sıralara tırman.

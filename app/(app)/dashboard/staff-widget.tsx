@@ -172,13 +172,10 @@ export function StaffWidget({ staffJson }: { staffJson: string | null }) {
               overflow: "auto",
             }}
           >
-            <span
-              className="t-eyebrow"
-              style={{ color: ROLE_META[openRole].tint }}
-            >
+            <div className="t-h2">
               {ROLE_META[openRole].label} Adayları
-            </span>
-            <div className="t-h2" style={{ marginTop: 4 }}>
+            </div>
+            <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>
               İşe alınacak kişiyi seç
             </div>
             <div

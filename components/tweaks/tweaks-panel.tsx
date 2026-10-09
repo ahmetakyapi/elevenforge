@@ -124,10 +124,7 @@ export function TweaksPanel() {
             }}
           >
             <div>
-              <span className="t-eyebrow" style={{ color: "var(--accent)" }}>
-                Tweaks
-              </span>
-              <div className="t-h3" style={{ marginTop: 2 }}>
+              <div className="t-h3">
                 Görünüm
               </div>
             </div>

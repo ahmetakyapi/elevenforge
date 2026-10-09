@@ -95,10 +95,7 @@ export default function RegisterPage() {
               width: "100%",
             }}
           >
-            <span className="t-eyebrow" style={{ color: "var(--emerald)" }}>
-              Kayıt
-            </span>
-            <div className="t-h1" style={{ marginTop: 8, marginBottom: 8 }}>
+            <div className="t-h1" style={{ marginBottom: 8 }}>
               Takımını kur.
             </div>
             <div style={{ color: "var(--muted)", fontSize: 14, marginBottom: 24 }}>

@@ -37,10 +37,7 @@ export default async function StandingsPage() {
           <ListOrdered size={22} strokeWidth={1.6} />
         </div>
         <div>
-          <span className="t-eyebrow" style={{ color: "var(--accent)" }}>
-            Puan Durumu · {d.division.name}
-          </span>
-          <div className="t-h1" style={{ marginTop: 4 }}>
+          <div className="t-h1">
             {d.leagueInfo.name}
           </div>
           <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>
