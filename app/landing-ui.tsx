@@ -2228,15 +2228,15 @@ function ClosingCTA() {
             color: "var(--text)",
           }}
         >
-          Akış&apos;ı{" "}
+          Ligini{" "}
           <span
             style={{
               fontStyle: "italic",
               fontWeight: 600,
-              background: "linear-gradient(100deg, #818cf8, #10b981)",
+              color: "var(--emerald)",
             }}
           >
-            kur.
+            Kur.
           </span>
         </h2>
         <p
@@ -2244,12 +2244,12 @@ function ClosingCTA() {
             fontSize: "clamp(16px, 1.6vw, 20px)",
             color: "var(--text-2)",
             maxWidth: 560,
-            margin: "24px auto 0",
+            margin: "36px auto 0",
             lineHeight: 1.5,
           }}
         >
-          5 dakikada ligin hazır. İlk sezon sonunda hâlâ sevmiyorsan silebilirsin
-          — ama silmeyeceksin.
+          Ligi kur, davet kodunu arkadaşlarınla paylaş. Boş kalan yerleri
+          botlar doldurur, maçlar senin seçtiğin saatte oynanır.
         </p>
         <div
           style={{
