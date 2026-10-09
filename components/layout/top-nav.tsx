@@ -123,6 +123,8 @@ export function TopNav({
                 key={href}
                 href={href}
                 className="nav-link"
+                title={label}
+                aria-label={label}
                 aria-current={active ? "page" : undefined}
                 style={{
                   display: "inline-flex",
@@ -149,7 +151,7 @@ export function TopNav({
                   />
                 )}
                 <Icon size={14} strokeWidth={active ? 2 : 1.6} />
-                {label}
+                <span className="nav-label">{label}</span>
               </Link>
             );
           })}

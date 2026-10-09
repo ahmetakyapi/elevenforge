@@ -1928,3 +1928,14 @@ main [data-big-stat] { font-size: 96px !important; font-weight: 900 !important; 
   main .t-h1 { font-size: 32px !important; line-height: 0.95 !important; }
   main [data-big-stat] { font-size: 56px !important; }
 }
+
+/* Laptop widths (900–1360px): nine labelled tabs plus the right-hand
+   cluster do not fit on one row — the tabs ran underneath the league
+   switcher and the notification button. Inactive tabs collapse to their
+   icon (the label stays in title/aria-label); the active tab keeps its
+   word so you still read where you are. */
+@media (min-width: 900px) and (max-width: 1360px) {
+  .nav-link:not([aria-current="page"]) .nav-label { display: none; }
+  .nav-link:not([aria-current="page"]) { padding: 8px 10px !important; }
+  [data-topnav-right] .btn-label-mobile-hidden { display: none; }
+}
