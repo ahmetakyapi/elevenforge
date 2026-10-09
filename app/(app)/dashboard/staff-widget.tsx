@@ -1,5 +1,7 @@
 "use client";
 
+import { Portal } from "@/components/ui/portal";
+
 import { ClipboardList, HeartPulse, Search } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useToast } from "@/components/ui/toast";
@@ -143,6 +145,7 @@ export function StaffWidget({ staffJson }: { staffJson: string | null }) {
       </div>
 
       {openRole && (
+        <Portal>
         <div
           onClick={() => !pending && setOpenRole(null)}
           style={{
@@ -231,6 +234,7 @@ export function StaffWidget({ staffJson }: { staffJson: string | null }) {
             </div>
           </div>
         </div>
+        </Portal>
       )}
     </div>
   );

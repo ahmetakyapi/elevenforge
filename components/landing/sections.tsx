@@ -12,8 +12,8 @@ import Link from "next/link";
 import {
   motion,
   useAnimationFrame,
+  useInView,
   useMotionValue,
-  useReducedMotion,
   useScroll,
   useSpring,
   useTransform,
@@ -22,7 +22,7 @@ import {
 } from "framer-motion";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowUpRight, Clock, Dumbbell, Newspaper, Repeat2, Target, Trophy } from "lucide-react";
-import { CountUp, EASE_OUT_EXPO, Magnetic, ScrubText, SplitReveal } from "@/components/motion/reveal";
+import { CountUp, EASE_OUT_EXPO, Magnetic, ScrubText, SplitReveal, useReduce } from "@/components/motion/reveal";
 
 // ─── Scroll progress ──────────────────────────────────────
 export function ScrollProgress() {
@@ -102,7 +102,7 @@ export function SectionHead({
  */
 export function CardStage({ children }: { children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
-  const reduce = useReducedMotion();
+  const reduce = useReduce();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "center center"] });
   const rotateX = useTransform(scrollYProgress, [0, 1], [38, 0]);
   const scale = useTransform(scrollYProgress, [0, 1], [0.78, 1]);
@@ -162,12 +162,15 @@ function VelocityRow({
   skew: MotionValue<number>;
   velocityFactor: MotionValue<number>;
 }) {
-  const reduce = useReducedMotion();
+  const reduce = useReduce();
+  const rowRef = useRef<HTMLDivElement>(null);
+  // No per-frame work while the band is off screen.
+  const visible = useInView(rowRef, { margin: "200px 0px" });
   const baseX = useMotionValue(0);
   const x = useTransform(baseX, (v) => `${wrap(-25, 0, v)}%`);
   const dir = useRef(1);
   useAnimationFrame((_, delta) => {
-    if (reduce) return;
+    if (reduce || !visible) return;
     let move = dir.current * baseVelocity * (delta / 1000);
     const vf = velocityFactor.get();
     if (vf < 0) dir.current = -1;
@@ -176,7 +179,7 @@ function VelocityRow({
     baseX.set(baseX.get() + move);
   });
   return (
-    <div style={{ overflow: "hidden", whiteSpace: "nowrap", display: "flex" }}>
+    <div ref={rowRef} style={{ overflow: "hidden", whiteSpace: "nowrap", display: "flex" }}>
       <motion.div style={{ x, skewX: reduce ? 0 : skew, display: "flex", flexWrap: "nowrap" }}>
         {[0, 1, 2, 3].map((k) => (
           <span key={k} style={{ display: "flex", flexShrink: 0 }}>
@@ -337,7 +340,7 @@ const MATCHDAY = [
 export function MatchdayRail() {
   const ref = useRef<HTMLElement>(null);
   const track = useRef<HTMLDivElement>(null);
-  const reduce = useReducedMotion();
+  const reduce = useReduce();
   const [distance, setDistance] = useState(0);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
   const x = useTransform(scrollYProgress, [0, 1], [0, -distance]);
@@ -363,7 +366,7 @@ export function MatchdayRail() {
     <section
       ref={ref}
       className="lp-rail"
-      style={{ height: reduce ? "auto" : `calc(100vh + ${distance}px)`, position: "relative" }}
+      style={{ height: reduce ? "auto" : `calc(100svh + ${distance}px)`, position: "relative" }}
     >
       <div className="lp-rail-sticky">
         <div style={{ padding: "0 32px", maxWidth: 1400, margin: "0 auto", width: "100%" }}>
@@ -371,7 +374,7 @@ export function MatchdayRail() {
         </div>
         <motion.div ref={track} className="lp-rail-track" style={{ x: reduce ? 0 : sx }}>
           {MATCHDAY.map((m, i) => (
-            <article key={m.t} className="glass lp-rail-card" data-cursor="Sürükle">
+            <article key={m.t} className="glass lp-rail-card">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span
                   className="t-stadium"
@@ -487,7 +490,7 @@ export function NumbersBand() {
 // ─── Closing CTA ──────────────────────────────────────────
 export function KickoffCTA() {
   const ref = useRef<HTMLElement>(null);
-  const reduce = useReducedMotion();
+  const reduce = useReduce();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
   const x1 = useTransform(scrollYProgress, [0, 1], ["8%", "-18%"]);
   const x2 = useTransform(scrollYProgress, [0, 1], ["-18%", "8%"]);
@@ -561,7 +564,7 @@ export function KickoffCTA() {
 // ─── Footer wordmark ──────────────────────────────────────
 export function FooterWordmark() {
   const ref = useRef<HTMLDivElement>(null);
-  const reduce = useReducedMotion();
+  const reduce = useReduce();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end end"] });
   const letters = Array.from("ELEVENFORGE");
   return (

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
+import { useLayoutEffect, useRef } from "react";
 import {
   ArrowLeftRight,
   Home,
@@ -57,6 +57,38 @@ export function TopNav({
   clubCrest: { clubId: string; color: string; color2: string; short: string } | null;
 }) {
   const pathname = usePathname();
+  const navRef = useRef<HTMLElement>(null);
+  const pillRef = useRef<HTMLSpanElement>(null);
+
+  // Park the pill under the active tab; re-measure when the bar resizes
+  // (labels collapse to icons on laptop widths).
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    const pill = pillRef.current;
+    if (!nav || !pill) return;
+    const place = () => {
+      const a = nav.querySelector<HTMLElement>('a[aria-current="page"]');
+      if (!a) {
+        pill.style.opacity = "0";
+        return;
+      }
+      pill.style.opacity = "1";
+      pill.style.width = `${a.offsetWidth}px`;
+      pill.style.height = `${a.offsetHeight}px`;
+      pill.style.transform = `translate(${a.offsetLeft}px, ${a.offsetTop}px)`;
+      // first placement snaps; later ones glide
+      requestAnimationFrame(() => (pill.dataset.ready = "true"));
+    };
+    place();
+    // Tabs change width when the web font swaps in or labels collapse, even
+    // if the bar itself does not resize — watch every tab, not just the bar.
+    const ro = new ResizeObserver(place);
+    ro.observe(nav);
+    nav.querySelectorAll("a").forEach((a) => ro.observe(a));
+    document.fonts?.ready.then(place).catch(() => {});
+    return () => ro.disconnect();
+  }, [pathname]);
+
   const current =
     currentLeagueId && currentLeagueName
       ? owned.find((o) => o.leagueId === currentLeagueId) ?? {
@@ -103,8 +135,11 @@ export function TopNav({
         </Link>
 
         <nav
+          ref={navRef}
           className="desktop-only"
           style={{
+            position: "relative",
+            isolation: "isolate",
             display: "flex",
             gap: 2,
             flex: 1,
@@ -116,6 +151,9 @@ export function TopNav({
             minWidth: 0,
           }}
         >
+          {/* One pill for the whole bar, glided by CSS from the old tab to
+              the new one (no animation library on every game screen). */}
+          <span ref={pillRef} className="nav-pill" aria-hidden data-ready="false" />
           {NAV_MAIN.map(({ href, label, Icon }) => {
             const active = pathname === href || pathname.startsWith(`${href}/`);
             return (
@@ -141,15 +179,6 @@ export function TopNav({
                   whiteSpace: "nowrap",
                 }}
               >
-                {/* One pill for the whole bar: it glides from the old tab to
-                    the new one instead of blinking off and on. */}
-                {active && (
-                  <motion.span
-                    layoutId="nav-pill"
-                    className="nav-pill"
-                    transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.8 }}
-                  />
-                )}
                 <Icon size={14} strokeWidth={active ? 2 : 1.6} />
                 <span className="nav-label">{label}</span>
               </Link>

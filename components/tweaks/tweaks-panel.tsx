@@ -47,6 +47,12 @@ export function TweaksPanel() {
     setTheme(init.theme);
     setAccent(init.accent);
     setMounted(true);
+    const onTheme = (e: Event) => {
+      const next = (e as CustomEvent<Theme>).detail;
+      if (next === "dark" || next === "light") setTheme(next);
+    };
+    window.addEventListener("ef:theme", onTheme);
+    return () => window.removeEventListener("ef:theme", onTheme);
   }, []);
 
   // Apply to document + persist

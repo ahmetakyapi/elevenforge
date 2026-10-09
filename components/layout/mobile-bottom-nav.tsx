@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
 import {
   ArrowLeftRight,
   Home,
@@ -30,6 +29,9 @@ const ITEMS: NavItem[] = [
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  const idx = ITEMS.findIndex(
+    ({ href }) => pathname === href || pathname.startsWith(`${href}/`),
+  );
   return (
     <nav
       className="mobile-only"
@@ -49,6 +51,15 @@ export function MobileBottomNav() {
         padding: "8px 4px calc(10px + env(safe-area-inset-bottom, 0px))",
       }}
     >
+      {/* Glowing bar that slides to the active tab (pure CSS transition). */}
+      <span
+        aria-hidden
+        className="bottom-nav-bar"
+        style={{
+          opacity: idx < 0 ? 0 : 1,
+          transform: `translateX(${Math.max(idx, 0) * 100}%)`,
+        }}
+      />
       {ITEMS.map(({ href, label, Icon }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
         return (
@@ -71,30 +82,9 @@ export function MobileBottomNav() {
               transition: "color var(--t) var(--ease)",
             }}
           >
-            {active && (
-              <motion.span
-                layoutId="bottom-nav-pill"
-                aria-hidden
-                transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                style={{
-                  position: "absolute",
-                  top: -9,
-                  left: "22%",
-                  right: "22%",
-                  height: 3,
-                  borderRadius: 999,
-                  background: "linear-gradient(90deg, var(--accent), var(--accent-2))",
-                  boxShadow: "0 0 14px var(--accent)",
-                }}
-              />
-            )}
-            <motion.span
-              animate={{ y: active ? -2 : 0, scale: active ? 1.12 : 1 }}
-              transition={{ type: "spring", stiffness: 500, damping: 26 }}
-              style={{ display: "inline-flex" }}
-            >
+            <span className="bottom-nav-icon" data-active={active || undefined}>
               <Icon size={18} strokeWidth={active ? 2 : 1.6} />
-            </motion.span>
+            </span>
             <span>{label}</span>
           </Link>
         );

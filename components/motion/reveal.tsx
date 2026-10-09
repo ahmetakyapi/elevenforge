@@ -21,6 +21,7 @@ import {
 } from "framer-motion";
 import {
   Children,
+  Fragment,
   isValidElement,
   useEffect,
   useRef,
@@ -31,6 +32,22 @@ import {
 } from "react";
 
 export const EASE_OUT_EXPO = [0.16, 1, 0.3, 1] as const;
+
+/**
+ * Hydration-safe reduced-motion flag.
+ *
+ * framer's useReducedMotion() is null on the server but true on the
+ * client's first render for people who asked for less motion, so anything
+ * branching on it rendered different HTML on each side and React threw a
+ * hydration error. This reports `false` until after mount, then the truth.
+ */
+export function useReduce(): boolean {
+  const r = useReducedMotion();
+  const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setMounted(true), []);
+  return mounted ? !!r : false;
+}
 export const EASE_IN_OUT = [0.76, 0, 0.24, 1] as const;
 
 // ─── SplitReveal ──────────────────────────────────────────
@@ -68,7 +85,7 @@ export function SplitReveal({
 }) {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once, margin: "0px 0px -10% 0px" });
-  const reduce = useReducedMotion();
+  const reduce = useReduce();
   const show = trigger ?? inView;
   const Tag = as as ElementType;
   const words = text.split(" ");
@@ -76,14 +93,18 @@ export function SplitReveal({
   let idx = 0;
 
   return (
-    <Tag ref={ref} className={className} style={style} aria-label={text}>
+    <Tag ref={ref} className={className} style={style}>
+      {/* The real sentence for assistive tech; the split copy below is
+          decoration. (aria-label on a plain span is ignored by readers, so
+          the heading used to be announced as empty.) */}
+      <span className="sr-only">{text}</span>
       {words.map((word, wi) => {
         const units = by === "char" ? Array.from(word) : [word];
         return (
           <span
             key={wi}
             aria-hidden
-            style={{ display: "inline-block", whiteSpace: "nowrap" }}
+            style={{ display: "inline-block", whiteSpace: "nowrap", userSelect: "none" }}
           >
             {units.map((u) => {
               const i = idx++;
@@ -105,7 +126,7 @@ export function SplitReveal({
                     style={{ display: "inline-block", willChange: "transform", ...unitStyle?.(i, u) }}
                     initial={reduce ? false : { y: "130%", rotate: by === "char" ? 6 : 2 }}
                     animate={show || reduce ? { y: "0%", rotate: 0 } : { y: "130%", rotate: by === "char" ? 6 : 2 }}
-                    transition={{ duration, ease: EASE_OUT_EXPO, delay: delay + i * step }}
+                    transition={reduce ? { duration: 0 } : { duration, ease: EASE_OUT_EXPO, delay: delay + i * step }}
                   >
                     {u}
                   </motion.span>
@@ -145,7 +166,7 @@ export function Reveal({
   as?: "div" | "section" | "li" | "ul" | "span";
   amount?: number;
 }) {
-  const reduce = useReducedMotion();
+  const reduce = useReduce();
   const M = motion[as] as typeof motion.div;
   const hidden = { opacity: 0, y, filter: `blur(${blur}px)` };
   const shown = { opacity: 1, y: 0, filter: "blur(0px)" };
@@ -214,7 +235,7 @@ export function CountUp({
 }) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: "0px 0px -15% 0px" });
-  const reduce = useReducedMotion();
+  const reduce = useReduce();
   const fmt = (n: number) =>
     prefix +
     n.toLocaleString("tr-TR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) +
@@ -238,7 +259,9 @@ export function CountUp({
 
   return (
     <span ref={ref} className={className} style={style}>
-      {fmt(reduce ? to : from)}
+      {/* Always `from` on the first render: useReducedMotion is null on the
+          server and true on the client, so branching here broke hydration. */}
+      {fmt(from)}
     </span>
   );
 }
@@ -257,7 +280,7 @@ export function Magnetic({
   style?: CSSProperties;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const reduce = useReducedMotion();
+  const reduce = useReduce();
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const sx = useSpring(x, { stiffness: 220, damping: 18, mass: 0.6 });
@@ -301,14 +324,14 @@ export function ScrubText({
   style?: CSSProperties;
 }) {
   const ref = useRef<HTMLParagraphElement>(null);
-  const reduce = useReducedMotion();
+  const reduce = useReduce();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start 85%", "end 45%"] });
   const words = text.split(" ");
   return (
     <p ref={ref} className={className} style={style}>
       {words.map((w, i) => (
+        <Fragment key={i}>
         <ScrubWord
-          key={i}
           progress={scrollYProgress}
           range={[i / words.length, (i + 1) / words.length]}
           accent={accent.includes(w.replace(/[.,!?]/g, ""))}
@@ -316,6 +339,9 @@ export function ScrubText({
         >
           {w}
         </ScrubWord>
+        {/* a real space, so copy/paste, find-in-page and indexing get words */}
+        {i < words.length - 1 ? " " : null}
+        </Fragment>
       ))}
     </p>
   );
@@ -337,7 +363,7 @@ function ScrubWord({
   const opacity = useTransform(progress, range, [0.14, 1]);
   const y = useTransform(progress, range, [6, 0]);
   return (
-    <span style={{ display: "inline-block", marginRight: "0.26em" }}>
+    <span style={{ display: "inline-block", marginRight: "0.02em" }}>
       <motion.span
         style={{
           display: "inline-block",
@@ -368,7 +394,7 @@ export function Parallax({
   style?: CSSProperties;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const reduce = useReducedMotion();
+  const reduce = useReduce();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
   const y = useTransform(scrollYProgress, [0, 1], [`${speed * 100}%`, `${-speed * 100}%`]);
   return (

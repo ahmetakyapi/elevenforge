@@ -9,15 +9,18 @@ import {
   type ReactNode,
 } from "react";
 import {
+  MotionConfig,
   motion,
+  useMotionValue,
   useMotionValueEvent,
-  useReducedMotion,
   useScroll,
+  useSpring,
   useTransform,
+  type MotionValue,
 } from "framer-motion";
 import { Preloader, useIntroDone } from "@/components/motion/preloader";
 import { SmoothScroll } from "@/components/motion/smooth-scroll";
-import { Magnetic, SplitReveal } from "@/components/motion/reveal";
+import { Magnetic, SplitReveal, useReduce } from "@/components/motion/reveal";
 import {
   CardStage,
   FooterWordmark,
@@ -70,37 +73,12 @@ function useReveal(threshold = 0.15) {
   return [ref, on] as const;
 }
 
-function useScrollY() {
-  const [y, setY] = useState(0);
-  useEffect(() => {
-    let raf = 0;
-    const on = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => setY(window.scrollY));
-    };
-    window.addEventListener("scroll", on, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", on);
-      cancelAnimationFrame(raf);
-    };
-  }, []);
-  return y;
-}
-
-function useMouse() {
-  const [p, setP] = useState({ x: 0.5, y: 0.5 });
-  useEffect(() => {
-    const on = (e: MouseEvent) =>
-      setP({ x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight });
-    window.addEventListener("mousemove", on);
-    return () => window.removeEventListener("mousemove", on);
-  }, []);
-  return p;
-}
-
 // ─── Main ─────────────────────────────────────────────────
 export default function LandingUi() {
   return (
+    // reducedMotion="user": for people who asked for less motion, framer
+    // skips transform animations everywhere below and keeps only fades.
+    <MotionConfig reducedMotion="user">
     <div style={{ position: "relative", overflow: "clip", background: "var(--bg)" }}>
       <Preloader />
       <SmoothScroll />
@@ -175,6 +153,7 @@ export default function LandingUi() {
         }
       `}</style>
     </div>
+    </MotionConfig>
   );
 }
 
@@ -272,26 +251,50 @@ function useKickoffCountdown() {
   return label;
 }
 
+/**
+ * Pointer position as motion values (0–1, springy). Unlike React state, a
+ * motion value updates styles without re-rendering the component, so the
+ * hero no longer re-renders on every mouse move or scroll frame.
+ */
+function useMouseMV() {
+  const mx = useMotionValue(0.5);
+  const my = useMotionValue(0.5);
+  const x = useSpring(mx, { stiffness: 60, damping: 20, mass: 0.6 });
+  const y = useSpring(my, { stiffness: 60, damping: 20, mass: 0.6 });
+  useEffect(() => {
+    if (!window.matchMedia("(pointer: fine)").matches) return;
+    const on = (e: MouseEvent) => {
+      mx.set(e.clientX / window.innerWidth);
+      my.set(e.clientY / window.innerHeight);
+    };
+    window.addEventListener("mousemove", on, { passive: true });
+    return () => window.removeEventListener("mousemove", on);
+  }, [mx, my]);
+  return { x, y };
+}
+
 function HeroBackdrop() {
-  const y = useScrollY();
-  const m = useMouse();
-  const parallax = (d: number) => `translate3d(${(m.x - 0.5) * d}px, ${(m.y - 0.5) * d}px, 0)`;
+  const { scrollY } = useScroll();
+  const m = useMouseMV();
+  const fade = useTransform(scrollY, [0, 900], [1, 0]);
+  const gx = useTransform(m.x, [0, 1], [-12, 12]);
+  const gy = useTransform(m.y, [0, 1], [-12, 12]);
   return (
     <>
-      <div
+      <motion.div
         aria-hidden
         className="hero-stadium"
         style={{
           position: "absolute",
           inset: 0,
-          opacity: Math.max(0, 1 - y / 900),
+          opacity: fade,
           pointerEvents: "none",
         }}
       >
-        <StadiumBackdrop mouse={m} scrollY={y} />
-      </div>
+        <StadiumBackdrop mouse={m} scrollY={scrollY} />
+      </motion.div>
       <div aria-hidden className="hero-light-veil" style={{ position: "absolute", inset: 0, pointerEvents: "none" }} />
-      <div aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none", transform: parallax(24) }}>
+      <motion.div aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none", x: gx, y: gy }}>
         <div
           style={{
             position: "absolute",
@@ -316,7 +319,7 @@ function HeroBackdrop() {
               "radial-gradient(circle at center, color-mix(in oklab, var(--emerald) 24%, transparent) 0%, transparent 60%)",
           }}
         />
-      </div>
+      </motion.div>
       {/* Floodlight beams sweeping down from the stands. */}
       <div aria-hidden className="lp-beams">
         <span />
@@ -337,7 +340,7 @@ function HeroBackdrop() {
 
 function Hero() {
   const intro = useIntroDone();
-  const reduce = useReducedMotion();
+  const reduce = useReduce();
   const ref = useRef<HTMLElement>(null);
   const countdown = useKickoffCountdown();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
@@ -492,11 +495,12 @@ function StadiumBackdrop({
   mouse,
   scrollY,
 }: {
-  mouse: { x: number; y: number };
-  scrollY: number;
+  mouse: { x: MotionValue<number>; y: MotionValue<number> };
+  scrollY: MotionValue<number>;
 }) {
-  const tiltX = (mouse.x - 0.5) * 8;
-  const tiltY = (mouse.y - 0.5) * 4;
+  const rotateZ = useTransform(mouse.x, [0, 1], [-4, 4]);
+  const rotateX = useTransform(mouse.y, [0, 1], [60, 64]);
+  const y = useTransform(scrollY, (v) => Math.min(v, 1200) * 0.25);
   return (
     <div
       style={{
@@ -508,13 +512,14 @@ function StadiumBackdrop({
           "linear-gradient(180deg, transparent 0%, transparent 40%, color-mix(in oklab, var(--bg) 60%, transparent) 80%, var(--bg) 100%)",
       }}
     >
-      <div
+      <motion.div
         style={{
           position: "absolute",
           inset: 0,
-          transform: `rotateX(${62 + tiltY}deg) rotateZ(${tiltX}deg) translateY(${scrollY * 0.25}px)`,
+          rotateX,
+          rotateZ,
+          y,
           transformStyle: "preserve-3d",
-          transition: "transform 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
         }}
       >
         <svg
@@ -562,7 +567,7 @@ function StadiumBackdrop({
             />
           </rect>
         </svg>
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -737,7 +742,6 @@ function HeroLiveCard() {
 // ─── Crew ─────────────────────────────────────────────────
 function CrewSection() {
   const [ref, on] = useReveal();
-  const y = useScrollY();
   return (
     <section
       ref={ref}
@@ -817,8 +821,8 @@ function CrewSection() {
             transition: "opacity 900ms var(--ease), transform 900ms var(--ease), color 900ms var(--ease), background-color 900ms var(--ease), border-color 900ms var(--ease), box-shadow 900ms var(--ease)",
           }}
         >
-          <OrbitRing clubs={CLUBS.slice(0, 8)} sizePct={88} crestSize={40} duration={40} y={y} />
-          <OrbitRing clubs={CLUBS.slice(8, 16)} sizePct={56} crestSize={32} duration={24} reverse y={y} />
+          <OrbitRing clubs={CLUBS.slice(0, 8)} sizePct={88} crestSize={40} duration={40} />
+          <OrbitRing clubs={CLUBS.slice(8, 16)} sizePct={56} crestSize={32} duration={24} reverse />
           <div
             data-lp-orbit-core
             style={{
@@ -867,16 +871,13 @@ function OrbitRing({
   crestSize,
   duration,
   reverse,
-  y,
 }: {
   clubs: typeof CLUBS;
   sizePct: number;
   crestSize: number;
   duration: number;
   reverse?: boolean;
-  y: number;
 }) {
-  const spin = y * 0.2 * (reverse ? -1 : 1);
   const inset = `${(100 - sizePct) / 2}%`;
   return (
     <div
@@ -889,7 +890,6 @@ function OrbitRing({
         borderRadius: "50%",
         border: "1px dashed color-mix(in oklab, var(--text) 10%, transparent)",
         animation: `spin ${duration}s linear infinite ${reverse ? "reverse" : ""}`,
-        transform: `rotate(${spin}deg)`,
       }}
     >
       {clubs.map((c, i) => {
@@ -903,10 +903,13 @@ function OrbitRing({
               position: "absolute",
               top: `${50 + cy}%`,
               left: `${50 + cx}%`,
-              transform: `translate(-50%,-50%) rotate(${-spin}deg)`,
+              transform: "translate(-50%,-50%)",
             }}
           >
-            <Crest clubId={c.id} size={crestSize} />
+            {/* Counter-spin so every crest stays upright while the ring turns. */}
+            <div style={{ animation: `spin ${duration}s linear infinite ${reverse ? "" : "reverse"}` }}>
+              <Crest clubId={c.id} size={crestSize} />
+            </div>
           </div>
         );
       })}
@@ -1144,6 +1147,10 @@ function TickerRow({ speed = 60, reverse }: { speed?: number; reverse?: boolean 
             key={i}
             className="glass"
             style={{
+              // ~40 moving pills: a backdrop blur on each was the single
+              // most expensive thing on the page while the tickers ran.
+              backdropFilter: "none",
+              WebkitBackdropFilter: "none",
               padding: "10px 18px",
               display: "flex",
               alignItems: "center",

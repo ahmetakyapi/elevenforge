@@ -8,11 +8,11 @@
  * line. Purely decorative — hidden on phones by the auth layout.
  */
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { LogoLockup } from "@/components/brand/logo";
 import "@/components/landing/landing.css";
-import { SplitReveal } from "@/components/motion/reveal";
+import { SplitReveal, useReduce } from "@/components/motion/reveal";
 
 type P = [number, number];
 const FORMATIONS: Array<{ name: string; pts: P[] }> = [
@@ -32,7 +32,7 @@ const FORMATIONS: Array<{ name: string; pts: P[] }> = [
 const ROLE = (i: number) => (i === 0 ? "var(--pos-gk)" : i < 5 ? "var(--pos-def)" : i < 8 ? "var(--pos-mid)" : "var(--pos-fwd)");
 
 export function PitchPatternSide() {
-  const reduce = useReducedMotion();
+  const reduce = useReduce();
   const [f, setF] = useState(0);
   useEffect(() => {
     if (reduce) return;

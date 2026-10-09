@@ -1,5 +1,7 @@
 "use client";
 
+import { Portal } from "@/components/ui/portal";
+
 import { Eye } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useToast } from "@/components/ui/toast";
@@ -52,6 +54,7 @@ export function SpyButton() {
         {pending ? "Casus yolda…" : "Casus Gönder"}
       </button>
       {report && (
+        <Portal>
         <div
           onClick={() => setReport(null)}
           style={{
@@ -173,6 +176,7 @@ export function SpyButton() {
             )}
           </div>
         </div>
+        </Portal>
       )}
     </>
   );

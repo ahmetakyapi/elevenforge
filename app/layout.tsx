@@ -32,8 +32,12 @@ const instrumentSerif = Instrument_Serif({
   variable: "--font-editorial",
   subsets: ["latin", "latin-ext"],
   weight: "400",
-  style: ["normal", "italic"],
+  // Only the italic is ever used; the upright cut was a wasted download.
+  style: "italic",
   display: "swap",
+  // Below the fold on the landing and absent from game screens: no reason
+  // to compete with the hero's critical fonts for the first bytes.
+  preload: false,
 });
 
 export const metadata: Metadata = {

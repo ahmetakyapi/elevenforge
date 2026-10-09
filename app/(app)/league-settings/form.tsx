@@ -77,7 +77,7 @@ export function LeagueSettingsForm({
         label="Görünürlük"
         desc="Davet-only: sadece koduyla katılım. Herkese açık: keşfet listesinde."
       >
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Pill
             active={visibility === "private"}
             onClick={() => setVisibility("private")}
@@ -95,7 +95,7 @@ export function LeagueSettingsForm({
         label="Manuel oynatma butonu"
         desc="Varsayılan kapalı. Açtığında dashboard'da Sıradaki Haftayı Oyna butonu çıkar (test/hızlı tur için). Normalde maçlar her gün belirlenen saatte cron ile otomatik oynanır."
       >
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Pill
             active={!manualAdvance}
             onClick={() => setManualAdvance(false)}
@@ -113,7 +113,7 @@ export function LeagueSettingsForm({
         label="Manuel oynatma yetkisi"
         desc="Manuel buton açıksa: kurucu mı yoksa herkes mi tetikleyebilir."
       >
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Pill
             active={commOnly}
             onClick={() => setCommOnly(true)}

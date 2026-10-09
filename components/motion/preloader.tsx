@@ -15,15 +15,18 @@
  * When it finishes it sets `data-intro-done` on <html> and fires
  * `ef:intro-done`, which the hero waits for before running its own entrance.
  */
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { EASE_IN_OUT, EASE_OUT_EXPO } from "./reveal";
+import { EASE_IN_OUT, EASE_OUT_EXPO, useReduce } from "./reveal";
 
 const KEY = "ef.intro";
 const WORD = "ELEVENFORGE";
 
 export function markIntroDone() {
   document.documentElement.setAttribute("data-intro-done", "");
+  // Also the server-render guard: a client-side return to "/" would
+  // otherwise paint the idle sheet for a frame before the effect hides it.
+  document.documentElement.setAttribute("data-intro-seen", "");
   window.dispatchEvent(new Event("ef:intro-done"));
 }
 
@@ -42,8 +45,12 @@ export function useIntroDone() {
 }
 
 export function Preloader() {
-  const reduce = useReducedMotion();
-  const [phase, setPhase] = useState<"idle" | "run" | "exit" | "gone">("idle");
+  const reduce = useReduce();
+  const [phase, setPhase] = useState<"idle" | "run" | "exit" | "gone">(() =>
+    typeof document !== "undefined" && document.documentElement.hasAttribute("data-intro-done")
+      ? "gone"
+      : "idle",
+  );
   const counter = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
@@ -62,7 +69,7 @@ export function Preloader() {
     document.body.style.overflow = "hidden";
     setPhase("run");
 
-    const total = reduce ? 300 : 1900;
+    const total = reduce ? 300 : 1400;
     const start = performance.now();
     let raf = 0;
     const tick = (now: number) => {
@@ -100,6 +107,10 @@ export function Preloader() {
 
   return (
     <div className="preloader" aria-hidden data-phase={phase}>
+      {/* Without JavaScript the curtain would never lift. */}
+      <noscript>
+        <style>{`.preloader{display:none!important}`}</style>
+      </noscript>
       {/* trailing accent panel */}
       <motion.div
         className="preloader-trail"
@@ -167,7 +178,7 @@ export function Preloader() {
                 transition={
                   exiting
                     ? { duration: 0.6, ease: EASE_IN_OUT, delay: i * 0.018 }
-                    : { duration: 1, ease: EASE_OUT_EXPO, delay: 0.25 + i * 0.05 }
+                    : { duration: 0.8, ease: EASE_OUT_EXPO, delay: 0.2 + i * 0.035 }
                 }
               >
                 {c}
@@ -188,7 +199,7 @@ export function Preloader() {
           className="preloader-line"
           initial={{ scaleX: 0 }}
           animate={phase !== "idle" ? { scaleX: 1 } : {}}
-          transition={{ duration: reduce ? 0.3 : 1.9, ease: [0.65, 0, 0.35, 1] }}
+          transition={{ duration: reduce ? 0.3 : 1.4, ease: [0.65, 0, 0.35, 1] }}
         />
       </motion.div>
     </div>

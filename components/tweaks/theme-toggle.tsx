@@ -48,6 +48,9 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const commit = (next: Theme) => {
     setTheme(next);
     document.documentElement.setAttribute("data-theme", next);
+    // The tweaks panel keeps its own copy of the theme; without this it
+    // wrote the stale value back the next time the accent was changed.
+    window.dispatchEvent(new CustomEvent("ef:theme", { detail: next }));
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       const parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};

@@ -46,10 +46,10 @@ function useSpotlight() {
       last = null;
     };
     window.addEventListener("pointermove", onMove, { passive: true });
-    document.addEventListener("pointerleave", onLeave);
+    document.documentElement.addEventListener("pointerleave", onLeave);
     return () => {
       window.removeEventListener("pointermove", onMove);
-      document.removeEventListener("pointerleave", onLeave);
+      document.documentElement.removeEventListener("pointerleave", onLeave);
       cancelAnimationFrame(raf);
     };
   }, []);
@@ -74,6 +74,14 @@ function RouteProgressInner() {
       if (!el) return;
       el.dataset.state = "loading";
       if (timer.current) window.clearTimeout(timer.current);
+      // Some navigations end on the URL they started from — a page that
+      // redirects back (no league → /lobby), a failed fetch — and the path
+      // effect below never fires. Finish the bar anyway.
+      timer.current = window.setTimeout(() => {
+        if (el.dataset.state !== "loading") return;
+        el.dataset.state = "done";
+        timer.current = window.setTimeout(() => (el.dataset.state = "idle"), 520);
+      }, 6000);
     };
     document.addEventListener("click", onClick, true);
     return () => document.removeEventListener("click", onClick, true);
@@ -83,6 +91,7 @@ function RouteProgressInner() {
   useEffect(() => {
     const el = bar.current;
     if (!el || el.dataset.state !== "loading") return;
+    if (timer.current) window.clearTimeout(timer.current);
     el.dataset.state = "done";
     timer.current = window.setTimeout(() => {
       el.dataset.state = "idle";
