@@ -70,18 +70,6 @@ const nextConfig: NextConfig = {
    */
   serverExternalPackages: ["@electric-sql/pglite"],
 
-  /**
-   * Route changes run through the browser View Transitions API.
-   *
-   * Navigations are React transitions, so with this flag the
-   * `<ViewTransition>` around the app's <main> animates the outgoing page out
-   * and the incoming one in (see the `::view-transition-*` rules in
-   * globals.css). Browsers without the API simply swap instantly.
-   */
-  experimental: {
-    viewTransition: true,
-  },
-
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

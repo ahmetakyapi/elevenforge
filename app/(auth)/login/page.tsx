@@ -75,7 +75,6 @@ export default function LoginPage() {
           }}
         >
           <form
-            className="stagger-in"
             onSubmit={handleSubmit}
             style={{
               maxWidth: 360,

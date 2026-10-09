@@ -1,4 +1,3 @@
-import { ForgeLoader } from "@/components/ui/forge-loader";
 import {
   Skeleton,
   SkeletonAvatar,
@@ -10,7 +9,6 @@ import {
 export default function SquadLoading() {
   return (
     <div style={{ maxWidth: 1400, margin: "0 auto", padding: "20px 28px 60px" }}>
-      <ForgeLoader />
       {/* SquadHero */}
       <SkeletonCard pad={22} minH={150}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>

@@ -87,7 +87,6 @@ export default function RegisterPage() {
           }}
         >
           <form
-            className="stagger-in"
             onSubmit={handleSubmit}
             style={{
               maxWidth: 360,

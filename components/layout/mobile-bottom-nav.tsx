@@ -29,14 +29,10 @@ const ITEMS: NavItem[] = [
 
 export function MobileBottomNav() {
   const pathname = usePathname();
-  const idx = ITEMS.findIndex(
-    ({ href }) => pathname === href || pathname.startsWith(`${href}/`),
-  );
   return (
     <nav
       className="mobile-only"
       style={{
-        viewTransitionName: "bottom-nav",
         position: "fixed",
         bottom: 0,
         left: 0,
@@ -51,24 +47,13 @@ export function MobileBottomNav() {
         padding: "8px 4px calc(10px + env(safe-area-inset-bottom, 0px))",
       }}
     >
-      {/* Glowing bar that slides to the active tab (pure CSS transition). */}
-      <span
-        aria-hidden
-        className="bottom-nav-bar"
-        style={{
-          opacity: idx < 0 ? 0 : 1,
-          transform: `translateX(${Math.max(idx, 0) * 100}%)`,
-        }}
-      />
       {ITEMS.map(({ href, label, Icon }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link
             key={href}
             href={href}
-            aria-current={active ? "page" : undefined}
             style={{
-              position: "relative",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
@@ -82,9 +67,7 @@ export function MobileBottomNav() {
               transition: "color var(--t) var(--ease)",
             }}
           >
-            <span className="bottom-nav-icon" data-active={active || undefined}>
-              <Icon size={18} strokeWidth={active ? 2 : 1.6} />
-            </span>
+            <Icon size={18} strokeWidth={1.6} />
             <span>{label}</span>
           </Link>
         );

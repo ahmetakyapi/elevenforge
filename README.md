@@ -77,23 +77,10 @@ modern menajerlik oyunlarının kalitesinde animasyon ve UX.
 - **Invite-code collision retry** (10 deneme)
 
 ### 🎨 Görsel
-- **"Floodlight" revizyonu** — stadyum ışıkları altında gece maçı: sallanan
-  projektör huzmeleri, film grain, imleci takip eden ışıkla aydınlanan cam kartlar
-- **Açılış animasyonu** — saha çizgileri kendini çizer, sayaç 100'e koşar,
-  ELEVENFORGE harf harf yükselir, perde kalkar (oturum başına bir kez)
-- **Scroll ile anlatı** (Lenis + framer-motion) — hero kelimesi kaydırdıkça
-  ikiye ayrılır, canlı maç kartı sahadan doğrulur, kaydırma hızıyla eğilen
-  marquee, kelime kelime aydınlanan manifesto, sabitlenip yatay akan
-  "bir maç günü" bölümü, sayaç bandı, zeminden yükselen dev footer wordmark
-- **Sayfa geçişleri** — View Transitions API: eski ekran bulanıklaşarak
-  çıkar, yenisi yükselerek gelir; üst bar sabit kalır, aktif sekme hapı kayar
-- **Tema geçişi** — butondan yayılan dairesel reveal
-- **Yükleme durumları** — markalı loader + ışık süpüren skeleton, tüm
-  rotalarda üst ilerleme çizgisi
-- Manyetik butonlar, landing/auth için özel imleç, yuvarlanan buton etiketleri
-- Tipografi: Big Shoulders (stadyum tabelası) + Manrope + Instrument Serif
-  italik + JetBrains Mono
-- Hepsi `prefers-reduced-motion`'a saygılı; dark-by-default, açık tema ayrı ayarlı
+- Premium glass aesthetic — `backdrop-filter: blur(16px)` + radial gradient indigo/emerald
+- Custom Manrope + JetBrains Mono font pairing
+- Easing `[0.22, 1, 0.36, 1]` her animasyonda
+- Dark-by-default, `data-theme="dark"`
 
 ---
 

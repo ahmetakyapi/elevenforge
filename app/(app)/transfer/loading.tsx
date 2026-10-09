@@ -1,4 +1,3 @@
-import { ForgeLoader } from "@/components/ui/forge-loader";
 import {
   Skeleton,
   SkeletonAvatar,
@@ -9,7 +8,6 @@ import {
 export default function TransferLoading() {
   return (
     <div style={{ maxWidth: 1400, margin: "0 auto", padding: "20px 28px 60px" }}>
-      <ForgeLoader />
       {/* Header */}
       <div
         style={{

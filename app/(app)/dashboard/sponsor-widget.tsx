@@ -1,7 +1,5 @@
 "use client";
 
-import { Portal } from "@/components/ui/portal";
-
 import { Briefcase } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useToast } from "@/components/ui/toast";
@@ -109,7 +107,6 @@ export function SponsorWidget({
       </div>
 
       {open && (
-        <Portal>
         <div
           onClick={() => !pending && setOpen(false)}
           style={{
@@ -207,7 +204,6 @@ export function SponsorWidget({
             </div>
           </div>
         </div>
-        </Portal>
       )}
     </div>
   );
