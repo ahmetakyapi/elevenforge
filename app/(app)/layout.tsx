@@ -5,6 +5,7 @@ import { ToastProvider } from "@/components/ui/toast";
 import { TweaksPanel } from "@/components/tweaks/tweaks-panel";
 import { FooterCredit } from "@/components/layout/footer-credit";
 import { tryLeagueContext } from "@/lib/session";
+import { PageTransition } from "@/components/motion/page-transition";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const ctx = await tryLeagueContext();
@@ -28,7 +29,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
               : null
           }
         />
-        <main data-page-enter>{children}</main>
+        <PageTransition>
+          <main data-page-enter>{children}</main>
+        </PageTransition>
         <FooterCredit />
         <MobileBottomNav />
         <TweaksPanel />

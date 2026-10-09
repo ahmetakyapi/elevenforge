@@ -1,3 +1,4 @@
+import { ForgeLoader } from "@/components/ui/forge-loader";
 import {
   Skeleton,
   SkeletonAvatar,
@@ -8,6 +9,7 @@ import {
 export default function LobbyLoading() {
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 24px" }}>
+      <ForgeLoader />
       <Skeleton w={60} h={10} />
       <Skeleton w={220} h={34} style={{ marginTop: 8 }} />
       <Skeleton w="70%" h={12} style={{ marginTop: 6 }} />

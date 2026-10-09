@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Manrope, JetBrains_Mono } from "next/font/google";
+import { Manrope, JetBrains_Mono, Big_Shoulders, Instrument_Serif } from "next/font/google";
+import { MotionLayer } from "@/components/motion/motion-layer";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -11,6 +12,27 @@ const manrope = Manrope({
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains",
   subsets: ["latin"],
+  display: "swap",
+});
+
+/*
+ * Display face: stadium signage. A condensed grotesque with an optical-size
+ * axis, used only for the big moments — the wordmark, scorelines, section
+ * titles. Everything you read in a sentence stays Manrope.
+ */
+const bigShoulders = Big_Shoulders({
+  variable: "--font-stadium",
+  subsets: ["latin", "latin-ext"],
+  axes: ["opsz"],
+  display: "swap",
+});
+
+/* An editorial italic for the one word in a headline that carries emotion. */
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-editorial",
+  subsets: ["latin", "latin-ext"],
+  weight: "400",
+  style: ["normal", "italic"],
   display: "swap",
 });
 
@@ -60,7 +82,7 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       data-accent="indigo"
       suppressHydrationWarning
-      className={`${manrope.variable} ${jetbrainsMono.variable}`}
+      className={`${manrope.variable} ${jetbrainsMono.variable} ${bigShoulders.variable} ${instrumentSerif.variable}`}
     >
       <head>
         {/*
@@ -79,11 +101,14 @@ export default function RootLayout({
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=JSON.parse(localStorage.getItem('ef.tweaks')||'{}');if(t.theme==='light'||t.theme==='dark')document.documentElement.setAttribute('data-theme',t.theme);if(t.accent)document.documentElement.setAttribute('data-accent',t.accent);}catch(e){}})()`,
+            __html: `(function(){try{var t=JSON.parse(localStorage.getItem('ef.tweaks')||'{}');if(t.theme==='light'||t.theme==='dark')document.documentElement.setAttribute('data-theme',t.theme);if(t.accent)document.documentElement.setAttribute('data-accent',t.accent);}catch(e){}try{if(sessionStorage.getItem('ef.intro')==='1')document.documentElement.setAttribute('data-intro-seen','');}catch(e){}})()`,
           }}
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <MotionLayer />
+      </body>
     </html>
   );
 }

@@ -1,0 +1,277 @@
+/* ═══════════════════════════════════════════════════════════════
+   Landing — layout for the scroll-driven set pieces.
+   Motion values (x, y, rotate, scale) are driven from React; this
+   file only holds structure and the purely decorative CSS loops.
+═══════════════════════════════════════════════════════════════ */
+
+/* ─── Nav ───────────────────────────────────────────────────── */
+.lp-nav-links { display: flex; gap: 6px; }
+.lp-nav-link {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  text-decoration: none;
+  color: var(--text-2);
+  font-weight: 600;
+  font-size: 13.5px;
+  transition: color 300ms var(--ease), background 300ms var(--ease);
+}
+.lp-nav-link:hover { color: var(--text); background: var(--panel); }
+.lp-nav-index {
+  font: 600 9.5px/1 var(--font-jetbrains), monospace;
+  color: var(--accent);
+  letter-spacing: 0.06em;
+}
+
+/* ─── Hero ──────────────────────────────────────────────────── */
+.lp-hero {
+  position: relative;
+  min-height: 100svh;
+  padding: 108px 0 36px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.lp-hero-inner {
+  position: relative;
+  z-index: 3;
+  flex: 1;
+  width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 0 clamp(18px, 3vw, 40px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(18px, 3vh, 36px);
+}
+.lp-hero-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.lp-hero-clock {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+}
+.lp-hero-clock b {
+  color: var(--text);
+  font-weight: 700;
+  margin-left: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.lp-hero-word {
+  margin: 0;
+  font-weight: 900;
+  font-size: clamp(96px, 21.5vw, 360px);
+  line-height: 0.8;
+  letter-spacing: -0.015em;
+  display: flex;
+  flex-direction: column;
+}
+.lp-hero-line { display: flex; align-items: center; will-change: transform; }
+.lp-hero-line-2 { justify-content: flex-end; gap: 0.12em; }
+.lp-hero-forge {
+  background-image: linear-gradient(100deg, var(--accent) 0%, color-mix(in oklab, var(--accent) 50%, var(--accent-2)) 55%, var(--accent-2) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* split units sit in their own spans; they inherit the clipped gradient */
+.lp-hero-forge span { background: inherit; -webkit-background-clip: text; background-clip: text; }
+.lp-hero-badge {
+  display: inline-block;
+  width: clamp(80px, 9vw, 150px);
+  height: clamp(80px, 9vw, 150px);
+  flex-shrink: 0;
+}
+.lp-spin { width: 100%; height: 100%; overflow: visible; }
+.lp-spin text { animation: spin 18s linear infinite; transform-origin: 100px 100px; transform-box: view-box; }
+.lp-hero-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+.lp-hero-tag {
+  margin: 0;
+  font-size: clamp(22px, 2.4vw, 32px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.lp-hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; }
+.lp-cta { padding: 16px 26px !important; font-size: 15px !important; border-radius: 999px !important; }
+.lp-hero-foot {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 28px;
+  margin-top: 28px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.lp-scroll-cue {
+  width: 24px;
+  height: 38px;
+  border-radius: 14px;
+  border: 1px solid var(--border-strong);
+  display: flex;
+  justify-content: center;
+  padding-top: 7px;
+}
+.lp-scroll-cue span {
+  width: 2px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--text-2);
+  animation: scroll-hint 1.6s ease-in-out infinite;
+}
+
+/* Floodlight beams: four soft cones that sway from the top edge. */
+.lp-beams { position: absolute; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
+.lp-beams span {
+  position: absolute;
+  top: -10%;
+  width: 22vw;
+  height: 130%;
+  transform-origin: 50% 0;
+  background: linear-gradient(180deg, color-mix(in oklab, white 14%, transparent), transparent 70%);
+  clip-path: polygon(46% 0, 54% 0, 100% 100%, 0 100%);
+  filter: blur(18px);
+  opacity: 0.35;
+  mix-blend-mode: screen;
+  animation: beam 9s var(--ease) infinite alternate;
+}
+.lp-beams span:nth-child(1) { left: 2%; rotate: -24deg; animation-delay: -2s; }
+.lp-beams span:nth-child(2) { left: 24%; rotate: -8deg; animation-duration: 11s; opacity: 0.22; }
+.lp-beams span:nth-child(3) { right: 24%; rotate: 8deg; animation-duration: 12s; animation-delay: -5s; opacity: 0.22; }
+.lp-beams span:nth-child(4) { right: 2%; rotate: 24deg; animation-delay: -7s; }
+@keyframes beam {
+  0% { transform: rotate(-6deg); opacity: 0.18; }
+  50% { opacity: 0.38; }
+  100% { transform: rotate(6deg); opacity: 0.24; }
+}
+[data-theme="light"] .lp-beams { display: none; }
+
+/* ─── Section heads ─────────────────────────────────────────── */
+.lp-h2 {
+  font-size: clamp(54px, 7.4vw, 118px);
+  line-height: 0.86;
+}
+
+/* ─── Manifesto ─────────────────────────────────────────────── */
+.lp-manifesto {
+  margin: 0;
+  font-weight: 700;
+  font-size: clamp(30px, 4.4vw, 68px);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+/* ─── Matchday rail ─────────────────────────────────────────── */
+.lp-rail-sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 40px;
+  overflow: hidden;
+}
+.lp-rail-track {
+  display: flex;
+  gap: 22px;
+  padding: 0 max(32px, calc((100vw - 1400px) / 2 + 32px));
+  width: max-content;
+  will-change: transform;
+}
+.lp-rail-card {
+  width: clamp(280px, 30vw, 400px);
+  min-height: clamp(340px, 46vh, 440px);
+  padding: 26px !important;
+  border-radius: 24px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel)) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp-rail-sticky { position: relative; height: auto; padding: 80px 0; }
+  .lp-rail-track { overflow-x: auto; width: auto; }
+}
+@media (max-width: 760px) {
+  .lp-rail-sticky { gap: 26px; }
+  .lp-rail-card { width: 78vw; min-height: 380px; }
+}
+
+/* ─── Numbers ───────────────────────────────────────────────── */
+.lp-numbers {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--border);
+}
+.lp-number {
+  padding: 34px 24px 10px 0;
+  border-right: 1px solid var(--border);
+  padding-left: 24px;
+}
+.lp-number:first-child { padding-left: 0; }
+.lp-number:last-child { border-right: none; }
+@media (max-width: 900px) {
+  .lp-numbers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lp-number:nth-child(2) { border-right: none; }
+  .lp-number:nth-child(3) { padding-left: 0; }
+}
+
+/* ─── Kickoff CTA ───────────────────────────────────────────── */
+.lp-kickoff {
+  position: relative;
+  width: clamp(150px, 16vw, 210px);
+  height: clamp(150px, 16vw, 210px);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  text-decoration: none;
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--indigo), var(--emerald));
+  box-shadow: 0 30px 80px -20px color-mix(in oklab, var(--accent) 70%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  isolation: isolate;
+}
+.lp-kickoff-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--text);
+  transform: translateY(101%);
+  transition: transform 600ms var(--ease-expo);
+  z-index: 0;
+}
+.lp-kickoff:hover .lp-kickoff-fill { transform: translateY(0); }
+.lp-kickoff > span:last-child { transition: color 400ms var(--ease); }
+.lp-kickoff:hover > span:last-child { color: var(--bg); }
+
+/* ─── Mobile ────────────────────────────────────────────────── */
+@media (max-width: 760px) {
+  .lp-hero { padding-top: 92px; }
+  .lp-hero-word { font-size: clamp(76px, 26vw, 140px); }
+  .lp-hero-badge { width: 72px; height: 72px; }
+  .lp-hero-bottom { flex-direction: column; align-items: stretch; }
+  .lp-hero-ctas { width: 100%; }
+  .lp-hero-ctas > * { flex: 1; }
+  .lp-hero-ctas .btn { width: 100%; justify-content: center; }
+  .lp-h2 { font-size: clamp(44px, 13vw, 72px); }
+  .lp-hero-foot { gap: 16px; }
+}

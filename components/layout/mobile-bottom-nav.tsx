@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import {
   ArrowLeftRight,
   Home,
@@ -33,6 +34,7 @@ export function MobileBottomNav() {
     <nav
       className="mobile-only"
       style={{
+        viewTransitionName: "bottom-nav",
         position: "fixed",
         bottom: 0,
         left: 0,
@@ -53,7 +55,9 @@ export function MobileBottomNav() {
           <Link
             key={href}
             href={href}
+            aria-current={active ? "page" : undefined}
             style={{
+              position: "relative",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
@@ -67,7 +71,30 @@ export function MobileBottomNav() {
               transition: "color var(--t) var(--ease)",
             }}
           >
-            <Icon size={18} strokeWidth={1.6} />
+            {active && (
+              <motion.span
+                layoutId="bottom-nav-pill"
+                aria-hidden
+                transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                style={{
+                  position: "absolute",
+                  top: -9,
+                  left: "22%",
+                  right: "22%",
+                  height: 3,
+                  borderRadius: 999,
+                  background: "linear-gradient(90deg, var(--accent), var(--accent-2))",
+                  boxShadow: "0 0 14px var(--accent)",
+                }}
+              />
+            )}
+            <motion.span
+              animate={{ y: active ? -2 : 0, scale: active ? 1.12 : 1 }}
+              transition={{ type: "spring", stiffness: 500, damping: 26 }}
+              style={{ display: "inline-flex" }}
+            >
+              <Icon size={18} strokeWidth={active ? 2 : 1.6} />
+            </motion.span>
             <span>{label}</span>
           </Link>
         );

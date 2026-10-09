@@ -1,12 +1,34 @@
 "use client";
 
 import Link from "next/link";
+import "@/components/landing/landing.css";
 import {
   useEffect,
   useRef,
   useState,
   type ReactNode,
 } from "react";
+import {
+  motion,
+  useMotionValueEvent,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+} from "framer-motion";
+import { Preloader, useIntroDone } from "@/components/motion/preloader";
+import { SmoothScroll } from "@/components/motion/smooth-scroll";
+import { Magnetic, SplitReveal } from "@/components/motion/reveal";
+import {
+  CardStage,
+  FooterWordmark,
+  KickoffCTA,
+  Manifesto,
+  MatchdayRail,
+  NumbersBand,
+  ScrollProgress,
+  SectionHead,
+  VelocityMarquee,
+} from "@/components/landing/sections";
 import { ArrowRight, Play, Plus } from "lucide-react";
 import { Crest } from "@/components/ui/primitives";
 import { LogoLockup } from "@/components/brand/logo";
@@ -78,20 +100,30 @@ function useMouse() {
 
 // ─── Main ─────────────────────────────────────────────────
 export default function LandingUi() {
-  const y = useScrollY();
   return (
-    <div style={{ position: "relative", overflow: "hidden", background: "var(--bg)" }}>
+    <div style={{ position: "relative", overflow: "clip", background: "var(--bg)" }}>
+      <Preloader />
+      <SmoothScroll />
+      <ScrollProgress />
       <LandingNav />
-      <Hero y={y} />
-      <MarqueeBand />
+      <Hero />
+      <CardStage>
+        <HeroLiveCard />
+      </CardStage>
+      <VelocityMarquee
+        words={["SÜPER LİG", "DERBİ", "TRANSFER", "21:00", "KUPA", "1. LİG", "EFSANE"]}
+      />
+      <Manifesto />
       <CrewSection />
+      <MatchdayRail />
       <StadiumSection />
       <MarketSection />
       <TacticSection />
+      <NumbersBand />
       <NewspaperStack />
       <TestimonialWall />
       <FaqBlock />
-      <ClosingCTA />
+      <KickoffCTA />
       <LandingFooter />
       <style>{`
         /* ─── Mobile responsiveness ─────────────────────────────────
@@ -113,8 +145,6 @@ export default function LandingUi() {
             padding-top: 60px !important;
             padding-bottom: 60px !important;
           }
-          [data-lp-hero-title] { font-size: clamp(46px, 14vw, 96px) !important; }
-          [data-lp-h2] { font-size: clamp(28px, 7vw, 44px) !important; }
           [data-lp-card] { padding: 18px !important; }
           [data-lp-stack-mobile] {
             display: flex !important;
@@ -132,7 +162,6 @@ export default function LandingUi() {
         @keyframes scroll-hint { 0%{opacity:0;transform:translateY(0);} 40%{opacity:1;} 100%{opacity:0;transform:translateY(10px);} }
         @keyframes formSwap { 0%{opacity:0;transform:translateY(-4px);} 100%{opacity:1;transform:translateY(0);} }
         @keyframes posGlow { 0%,100%{opacity:0.4;transform:scale(1);} 50%{opacity:0.8;transform:scale(1.2);} }
-        @keyframes dragPulse { 0%,100%{filter:drop-shadow(0 0 0 transparent);transform:translateX(0);} 50%{filter:drop-shadow(0 6px 18px color-mix(in oklab, var(--warn) 40%, transparent));transform:translateX(4px);} }
         @keyframes foldBreathe { 0%,100%{opacity:0.6;} 50%{opacity:1;} }
         @keyframes headlineType { 0%{clip-path:inset(0 100% 0 0);} 100%{clip-path:inset(0 0 0 0);} }
         @keyframes dragPath {
@@ -150,12 +179,27 @@ export default function LandingUi() {
 }
 
 // ─── Nav ──────────────────────────────────────────────────
+/**
+ * Transparent over the hero, frosted once you scroll, and out of the way
+ * while you read: it slides up when scrolling down and comes back the
+ * moment you scroll up.
+ */
 function LandingNav() {
-  const y = useScrollY();
-  const solid = y > 40;
+  const { scrollY } = useScroll();
+  const [solid, setSolid] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  const intro = useIntroDone();
+  useMotionValueEvent(scrollY, "change", (v) => {
+    const prev = scrollY.getPrevious() ?? 0;
+    setSolid(v > 40);
+    setHidden(v > 320 && v > prev + 2 ? true : v < prev - 2 ? false : hidden);
+  });
   return (
-    <nav
+    <motion.nav
       data-lp-nav
+      initial={{ y: -90, opacity: 0 }}
+      animate={{ y: intro && !hidden ? 0 : -90, opacity: intro ? 1 : 0 }}
+      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: intro && !solid ? 0.5 : 0 }}
       style={{
         position: "fixed",
         top: 0,
@@ -163,10 +207,8 @@ function LandingNav() {
         right: 0,
         zIndex: 100,
         padding: solid ? "10px 28px" : "18px 28px",
-        transition: "opacity 300ms var(--ease), transform 300ms var(--ease), color 300ms var(--ease), background-color 300ms var(--ease), border-color 300ms var(--ease), box-shadow 300ms var(--ease)",
-        background: solid
-          ? "color-mix(in oklab, var(--bg) 78%, transparent)"
-          : "transparent",
+        transition: "padding 300ms var(--ease), background-color 300ms var(--ease), border-color 300ms var(--ease)",
+        background: solid ? "color-mix(in oklab, var(--bg) 72%, transparent)" : "transparent",
         backdropFilter: solid ? "blur(24px) saturate(140%)" : "none",
         WebkitBackdropFilter: solid ? "blur(24px) saturate(140%)" : "none",
         borderBottom: solid ? "1px solid var(--border)" : "1px solid transparent",
@@ -178,75 +220,110 @@ function LandingNav() {
       <Link href="/" style={{ textDecoration: "none", display: "flex" }}>
         <LogoLockup size={22} icon="anvil" />
       </Link>
-      <div data-lp-nav-links className="desktop-only" style={{ display: "flex", gap: 4 }}>
-        {NAV_TARGETS.map(({ label, href }) => (
-          <a
-            key={label}
-            href={href}
-            className="btn btn-ghost btn-sm"
-            style={{ textDecoration: "none" }}
-          >
-            {label}
+      <div data-lp-nav-links className="desktop-only lp-nav-links">
+        {NAV_TARGETS.map(({ label, href }, i) => (
+          <a key={label} href={href} className="lp-nav-link">
+            <span className="lp-nav-index">0{i + 1}</span>
+            <span className="roll">
+              <span data-t={label}>{label}</span>
+            </span>
           </a>
         ))}
       </div>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <ThemeToggle compact />
-        <Link
-          href="/login"
-          className="btn btn-ghost btn-sm"
-          style={{ textDecoration: "none" }}
-        >
-          Giriş
+        <Link href="/login" className="btn btn-ghost btn-sm" style={{ textDecoration: "none" }}>
+          <span className="roll">
+            <span data-t="Giriş">Giriş</span>
+          </span>
         </Link>
-        <Link
-          href="/register"
-          className="btn btn-primary btn-sm"
-          style={{ textDecoration: "none" }}
-        >
-          Başla <ArrowRight size={14} strokeWidth={1.8} />
-        </Link>
+        <Magnetic strength={0.3}>
+          <Link href="/register" className="btn btn-primary btn-sm" style={{ textDecoration: "none" }}>
+            <span className="roll">
+              <span data-t="Başla">Başla</span>
+            </span>
+            <ArrowRight size={14} strokeWidth={1.8} />
+          </Link>
+        </Magnetic>
       </div>
-    </nav>
+    </motion.nav>
   );
 }
 
 // ─── Hero ─────────────────────────────────────────────────
-function Hero({ y }: { y: number }) {
+/** Minutes and seconds to the next 21:00 in Istanbul, ticking. */
+function useKickoffCountdown() {
+  const [label, setLabel] = useState<string | null>(null);
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      const ist = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Istanbul" }));
+      const target = new Date(ist);
+      target.setHours(21, 0, 0, 0);
+      if (ist >= target) target.setDate(target.getDate() + 1);
+      const s = Math.floor((target.getTime() - ist.getTime()) / 1000);
+      const p = (n: number) => String(n).padStart(2, "0");
+      setLabel(`${p(Math.floor(s / 3600))}:${p(Math.floor((s % 3600) / 60))}:${p(s % 60)}`);
+    };
+    tick();
+    const iv = setInterval(tick, 1000);
+    return () => clearInterval(iv);
+  }, []);
+  return label;
+}
+
+function HeroBackdrop() {
+  const y = useScrollY();
   const m = useMouse();
-  const parallax = (d: number) =>
-    `translate3d(${(m.x - 0.5) * d}px, ${(m.y - 0.5) * d}px, 0)`;
+  const parallax = (d: number) => `translate3d(${(m.x - 0.5) * d}px, ${(m.y - 0.5) * d}px, 0)`;
   return (
-    <section
-      style={{
-        position: "relative",
-        minHeight: "100vh",
-        paddingTop: 120,
-        paddingBottom: 80,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        overflow: "hidden",
-      }}
-    >
+    <>
       <div
         aria-hidden
         className="hero-stadium"
         style={{
           position: "absolute",
           inset: 0,
-          opacity: Math.max(0, 1 - y / 800),
+          opacity: Math.max(0, 1 - y / 900),
           pointerEvents: "none",
         }}
       >
         <StadiumBackdrop mouse={m} scrollY={y} />
       </div>
-      <div
-        aria-hidden
-        className="hero-light-veil"
-        style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
-      />
+      <div aria-hidden className="hero-light-veil" style={{ position: "absolute", inset: 0, pointerEvents: "none" }} />
+      <div aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none", transform: parallax(24) }}>
+        <div
+          style={{
+            position: "absolute",
+            top: "4%",
+            left: "-12%",
+            width: 760,
+            height: 760,
+            borderRadius: "50%",
+            background:
+              "radial-gradient(circle at center, color-mix(in oklab, var(--indigo) 30%, transparent) 0%, transparent 60%)",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            bottom: "-14%",
+            right: "-10%",
+            width: 860,
+            height: 860,
+            borderRadius: "50%",
+            background:
+              "radial-gradient(circle at center, color-mix(in oklab, var(--emerald) 24%, transparent) 0%, transparent 60%)",
+          }}
+        />
+      </div>
+      {/* Floodlight beams sweeping down from the stands. */}
+      <div aria-hidden className="lp-beams">
+        <span />
+        <span />
+        <span />
+        <span />
+      </div>
       <style>{`
         [data-theme="light"] .hero-stadium { opacity: 0.18 !important; filter: saturate(0.55) brightness(1.6); }
         [data-theme="light"] .hero-light-veil {
@@ -254,57 +331,37 @@ function Hero({ y }: { y: number }) {
         }
         :root:not([data-theme="light"]) .hero-light-veil { display: none; }
       `}</style>
-      <div
-        aria-hidden
-        style={{ position: "absolute", inset: 0, pointerEvents: "none", transform: parallax(20) }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            top: "10%",
-            left: "-10%",
-            width: 700,
-            height: 700,
-            borderRadius: "50%",
-            background:
-              "radial-gradient(circle at center, color-mix(in oklab, var(--indigo) 30%, transparent) 0%, transparent 60%)",
-            filter: "blur(10px)",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            bottom: "-10%",
-            right: "-10%",
-            width: 800,
-            height: 800,
-            borderRadius: "50%",
-            background:
-              "radial-gradient(circle at center, color-mix(in oklab, var(--emerald) 24%, transparent) 0%, transparent 60%)",
-            filter: "blur(10px)",
-          }}
-        />
-      </div>
+    </>
+  );
+}
 
-      <div
-        style={{
-          position: "relative",
-          zIndex: 3,
-          maxWidth: 1400,
-          margin: "0 auto",
-          padding: "0 32px",
-          display: "grid",
-          gridTemplateColumns: "minmax(0, 1fr)",
-          justifyItems: "center",
-          transform: `translateY(${y * -0.1}px)`,
-          transition: "transform 0.1s linear",
-        }}
-      >
-        <div className="anim-slide-up" style={{ animationDelay: "50ms" }}>
-          <div
+function Hero() {
+  const intro = useIntroDone();
+  const reduce = useReducedMotion();
+  const ref = useRef<HTMLElement>(null);
+  const countdown = useKickoffCountdown();
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
+  const leftX = useTransform(scrollYProgress, [0, 1], ["0%", "-28%"]);
+  const rightX = useTransform(scrollYProgress, [0, 1], ["0%", "24%"]);
+  const fade = useTransform(scrollYProgress, [0, 0.65], [1, 0]);
+  const lift = useTransform(scrollYProgress, [0, 1], [0, -120]);
+  const show = intro;
+  const rise = (delay: number) => ({
+    initial: { opacity: 0, y: 24, filter: "blur(8px)" },
+    animate: show ? { opacity: 1, y: 0, filter: "blur(0px)" } : {},
+    transition: { duration: 1, ease: [0.16, 1, 0.3, 1] as const, delay },
+  });
+
+  return (
+    <section ref={ref} className="lp-hero">
+      <HeroBackdrop />
+
+      <motion.div className="lp-hero-inner" style={{ y: reduce ? 0 : lift }}>
+        <motion.div className="lp-hero-meta" {...rise(0.15)}>
+          <span
             className="chip"
             style={{
-              padding: "8px 14px",
+              padding: "7px 13px",
               background: "color-mix(in oklab, var(--emerald) 10%, var(--panel-2))",
               borderColor: "color-mix(in oklab, var(--emerald) 30%, var(--border))",
             }}
@@ -319,198 +376,115 @@ function Hero({ y }: { y: number }) {
                 animation: "pulse-accent 2s ease-in-out infinite",
               }}
             />
-            <span
-              className="t-mono"
-              style={{
-                fontSize: 11,
-                letterSpacing: "0.08em",
-                color: "var(--emerald)",
-              }}
-            >
+            <span className="t-mono" style={{ fontSize: 11, letterSpacing: "0.08em", color: "var(--emerald)" }}>
               SEZON 3 · 1.248 AKTİF LİG
             </span>
-          </div>
-        </div>
-        <h1
-          className="anim-slide-up t-display"
-          style={{
-            margin: "22px 0 0",
-            fontSize: "clamp(64px, 12vw, 184px)",
-            letterSpacing: "-0.05em",
-            lineHeight: 0.86,
-            textAlign: "center",
-            animationDelay: "120ms",
-            padding: "0 24px",
-          }}
-        >
-          <span
-            style={{
-              color: "var(--text)",
-              display: "inline-block",
-            }}
-          >
-            ELEVEN
           </span>
-          <span
-            style={{
-              color: "var(--accent)",
-              animation: "shimmer 6s linear infinite",
-              display: "inline-block",
-            }}
-          >
-            FORGE
+          <span className="t-mono lp-hero-clock" suppressHydrationWarning>
+            DÜDÜĞE <b>{countdown ?? "--:--:--"}</b>
           </span>
-        </h1>
-        <div
-          className="anim-slide-up"
-          style={{
-            marginTop: 20,
-            textAlign: "center",
-            maxWidth: 680,
-            animationDelay: "220ms",
-          }}
-        >
-          <p
-            style={{
-              fontSize: "clamp(20px, 2.4vw, 28px)",
-              fontWeight: 600,
-              color: "var(--text-2)",
-              margin: 0,
-              letterSpacing: "-0.01em",
-              lineHeight: 1.25,
-            }}
+        </motion.div>
+
+        <h1 className="t-stadium lp-hero-word" aria-label="ElevenForge">
+          <motion.span className="lp-hero-line" style={{ x: reduce ? 0 : leftX, opacity: reduce ? 1 : fade }}>
+            <SplitReveal text="ELEVEN" by="char" trigger={show} stagger={0.045} duration={1.1} />
+          </motion.span>
+          <motion.span
+            className="lp-hero-line lp-hero-line-2"
+            style={{ x: reduce ? 0 : rightX, opacity: reduce ? 1 : fade }}
           >
-            <span style={{ color: "var(--text)" }}>16 arkadaş.</span>{" "}
-            <span style={{ color: "var(--indigo)" }}>1 lig.</span>{" "}
-            <span style={{ color: "var(--emerald)" }}>1 efsane.</span>
-          </p>
-          <p
-            style={{
-              fontSize: 15,
-              color: "var(--muted)",
-              marginTop: 16,
-              lineHeight: 1.65,
-            }}
-          >
-            Her akşam 21:00&apos;de maçlar simule olur, canlı maç anlatımı saniye
-            saniye gelişmeleri aktarır.
-            <br />
-            Derbilerinde{" "}
-            <em
-              style={{
-                color: "var(--text-2)",
-                fontStyle: "normal",
-                borderBottom: "1px dashed var(--border-strong)",
-              }}
+            <motion.span
+              className="lp-hero-badge"
+              aria-hidden
+              initial={{ opacity: 0, scale: 0.4, rotate: -90 }}
+              animate={show ? { opacity: 1, scale: 1, rotate: 0 } : {}}
+              transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1], delay: 0.6 }}
             >
-              kulübünün tarihini
-            </em>{" "}
-            hatırlatır.
-          </p>
-        </div>
-        <div
-          className="anim-slide-up"
-          style={{
-            marginTop: 30,
-            display: "flex",
-            gap: 12,
-            flexWrap: "wrap",
-            justifyContent: "center",
-            animationDelay: "320ms",
-          }}
-        >
-          <Link
-            href="/register"
-            className="btn btn-primary btn-lg"
-            style={{
-              padding: "14px 26px",
-              fontSize: 15,
-              textDecoration: "none",
-            }}
-          >
-            Ligini Kur <ArrowRight size={16} strokeWidth={1.8} />
-          </Link>
-          <Link
-            href="/login"
-            className="btn btn-lg"
-            style={{ padding: "14px 26px", textDecoration: "none" }}
-          >
-            <Play size={14} strokeWidth={1.8} /> Demo&apos;yu Gez
-          </Link>
-        </div>
-        <div
-          className="anim-slide-up"
-          style={{
-            marginTop: 26,
-            display: "flex",
-            gap: 20,
-            color: "var(--muted)",
-            fontSize: 12,
-            animationDelay: "420ms",
-            flexWrap: "wrap",
-            justifyContent: "center",
-          }}
-        >
-          <span>⚡ 5 dakikada lig</span>
-          <span style={{ opacity: 0.4 }}>—</span>
-          <span>🏟 Canlı maç anlatımı</span>
-          <span style={{ opacity: 0.4 }}>—</span>
-          <span>🇹🇷 Türkçe · İngilizce</span>
-        </div>
+              <SpinBadge />
+            </motion.span>
+            <SplitReveal
+              text="FORGE"
+              by="char"
+              trigger={show}
+              delay={0.22}
+              stagger={0.05}
+              duration={1.1}
+              className="lp-hero-forge"
+            />
+          </motion.span>
+        </h1>
 
-        <div
-          className="anim-slide-up"
-          style={{
-            marginTop: 70,
-            width: "100%",
-            maxWidth: 980,
-            animationDelay: "600ms",
-          }}
-        >
-          <HeroLiveCard />
+        <div className="lp-hero-bottom">
+          <motion.div {...rise(0.7)} style={{ maxWidth: 520 }}>
+            <p className="lp-hero-tag">
+              16 arkadaş. <span style={{ color: "var(--indigo)" }}>1 lig.</span>{" "}
+              <span className="t-serif" style={{ color: "var(--emerald)", fontSize: "1.12em" }}>
+                1 efsane.
+              </span>
+            </p>
+            <p style={{ fontSize: 15, color: "var(--muted)", marginTop: 14, lineHeight: 1.65 }}>
+              Her akşam 21:00&apos;de maçlar simüle olur, canlı anlatım saniye saniye akar. Derbilerinde{" "}
+              <em style={{ color: "var(--text-2)", fontStyle: "normal", borderBottom: "1px dashed var(--border-strong)" }}>
+                kulübünün tarihini
+              </em>{" "}
+              hatırlatır.
+            </p>
+          </motion.div>
+          <motion.div {...rise(0.85)} className="lp-hero-ctas">
+            <Magnetic>
+              <Link href="/register" className="btn btn-primary btn-lg lp-cta" style={{ textDecoration: "none" }}>
+                <span className="roll">
+                  <span data-t="Ligini Kur">Ligini Kur</span>
+                </span>
+                <ArrowRight size={16} strokeWidth={1.8} />
+              </Link>
+            </Magnetic>
+            <Magnetic>
+              <Link href="/login" className="btn btn-lg lp-cta" style={{ textDecoration: "none" }}>
+                <Play size={14} strokeWidth={1.8} />
+                <span className="roll">
+                  <span data-t="Demo'yu Gez">Demo&apos;yu Gez</span>
+                </span>
+              </Link>
+            </Magnetic>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
-      <div
-        style={{
-          position: "absolute",
-          bottom: 22,
-          left: "50%",
-          transform: "translateX(-50%)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 6,
-          color: "var(--muted)",
-          opacity: Math.max(0, 1 - y / 200),
-        }}
-      >
-        <span className="t-label" style={{ fontSize: 10 }}>
-          KAYDIR
+      <motion.div className="lp-hero-foot" {...rise(1.05)}>
+        <span>⚡ 5 dakikada lig</span>
+        <span className="lp-scroll-cue" aria-hidden>
+          <span />
         </span>
-        <div
-          style={{
-            width: 22,
-            height: 34,
-            borderRadius: 12,
-            border: "1px solid var(--border-strong)",
-            display: "flex",
-            justifyContent: "center",
-            paddingTop: 6,
-          }}
-        >
-          <span
-            style={{
-              width: 2,
-              height: 6,
-              borderRadius: 2,
-              background: "var(--muted)",
-              animation: "scroll-hint 1.6s ease-in-out infinite",
-            }}
-          />
-        </div>
-      </div>
+        <span>🏟 Canlı maç anlatımı</span>
+      </motion.div>
     </section>
+  );
+}
+
+/** Circular type that slowly turns — the stamp on the hero. */
+function SpinBadge() {
+  const text = "16 ARKADAŞ • 1 LİG • 1 EFSANE • 21:00 • ";
+  return (
+    <svg viewBox="0 0 200 200" className="lp-spin">
+      <defs>
+        <path id="lp-spin-path" d="M100,100 m-78,0 a78,78 0 1,1 156,0 a78,78 0 1,1 -156,0" />
+      </defs>
+      <circle cx="100" cy="100" r="99" fill="color-mix(in oklab, var(--bg) 70%, transparent)" stroke="var(--border-strong)" />
+      <text style={{ font: "700 15.5px var(--font-jetbrains)", letterSpacing: "0.18em", fill: "var(--text-2)" }}>
+        <textPath href="#lp-spin-path">{text}</textPath>
+      </text>
+      <g transform="translate(100 100)">
+        <circle r="34" fill="url(#lp-spin-grad)" />
+        <path d="M-6 -12 L14 0 L-6 12 Z" fill="#fff" />
+      </g>
+      <defs>
+        <linearGradient id="lp-spin-grad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#6366f1" />
+          <stop offset="1" stopColor="#10b981" />
+        </linearGradient>
+      </defs>
+    </svg>
   );
 }
 
@@ -760,76 +734,6 @@ function HeroLiveCard() {
   );
 }
 
-// ─── Marquee ──────────────────────────────────────────────
-function MarqueeBand() {
-  const words = [
-    "SÜPER LİG",
-    "PREMIER LEAGUE",
-    "LA LIGA",
-    "SERIE A",
-    "BUNDESLIGA",
-    "LIGUE 1",
-    "EREDIVISIE",
-    "ŞAMPİYONLAR LİGİ",
-    "AVRUPA LİGİ",
-    "PRIMEIRA LIGA",
-    "MLS",
-  ];
-  const items = [...words, ...words, ...words];
-  return (
-    <div
-      style={{
-        borderTop: "1px solid var(--border)",
-        borderBottom: "1px solid var(--border)",
-        padding: "20px 0",
-        overflow: "hidden",
-        background: "color-mix(in oklab, var(--bg) 50%, var(--panel))",
-        margin: "80px 0",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          gap: 60,
-          whiteSpace: "nowrap",
-          animation: "marquee 90s linear infinite",
-          width: "max-content",
-        }}
-      >
-        {items.map((w, i) => (
-          <span
-            key={i}
-            style={{
-              fontFamily: "var(--font-manrope)",
-              fontWeight: 800,
-              fontSize: "clamp(32px, 5vw, 68px)",
-              letterSpacing: "-0.03em",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 40,
-              color:
-                i % 3 === 0
-                  ? "var(--text)"
-                  : "color-mix(in oklab, var(--text) 25%, transparent)",
-            }}
-          >
-            {w}
-            <span
-              style={{
-                width: 10,
-                height: 10,
-                borderRadius: "50%",
-                background: i % 3 === 0 ? "var(--emerald)" : "var(--indigo)",
-                display: "inline-block",
-              }}
-            />
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ─── Crew ─────────────────────────────────────────────────
 function CrewSection() {
   const [ref, on] = useReveal();
@@ -857,22 +761,13 @@ function CrewSection() {
             transition: "opacity 700ms var(--ease), transform 700ms var(--ease), color 700ms var(--ease), background-color 700ms var(--ease), border-color 700ms var(--ease), box-shadow 700ms var(--ease)",
           }}
         >
-          <span className="t-label" style={{ color: "var(--indigo)" }}>
-            01 / AKIŞ
-          </span>
-          <h2
-            className="t-h1"
-            style={{
-              fontSize: "clamp(40px, 5vw, 64px)",
-              letterSpacing: "-0.03em",
-              marginTop: 12,
-              lineHeight: 1.05,
-            }}
-          >
-            16 kişiye kadar
-            <br />
-            <span style={{ color: "var(--muted)" }}>tek bir kulüp hikayesi.</span>
-          </h2>
+          <SectionHead
+            index="01"
+            kicker="Platform"
+            title="16 kişiye kadar"
+            muted="tek bir kulüp hikâyesi."
+            color="var(--indigo)"
+          />
           <p
             style={{
               color: "var(--text-2)",
@@ -1047,36 +942,14 @@ function StadiumSection() {
             transition: "opacity 700ms var(--ease), transform 700ms var(--ease), color 700ms var(--ease), background-color 700ms var(--ease), border-color 700ms var(--ease), box-shadow 700ms var(--ease)",
           }}
         >
-          <span className="t-label" style={{ color: "var(--emerald)" }}>
-            02 / CANLI MAÇ
-          </span>
-          <h2
-            className="t-h1"
-            style={{
-              fontSize: "clamp(40px, 5vw, 64px)",
-              letterSpacing: "-0.03em",
-              marginTop: 12,
-              lineHeight: 1.12,
-              paddingBottom: 8,
-            }}
-          >
-            Canlı maç anlatımı,
-            <br />
-            <span
-              style={{
-                fontStyle: "italic",
-                fontWeight: 500,
-                color: "var(--emerald)",
-                paddingRight: 4,
-                paddingBottom: 4,
-                display: "inline-block",
-                lineHeight: 1.15,
-              }}
-            >
-              maçları
-            </span>{" "}
-            saniye saniye yayınlar.
-          </h2>
+          <SectionHead
+            index="03"
+            kicker="Canlı maç"
+            title="Maç saniye saniye"
+            muted="anlatılır."
+            color="var(--emerald)"
+            align="center"
+          />
           <p
             style={{
               color: "var(--text-2)",
@@ -1213,22 +1086,13 @@ function MarketSection() {
           transition: "opacity 700ms var(--ease), transform 700ms var(--ease), color 700ms var(--ease), background-color 700ms var(--ease), border-color 700ms var(--ease), box-shadow 700ms var(--ease)",
         }}
       >
-        <span className="t-label" style={{ color: "var(--cyan)" }}>
-          03 / PAYLAŞILAN EVREN
-        </span>
-        <h2
-          className="t-h1"
-          style={{
-            fontSize: "clamp(40px, 5vw, 64px)",
-            letterSpacing: "-0.03em",
-            marginTop: 12,
-            lineHeight: 1.05,
-          }}
-        >
-          Arkadaşının transferi,
-          <br />
-          <span style={{ color: "var(--muted)" }}>senin akışında.</span>
-        </h2>
+        <SectionHead
+          index="04"
+          kicker="Paylaşılan evren"
+          title="Arkadaşının transferi,"
+          muted="senin akışında."
+          color="var(--cyan)"
+        />
       </div>
       <div
         style={{
@@ -1560,30 +1424,13 @@ function TacticSection() {
             transition: "opacity 800ms 100ms var(--ease), transform 800ms 100ms var(--ease), color 800ms 100ms var(--ease), background-color 800ms 100ms var(--ease), border-color 800ms 100ms var(--ease), box-shadow 800ms 100ms var(--ease)",
           }}
         >
-          <span className="t-label" style={{ color: "var(--warn)" }}>
-            04 / TAKTİK
-          </span>
-          <h2
-            className="t-h1"
-            style={{
-              fontSize: "clamp(40px, 5vw, 64px)",
-              letterSpacing: "-0.03em",
-              marginTop: 12,
-              lineHeight: 1.05,
-            }}
-          >
-            <span
-              style={{
-                display: "inline-block",
-                color: "var(--warn)",
-                animation: "dragPulse 2.4s var(--ease) infinite",
-              }}
-            >
-              Sürükle, bırak,
-            </span>
-            <br />
-            <span style={{ color: "var(--muted)" }}>ligi yönet.</span>
-          </h2>
+          <SectionHead
+            index="05"
+            kicker="Taktik"
+            title="Sürükle, bırak,"
+            muted="ligi yönet."
+            color="var(--warn)"
+          />
           <p
             style={{
               color: "var(--text-2)",
@@ -1664,25 +1511,14 @@ function NewspaperStack() {
           transition: "opacity 700ms var(--ease), transform 700ms var(--ease), color 700ms var(--ease), background-color 700ms var(--ease), border-color 700ms var(--ease), box-shadow 700ms var(--ease)",
         }}
       >
-        <span className="t-label" style={{ color: "var(--gold)" }}>
-          05 / GAZETE
-        </span>
-        <h2
-          className="t-h1"
-          style={{
-            fontSize: "clamp(40px, 5vw, 64px)",
-            letterSpacing: "-0.03em",
-            marginTop: 12,
-            lineHeight: 1.05,
-          }}
-        >
-          Her pazar,{" "}
-          <span style={{ fontStyle: "italic", fontWeight: 500, color: "var(--muted)" }}>
-            kulübüne özel
-          </span>
-          <br />
-          gazete çıkar.
-        </h2>
+        <SectionHead
+          index="06"
+          kicker="Gazete"
+          title="Her maç gecesi"
+          muted="kulübüne özel manşet."
+          color="var(--gold)"
+          align="center"
+        />
       </div>
       <div
         style={{
@@ -2025,21 +1861,14 @@ function TestimonialWall() {
       data-lp-section style={{ padding: "120px 32px", maxWidth: 1300, margin: "0 auto" }}
     >
       <div style={{ textAlign: "center", marginBottom: 50 }}>
-        <span className="t-label" style={{ color: "var(--danger)" }}>
-          06 / AKIŞTAN
-        </span>
-        <h2
-          className="t-h1"
-          style={{
-            fontSize: "clamp(36px, 4.5vw, 56px)",
-            letterSpacing: "-0.03em",
-            marginTop: 12,
-            lineHeight: 1.05,
-          }}
-        >
-          Grupta iyi giden hiçbir{" "}
-          <span style={{ color: "var(--muted)" }}>şaka</span> yok.
-        </h2>
+        <SectionHead
+          index="07"
+          kicker="Gruptan"
+          title="Grupta iyi giden"
+          muted="hiçbir şaka yok."
+          color="var(--danger)"
+          align="center"
+        />
       </div>
       <div className="testimonial-grid" style={{ columnCount: 3, columnGap: 18 }}>
         {items.map((t, i) => (
@@ -2116,17 +1945,7 @@ function FaqBlock() {
           transition: "opacity 700ms var(--ease), transform 700ms var(--ease), color 700ms var(--ease), background-color 700ms var(--ease), border-color 700ms var(--ease), box-shadow 700ms var(--ease)",
         }}
       >
-        <span className="t-label">07 / SORU-CEVAP</span>
-        <h2
-          className="t-h1"
-          style={{
-            fontSize: "clamp(36px, 4.5vw, 56px)",
-            letterSpacing: "-0.03em",
-            marginTop: 12,
-          }}
-        >
-          Sık sorulanlar.
-        </h2>
+        <SectionHead index="08" kicker="Soru — cevap" title="Sık sorulanlar." color="var(--muted)" align="center" />
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {items.map((it, i) => (
@@ -2189,110 +2008,16 @@ function FaqBlock() {
   );
 }
 
-// ─── Closing CTA ──────────────────────────────────────────
-function ClosingCTA() {
-  const [ref, on] = useReveal();
-  return (
-    <section
-      ref={ref}
-      data-lp-section style={{ padding: "120px 32px", position: "relative", overflow: "hidden" }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background:
-            "radial-gradient(800px 500px at 50% 50%, color-mix(in oklab, var(--indigo) 20%, transparent), transparent 60%), radial-gradient(600px 400px at 30% 100%, color-mix(in oklab, var(--emerald) 18%, transparent), transparent 60%)",
-          pointerEvents: "none",
-        }}
-      />
-      <div
-        style={{
-          maxWidth: 960,
-          margin: "0 auto",
-          textAlign: "center",
-          position: "relative",
-          opacity: on ? 1 : 0,
-          transform: on ? "scale(1)" : "scale(0.95)",
-          transition: "opacity 800ms var(--ease), transform 800ms var(--ease), color 800ms var(--ease), background-color 800ms var(--ease), border-color 800ms var(--ease), box-shadow 800ms var(--ease)",
-        }}
-      >
-        <h2
-          style={{
-            fontFamily: "var(--font-manrope)",
-            fontWeight: 800,
-            fontSize: "clamp(56px, 9vw, 140px)",
-            letterSpacing: "-0.05em",
-            lineHeight: 0.9,
-            margin: 0,
-            color: "var(--text)",
-          }}
-        >
-          Akış&apos;ı{" "}
-          <span
-            style={{
-              fontStyle: "italic",
-              fontWeight: 600,
-              background: "linear-gradient(100deg, #818cf8, #10b981)",
-            }}
-          >
-            kur.
-          </span>
-        </h2>
-        <p
-          style={{
-            fontSize: "clamp(16px, 1.6vw, 20px)",
-            color: "var(--text-2)",
-            maxWidth: 560,
-            margin: "24px auto 0",
-            lineHeight: 1.5,
-          }}
-        >
-          5 dakikada ligin hazır. İlk sezon sonunda hâlâ sevmiyorsan silebilirsin
-          — ama silmeyeceksin.
-        </p>
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            justifyContent: "center",
-            marginTop: 36,
-            flexWrap: "wrap",
-          }}
-        >
-          <Link
-            href="/register"
-            className="btn btn-primary btn-lg"
-            style={{
-              padding: "16px 32px",
-              fontSize: 15.5,
-              textDecoration: "none",
-            }}
-          >
-            Hesap Aç <ArrowRight size={16} strokeWidth={1.8} />
-          </Link>
-          <Link
-            href="/login"
-            className="btn btn-lg"
-            style={{ padding: "16px 28px", textDecoration: "none" }}
-          >
-            <Play size={14} strokeWidth={1.8} /> Demo&apos;yu Gez
-          </Link>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 // ─── Footer ───────────────────────────────────────────────
 function LandingFooter() {
   return (
     <footer
       style={{
         borderTop: "1px solid var(--border)",
-        padding: "48px 32px 32px",
+        padding: "64px 32px 0",
         maxWidth: 1400,
         margin: "0 auto",
+        overflow: "hidden",
       }}
     >
       <div
@@ -2385,8 +2110,9 @@ function LandingFooter() {
         }}
       >
         <span>© 2026 ElevenForge · Kurgusal oyun evreni.</span>
-        <span className="t-mono">v1.1.0 · İstanbul, TR</span>
+        <span className="t-mono">v2.0.0 · İstanbul, TR</span>
       </div>
+      <FooterWordmark />
     </footer>
   );
 }

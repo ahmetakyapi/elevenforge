@@ -1,3 +1,4 @@
+import { ForgeLoader } from "@/components/ui/forge-loader";
 import {
   Skeleton,
   SkeletonAvatar,
@@ -8,6 +9,7 @@ import {
 export default function PlayerLoading() {
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "20px 28px 60px" }}>
+      <ForgeLoader />
       <SkeletonCard pad={22} minH={220}>
         <div style={{ display: "flex", gap: 18 }}>
           <SkeletonAvatar size={84} />

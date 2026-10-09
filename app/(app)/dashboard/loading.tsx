@@ -1,3 +1,4 @@
+import { ForgeLoader } from "@/components/ui/forge-loader";
 import {
   Skeleton,
   SkeletonAvatar,
@@ -21,6 +22,7 @@ export default function DashboardLoading() {
         margin: "0 auto",
       }}
     >
+      <ForgeLoader />
       {/* Board + sponsor row */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <SkeletonCard pad={18} minH={120}>

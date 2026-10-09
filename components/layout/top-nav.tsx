@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import {
   ArrowLeftRight,
   Home,
@@ -73,6 +74,7 @@ export function TopNav({
   return (
     <header
       style={{
+        viewTransitionName: "site-header",
         position: "sticky",
         top: 0,
         zIndex: 40,
@@ -120,30 +122,33 @@ export function TopNav({
               <Link
                 key={href}
                 href={href}
+                className="nav-link"
+                aria-current={active ? "page" : undefined}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 8,
                   padding: "8px 14px",
-                  borderRadius: 8,
+                  borderRadius: 9,
                   fontFamily: "var(--font-manrope)",
                   fontWeight: 600,
                   fontSize: 13.5,
                   textDecoration: "none",
-                  background: active
-                    ? "color-mix(in oklab, var(--accent) 12%, var(--panel))"
-                    : "transparent",
                   color: active ? "var(--text)" : "var(--muted)",
-                  border: `1px solid ${
-                    active
-                      ? "color-mix(in oklab, var(--accent) 30%, var(--border))"
-                      : "transparent"
-                  }`,
-                  transition: "opacity var(--t) var(--ease), transform var(--t) var(--ease), color var(--t) var(--ease), background-color var(--t) var(--ease), border-color var(--t) var(--ease), box-shadow var(--t) var(--ease)",
+                  transition: "color var(--t) var(--ease)",
                   whiteSpace: "nowrap",
                 }}
               >
-                <Icon size={14} strokeWidth={1.6} />
+                {/* One pill for the whole bar: it glides from the old tab to
+                    the new one instead of blinking off and on. */}
+                {active && (
+                  <motion.span
+                    layoutId="nav-pill"
+                    className="nav-pill"
+                    transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.8 }}
+                  />
+                )}
+                <Icon size={14} strokeWidth={active ? 2 : 1.6} />
                 {label}
               </Link>
             );
