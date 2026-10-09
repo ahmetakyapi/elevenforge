@@ -83,8 +83,8 @@ export function SpyButton() {
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
-                <span className="t-label" style={{ color: "var(--indigo)" }}>
-                  CASUS RAPORU
+                <span className="t-eyebrow" style={{ color: "var(--indigo)" }}>
+                  Casus Raporu
                 </span>
                 <div className="t-h2" style={{ marginTop: 4 }}>
                   {report.targetName}
@@ -112,7 +112,7 @@ export function SpyButton() {
               <Stat label="Tempo" value={TEMPO_LABEL[Math.max(0, Math.min(4, report.tempo))]} />
             </div>
             <div style={{ marginTop: 22 }}>
-              <span className="t-label">BEKLENEN İLK 11</span>
+              <span className="t-label">Beklenen İlk 11</span>
               <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 }}>
                 {report.lineup.map((p, i) => (
                   <div
@@ -133,7 +133,7 @@ export function SpyButton() {
                         width: 36,
                         textAlign: "center",
                         color: "var(--muted)",
-                        fontSize: 11,
+                        fontSize: 12,
                       }}
                     >
                       {p.role}
@@ -188,7 +188,7 @@ function Stat({ label, value }: { label: string; value: string }) {
         border: "1px solid var(--border)",
       }}
     >
-      <div className="t-caption" style={{ fontSize: 10 }}>
+      <div className="t-caption" style={{ fontSize: 12 }}>
         {label}
       </div>
       <div style={{ fontWeight: 600, marginTop: 2, fontSize: 13 }}>{value}</div>

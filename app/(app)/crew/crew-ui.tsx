@@ -126,7 +126,7 @@ export default function CrewUi({ data }: { data: CrewPageData }) {
           className="t-label"
           style={{ marginRight: 10, whiteSpace: "nowrap" }}
         >
-          CREW
+          Crew
         </span>
         {data.roster.map((m) => (
           <div
@@ -156,10 +156,9 @@ export default function CrewUi({ data }: { data: CrewPageData }) {
             </span>
             {m.isBot && (
               <span
-                className="t-caption"
-                style={{ fontSize: 9, color: "var(--muted)" }}
+                className="t-caption" style={{ color: "var(--muted)" }}
               >
-                BOT
+                Bot
               </span>
             )}
           </div>
@@ -239,7 +238,7 @@ export default function CrewUi({ data }: { data: CrewPageData }) {
                     <span style={{ fontSize: 12, fontWeight: 600 }}>
                       {m.userName}
                     </span>
-                    <span className="t-caption" style={{ fontSize: 10 }}>
+                    <span className="t-caption" style={{ fontSize: 12 }}>
                       {m.timeLabel}
                     </span>
                   </div>
@@ -336,7 +335,7 @@ export default function CrewUi({ data }: { data: CrewPageData }) {
               gap: 8,
             }}
           >
-            <span className="t-label">PAYLAŞILAN EVREN</span>
+            <span className="t-label">Paylaşılan Evren</span>
             <span
               style={{
                 width: 6,
@@ -403,7 +402,7 @@ export default function CrewUi({ data }: { data: CrewPageData }) {
                           club={data.crestLookup[f.clubId]}
                         />
                       )}
-                      <span className="t-caption" style={{ fontSize: 11 }}>
+                      <span className="t-caption" style={{ fontSize: 12 }}>
                         {f.relativeTime} önce
                       </span>
                     </div>

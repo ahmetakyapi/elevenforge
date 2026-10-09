@@ -60,10 +60,9 @@ export function AutoPlayBanner({
       </span>
       {upcoming && (
         <span
-          className="t-mono"
           style={{
-            fontSize: 12,
-            color: "var(--muted)",
+            fontSize: 12.5,
+            color: "var(--text-2)",
             marginLeft: "auto",
           }}
         >
@@ -73,7 +72,7 @@ export function AutoPlayBanner({
       {manualAdvance && isCommissioner && (
         <span
           style={{
-            fontSize: 11,
+            fontSize: 12,
             padding: "2px 8px",
             borderRadius: 4,
             background: "color-mix(in oklab, var(--warn) 28%, transparent)",
@@ -81,7 +80,7 @@ export function AutoPlayBanner({
             fontWeight: 600,
           }}
         >
-          MANUEL OYNATMA AÇIK
+          Manuel Oynatma Açık
         </span>
       )}
     </div>

@@ -83,7 +83,7 @@ export function FormationSwitcher({ current }: { current: string }) {
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <LayoutGrid size={15} strokeWidth={1.7} color="var(--accent)" />
-        <span className="t-label">DİZİLİŞ</span>
+        <span className="t-label">Diziliş</span>
       </div>
 
       <div style={{ display: "flex", gap: 5, flexWrap: "wrap", flex: 1 }}>
@@ -111,7 +111,7 @@ export function FormationSwitcher({ current }: { current: string }) {
 
       <span
         className="t-caption"
-        style={{ fontSize: 11, color: "var(--muted)", minWidth: 0 }}
+        style={{ fontSize: 12, color: "var(--muted)", minWidth: 0 }}
       >
         {BLURB[active]}
       </span>

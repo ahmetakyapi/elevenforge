@@ -84,7 +84,7 @@ export default function MakeOffer({
           onChange={(e) => setAmountM(e.target.value)}
           className="w-28 rounded-lg border border-white/10 bg-black/30 px-2.5 py-1.5 font-mono text-sm text-white/90 outline-none focus:border-indigo-400/40"
         />
-        <span className="text-[11px] text-white/40">milyon €</span>
+        <span className="text-[12px] text-muted">milyon €</span>
         <button
           type="button"
           disabled={pending}

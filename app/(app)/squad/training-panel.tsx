@@ -217,13 +217,12 @@ export function TrainingPanel({
         }}
       >
         <Dumbbell size={16} strokeWidth={1.7} style={{ color: "var(--accent)" }} />
-        <span className="t-label" style={{ fontSize: 11 }}>
-          ANTRENMAN SAHASI
+        <span className="t-label">
+          Antrenman Sahası
         </span>
         <span
-          className="t-mono"
           style={{
-            fontSize: 11,
+            fontSize: 12.5,
             padding: "2px 8px",
             borderRadius: 999,
             fontWeight: 700,
@@ -238,7 +237,7 @@ export function TrainingPanel({
         </span>
         <span
           className="t-caption"
-          style={{ fontSize: 11, marginLeft: "auto", color: "var(--muted)" }}
+          style={{ fontSize: 12, marginLeft: "auto", color: "var(--muted)" }}
         >
           Her mevkiden bir oyuncu · gençler hızlı gelişir, potansiyelin üstünde
           gelişim durmaz ama çok yavaşlar
@@ -299,8 +298,8 @@ export function TrainingPanel({
                 }}
               >
                 <PosBadge pos={pos} size={18} />
-                <span className="t-label" style={{ fontSize: 9.5 }}>
-                  {label.toUpperCase()}
+                <span className="t-label">
+                  {label}
                 </span>
                 {pick ? (
                   <>
@@ -323,7 +322,7 @@ export function TrainingPanel({
                     </span>
                     <span
                       className="t-mono"
-                      style={{ fontSize: 10.5, color: tint, flexShrink: 0 }}
+                      style={{ fontSize: 12, color: tint, flexShrink: 0 }}
                     >
                       +{previewFor(pick, progressCtx).perWeek.toFixed(1)}
                     </span>
@@ -331,7 +330,7 @@ export function TrainingPanel({
                 ) : (
                   <span
                     className="t-caption"
-                    style={{ fontSize: 10.5, marginLeft: "auto" }}
+                    style={{ fontSize: 12, marginLeft: "auto" }}
                   >
                     aday yok
                   </span>
@@ -389,8 +388,8 @@ export function TrainingPanel({
 
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <PosBadge pos={pos} size={20} />
-                <span className="t-label" style={{ fontSize: 10.5 }}>
-                  {label.toUpperCase()}
+                <span className="t-label">
+                  {label}
                 </span>
               </div>
 
@@ -414,10 +413,9 @@ export function TrainingPanel({
                           ? `${ATTR_LABEL[a]} — bu mevkinin ana özelliği, OVR'yi de yükseltir`
                           : `${ATTR_LABEL[a]} — maçta işe yarar, OVR'yi yükseltmez`
                       }
-                      className="t-mono"
                       style={{
-                        fontSize: 9.5,
-                        fontWeight: 700,
+                        fontSize: 12,
+                        fontWeight: 600,
                         padding: "3px 7px",
                         borderRadius: 6,
                         cursor: "pointer",
@@ -491,7 +489,7 @@ export function TrainingPanel({
                     justifyContent: "space-between",
                     alignItems: "center",
                     gap: 6,
-                    fontSize: 10,
+                    fontSize: 12,
                     color: "var(--muted)",
                     marginTop: 5,
                   }}
@@ -508,7 +506,7 @@ export function TrainingPanel({
                       title={`${p.n} potansiyelinin (${p.pot}) üstünde çalışıyor — gelişim çok yavaş ama durmuş değil.`}
                     >
                       <AlertTriangle size={10} strokeWidth={2.2} />
-                      TAVANIN ÜSTÜNDE · ÇOK YAVAŞ
+                      Tavanın üstünde · çok yavaş
                     </span>
                   ) : (
                     <span>
@@ -548,8 +546,8 @@ export function TrainingPanel({
         }}
       >
         <Zap size={14} strokeWidth={1.8} style={{ color: "var(--gold)" }} />
-        <span className="t-label" style={{ fontSize: 10 }}>
-          DOSTLUK MAÇI
+        <span className="t-label">
+          Dostluk Maçı
         </span>
         <span style={{ display: "inline-flex", gap: 3 }}>
           {Array.from({ length: friendly.cap }).map((_, i) => (
@@ -568,7 +566,7 @@ export function TrainingPanel({
             />
           ))}
         </span>
-        <span className="t-caption" style={{ fontSize: 11 }}>
+        <span className="t-caption" style={{ fontSize: 12 }}>
           {friendly.remaining > 0
             ? `${friendly.remaining} hak kaldı · €150K · kondisyon ve moral yükselir, gelişim şansı verir`
             : "Bugünlük bitti — 24 saat içinde yenilenir"}
@@ -591,7 +589,7 @@ export function TrainingPanel({
             </span>
           </button>
         ) : (
-          <span className="t-caption" style={{ fontSize: 10.5 }}>
+          <span className="t-caption" style={{ fontSize: 12 }}>
             {friendly.remaining === 0 ? "" : "Uygun oyuncu yok"}
           </span>
         )}

@@ -132,14 +132,14 @@ export function PushSubscribeButton() {
       {subscribed ? (
         <>
           <Bell size={14} strokeWidth={1.6} style={{ color: "var(--emerald)" }} />
-          <span className="btn-label-mobile-hidden" style={{ fontSize: 11 }}>
+          <span className="btn-label-mobile-hidden" style={{ fontSize: 12 }}>
             Açık
           </span>
         </>
       ) : (
         <>
           <BellOff size={14} strokeWidth={1.6} />
-          <span className="btn-label-mobile-hidden" style={{ fontSize: 11 }}>
+          <span className="btn-label-mobile-hidden" style={{ fontSize: 12 }}>
             Bildirimleri Aç
           </span>
         </>

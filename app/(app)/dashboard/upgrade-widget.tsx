@@ -44,8 +44,8 @@ export function UpgradeWidget({
         border: "1px solid var(--border)",
       }}
     >
-      <span className="t-label" style={{ fontSize: 11 }}>
-        TESİSLER
+      <span className="t-label">
+        Tesisler
       </span>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
         <Slot
@@ -111,7 +111,7 @@ function Slot({
         <span
           className="t-mono"
           style={{
-            fontSize: 11,
+            fontSize: 12,
             padding: "2px 6px",
             borderRadius: 4,
             background: `color-mix(in oklab, ${tint} 18%, transparent)`,
@@ -121,7 +121,7 @@ function Slot({
           L{level}
         </span>
       </div>
-      <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{subline}</div>
+      <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>{subline}</div>
       <button
         type="button"
         className="btn btn-sm"
@@ -129,14 +129,14 @@ function Slot({
           marginTop: 8,
           width: "100%",
           justifyContent: "center",
-          fontSize: 11,
+          fontSize: 12,
           background: maxed ? "var(--panel-2)" : `color-mix(in oklab, ${tint} 14%, transparent)`,
           color: maxed ? "var(--muted)" : tint,
         }}
         disabled={maxed || pending}
         onClick={onUpgrade}
       >
-        {maxed ? "MAX" : `Yükselt · ${fmtM(cost)}`}
+        {maxed ? "Maksimum" : `Yükselt · ${fmtM(cost)}`}
       </button>
     </div>
   );

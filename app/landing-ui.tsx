@@ -320,14 +320,13 @@ function Hero({ y }: { y: number }) {
               }}
             />
             <span
-              className="t-mono"
               style={{
-                fontSize: 11,
-                letterSpacing: "0.08em",
+                fontSize: 13,
+                fontWeight: 600,
                 color: "var(--emerald)",
               }}
             >
-              SEZON 3 · 1.248 AKTİF LİG
+              Sezon 3 · 1.248 Aktif Lig
             </span>
           </div>
         </div>
@@ -444,8 +443,8 @@ function Hero({ y }: { y: number }) {
             marginTop: 26,
             display: "flex",
             gap: 20,
-            color: "var(--muted)",
-            fontSize: 12,
+            color: "var(--text-2)",
+            fontSize: 13,
             animationDelay: "420ms",
             flexWrap: "wrap",
             justifyContent: "center",
@@ -485,8 +484,8 @@ function Hero({ y }: { y: number }) {
           opacity: Math.max(0, 1 - y / 200),
         }}
       >
-        <span className="t-label" style={{ fontSize: 10 }}>
-          KAYDIR
+        <span className="t-label" style={{ fontSize: 12, color: "var(--muted)" }}>
+          Kaydır
         </span>
         <div
           style={{
@@ -634,7 +633,7 @@ function HeroLiveCard() {
             <div style={{ fontFamily: "var(--font-manrope)", fontWeight: 700, fontSize: 15 }}>
               Fenerbahçe
             </div>
-            <span className="t-caption" style={{ fontSize: 11 }}>
+            <span className="t-caption">
               Ev · %58 topla oynama
             </span>
           </div>
@@ -673,14 +672,13 @@ function HeroLiveCard() {
               }}
             />
             <span
-              className="t-mono"
               style={{
-                fontSize: 11,
+                fontSize: 12.5,
+                fontWeight: 600,
                 color: "var(--emerald)",
-                letterSpacing: "0.1em",
               }}
             >
-              74&apos; CANLI
+              74&apos; Canlı
             </span>
           </div>
         </div>
@@ -696,7 +694,7 @@ function HeroLiveCard() {
             <div style={{ fontFamily: "var(--font-manrope)", fontWeight: 700, fontSize: 15 }}>
               Galatasaray
             </div>
-            <span className="t-caption" style={{ fontSize: 11 }}>
+            <span className="t-caption">
               Dep · %42 topla oynama
             </span>
           </div>
@@ -733,16 +731,15 @@ function HeroLiveCard() {
           <span
             className="t-label"
             style={{
-              fontSize: 10,
               color: feed[idx].type === "goal" ? "var(--emerald)" : "var(--muted)",
             }}
           >
             {feed[idx].m}&apos; ·{" "}
             {feed[idx].type === "goal"
-              ? "GOL"
+              ? "Gol"
               : feed[idx].type === "shot"
-                ? "ŞUT"
-                : "ANALİZ"}
+                ? "Şut"
+                : "Analiz"}
           </span>
           <div
             style={{
@@ -857,8 +854,8 @@ function CrewSection() {
             transition: "opacity 700ms var(--ease), transform 700ms var(--ease), color 700ms var(--ease), background-color 700ms var(--ease), border-color 700ms var(--ease), box-shadow 700ms var(--ease)",
           }}
         >
-          <span className="t-label" style={{ color: "var(--indigo)" }}>
-            01 / AKIŞ
+          <span className="t-eyebrow" style={{ color: "var(--indigo)" }}>
+            01 / Akış
           </span>
           <h2
             className="t-h1"
@@ -887,9 +884,9 @@ function CrewSection() {
           </p>
           <div style={{ display: "flex", gap: 18, marginTop: 26 }}>
             {[
-              ["16", "takım"],
-              ["10", "kişi + 6 bot"],
-              ["7", "preset"],
+              ["16", "Takım"],
+              ["10", "Kişi + 6 Bot"],
+              ["7", "Hazır Taktik"],
             ].map(([v, l]) => (
               <div key={l}>
                 <div
@@ -902,7 +899,7 @@ function CrewSection() {
                 >
                   {v}
                 </div>
-                <div className="t-label" style={{ fontSize: 11 }}>
+                <div className="t-label" style={{ color: "var(--muted)" }}>
                   {l}
                 </div>
               </div>
@@ -1047,8 +1044,8 @@ function StadiumSection() {
             transition: "opacity 700ms var(--ease), transform 700ms var(--ease), color 700ms var(--ease), background-color 700ms var(--ease), border-color 700ms var(--ease), box-shadow 700ms var(--ease)",
           }}
         >
-          <span className="t-label" style={{ color: "var(--emerald)" }}>
-            02 / CANLI MAÇ
+          <span className="t-eyebrow" style={{ color: "var(--emerald)" }}>
+            02 / Canlı Maç
           </span>
           <h2
             className="t-h1"
@@ -1146,25 +1143,24 @@ function StadiumSection() {
                   >
                     <span
                       className="t-mono"
-                      style={{ fontSize: 11, color: "var(--muted)" }}
+                      style={{ fontSize: 12, color: "var(--muted)" }}
                     >
                       {c.m}&apos;
                     </span>
                     <span
                       className="t-label"
                       style={{
-                        fontSize: 10,
                         color:
                           c.type === "goal" ? "var(--emerald)" : "var(--muted)",
                       }}
                     >
                       {c.type === "goal"
-                        ? "GOL"
+                        ? "Gol"
                         : c.type === "shot"
-                          ? "ŞUT"
+                          ? "Şut"
                           : c.type === "card"
-                            ? "KART"
-                            : "ANALİZ"}
+                            ? "Kart"
+                            : "Analiz"}
                     </span>
                   </div>
                   <div
@@ -1213,8 +1209,8 @@ function MarketSection() {
           transition: "opacity 700ms var(--ease), transform 700ms var(--ease), color 700ms var(--ease), background-color 700ms var(--ease), border-color 700ms var(--ease), box-shadow 700ms var(--ease)",
         }}
       >
-        <span className="t-label" style={{ color: "var(--cyan)" }}>
-          03 / PAYLAŞILAN EVREN
+        <span className="t-eyebrow" style={{ color: "var(--cyan)" }}>
+          03 / Paylaşılan Evren
         </span>
         <h2
           className="t-h1"
@@ -1461,12 +1457,11 @@ function TacticSection() {
                 style={{
                   fontFamily: "var(--font-jetbrains)",
                   fontWeight: 700,
-                  fontSize: 12,
+                  fontSize: 13,
                   color: "#fff",
-                  letterSpacing: "0.12em",
                 }}
               >
-                DİZİLİŞ ·{" "}
+                Diziliş ·{" "}
               </span>
               <span
                 key={form}
@@ -1541,8 +1536,7 @@ function TacticSection() {
                       color: color,
                       fontFamily: "var(--font-jetbrains)",
                       fontWeight: 700,
-                      fontSize: 9,
-                      letterSpacing: "0.06em",
+                      fontSize: 11.5,
                       whiteSpace: "nowrap",
                     }}
                   >
@@ -1560,8 +1554,8 @@ function TacticSection() {
             transition: "opacity 800ms 100ms var(--ease), transform 800ms 100ms var(--ease), color 800ms 100ms var(--ease), background-color 800ms 100ms var(--ease), border-color 800ms 100ms var(--ease), box-shadow 800ms 100ms var(--ease)",
           }}
         >
-          <span className="t-label" style={{ color: "var(--warn)" }}>
-            04 / TAKTİK
+          <span className="t-eyebrow" style={{ color: "var(--warn)" }}>
+            04 / Taktik
           </span>
           <h2
             className="t-h1"
@@ -1664,8 +1658,8 @@ function NewspaperStack() {
           transition: "opacity 700ms var(--ease), transform 700ms var(--ease), color 700ms var(--ease), background-color 700ms var(--ease), border-color 700ms var(--ease), box-shadow 700ms var(--ease)",
         }}
       >
-        <span className="t-label" style={{ color: "var(--gold)" }}>
-          05 / GAZETE
+        <span className="t-eyebrow" style={{ color: "var(--gold)" }}>
+          05 / Gazete
         </span>
         <h2
           className="t-h1"
@@ -1835,13 +1829,12 @@ function NewspaperCard({
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              fontSize: 9,
-              color: "#6b5a3c",
-              fontFamily: "var(--font-jetbrains)",
-              letterSpacing: "0.12em",
+              fontSize: 11,
+              color: "#5a4a2e",
+              fontWeight: 600,
             }}
           >
-            <span>PAZAR · SEZON 3 · HAFTA {cover.week}</span>
+            <span>Pazar · Sezon 3 · Hafta {cover.week}</span>
             <span>No. 0{47 + idx}</span>
           </div>
           <div
@@ -1861,29 +1854,26 @@ function NewspaperCard({
           </div>
           <div
             style={{
-              fontSize: 9,
-              color: "#6b5a3c",
+              fontSize: 11,
+              color: "#5a4a2e",
+              fontWeight: 600,
               textAlign: "center",
               marginTop: 2,
-              fontFamily: "var(--font-jetbrains)",
-              letterSpacing: "0.08em",
             }}
           >
-            — ELEVENFORGE LİGA —
+            — ElevenForge Liga —
           </div>
         </div>
         <div style={{ position: "relative", zIndex: 1, marginTop: 6 }}>
           <div
             style={{
-              fontSize: 9,
+              fontSize: 12,
               color: cover.tint,
-              fontFamily: "var(--font-jetbrains)",
               fontWeight: 700,
-              letterSpacing: "0.14em",
               marginBottom: 4,
             }}
           >
-            ★ MANŞET ★
+            ★ Manşet ★
           </div>
           <div
             style={{
@@ -1961,7 +1951,7 @@ function NewspaperCard({
             >
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 800,
                   color: "#1a1410",
                   fontFamily: "Georgia, serif",
@@ -1970,7 +1960,7 @@ function NewspaperCard({
                   marginBottom: 3,
                 }}
               >
-                {col === 0 ? "MAÇ ÖZETİ" : "YORUM"}
+                {col === 0 ? "Maç Özeti" : "Yorum"}
               </div>
               {Array.from({ length: 7 }).map((_, li) => (
                 <div
@@ -1995,8 +1985,8 @@ function NewspaperCard({
             paddingTop: 6,
             display: "flex",
             justifyContent: "space-between",
-            fontSize: 9,
-            color: "#6b5a3c",
+            fontSize: 11,
+            color: "#5a4a2e",
             fontFamily: "var(--font-jetbrains)",
           }}
         >
@@ -2025,8 +2015,8 @@ function TestimonialWall() {
       data-lp-section style={{ padding: "120px 32px", maxWidth: 1300, margin: "0 auto" }}
     >
       <div style={{ textAlign: "center", marginBottom: 50 }}>
-        <span className="t-label" style={{ color: "var(--danger)" }}>
-          06 / AKIŞTAN
+        <span className="t-eyebrow" style={{ color: "var(--danger)" }}>
+          06 / Akıştan
         </span>
         <h2
           className="t-h1"
@@ -2076,7 +2066,7 @@ function TestimonialWall() {
             >
               <Crest clubId={t.club} size={22} />
               <span style={{ fontSize: 13, fontWeight: 600 }}>{t.name}</span>
-              <span className="t-caption" style={{ fontSize: 11 }}>
+              <span className="t-caption">
                 · {clubById(t.club)?.name}
               </span>
             </div>
@@ -2116,7 +2106,7 @@ function FaqBlock() {
           transition: "opacity 700ms var(--ease), transform 700ms var(--ease), color 700ms var(--ease), background-color 700ms var(--ease), border-color 700ms var(--ease), box-shadow 700ms var(--ease)",
         }}
       >
-        <span className="t-label">07 / SORU-CEVAP</span>
+        <span className="t-eyebrow">07 / Soru-Cevap</span>
         <h2
           className="t-h1"
           style={{

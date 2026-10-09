@@ -69,7 +69,7 @@ export function SubPlanPanel({
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <ArrowRightLeft size={16} strokeWidth={1.6} style={{ color: "var(--accent)" }} />
           <div>
-            <span className="t-label">MAÇ İÇİ DEĞİŞİKLİKLER</span>
+            <span className="t-label">Maç İçi Değişiklikler</span>
             <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
               3 slot. Engine maç dakikası geldiğinde otomatik uygular.
             </div>
@@ -143,7 +143,7 @@ function SubRow({
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: 700,
         }}
       >

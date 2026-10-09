@@ -44,8 +44,8 @@ export default async function ProfilePage() {
           <User2 size={36} strokeWidth={1.6} style={{ color: "#fff" }} />
         </div>
         <div>
-          <span className="t-label" style={{ color: "var(--indigo)" }}>
-            MENAJER PROFİLİ
+          <span className="t-eyebrow" style={{ color: "var(--indigo)" }}>
+            Menajer Profili
           </span>
           <div className="t-h1" style={{ marginTop: 4 }}>
             {p.name}
@@ -65,7 +65,7 @@ export default async function ProfilePage() {
           >
             {p.totals.championships}
           </div>
-          <span style={{ fontSize: 11, color: "var(--muted)" }}>şampiyonluk</span>
+          <span style={{ fontSize: 12, color: "var(--muted)" }}>şampiyonluk</span>
         </div>
       </div>
 
@@ -116,7 +116,7 @@ export default async function ProfilePage() {
           marginBottom: 18,
         }}
       >
-        <span className="t-label">LİGLERİM</span>
+        <span className="t-label">Liglerim</span>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
           {p.ownedLeagues.map((l) => (
             <Link
@@ -145,7 +145,7 @@ export default async function ProfilePage() {
               />
               <div>
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{l.leagueName}</div>
-                <div style={{ fontSize: 11, color: "var(--muted)" }}>
+                <div style={{ fontSize: 12, color: "var(--muted)" }}>
                   {l.clubName} · S{l.seasonNumber} W{l.weekNumber}
                   {l.isCommissioner && " · ⚙ kurucu"}
                 </div>
@@ -235,8 +235,8 @@ function TrophyCabinet({
       <div
         style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}
       >
-        <span className="t-label">VİTRİN</span>
-        <span className="t-caption" style={{ fontSize: 11 }}>
+        <span className="t-label">Vitrin</span>
+        <span className="t-caption" style={{ fontSize: 12 }}>
           Sezon sonunda kasa sıfırlanır — kalan tek şey burası.
         </span>
         <span
@@ -318,7 +318,7 @@ function TrophyCabinet({
                       className="t-mono"
                       title={`${t.leagueName}${t.season !== null ? ` · Sezon ${t.season}` : ""}`}
                       style={{
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: 700,
                         padding: "3px 7px",
                         borderRadius: 5,
@@ -362,7 +362,7 @@ function Stat({
     >
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <Icon size={12} strokeWidth={1.6} style={{ color: "var(--muted)" }} />
-        <span className="t-caption" style={{ fontSize: 10 }}>
+        <span className="t-caption" style={{ fontSize: 12 }}>
           {label}
         </span>
       </div>
@@ -394,7 +394,7 @@ function KV({
         alignItems: "center",
       }}
     >
-      <span className="t-caption" style={{ fontSize: 11 }}>
+      <span className="t-caption" style={{ fontSize: 12 }}>
         {label}
       </span>
       <span className="t-mono" style={{ fontWeight: 700, color: tint }}>

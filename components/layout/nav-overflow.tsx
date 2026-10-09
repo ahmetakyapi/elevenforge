@@ -137,7 +137,7 @@ export function NavOverflow() {
                   </span>
                   <span
                     className="t-caption"
-                    style={{ display: "block", fontSize: 10.5, marginTop: 1 }}
+                    style={{ display: "block", fontSize: 12, marginTop: 1 }}
                   >
                     {hint}
                   </span>

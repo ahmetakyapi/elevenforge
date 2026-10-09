@@ -210,7 +210,7 @@ export default function SquadPage({
               <span
                 className="t-mono"
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   color: filter === f ? "var(--accent)" : "var(--muted)",
                   padding: "1px 6px",
                   borderRadius: 4,
@@ -467,10 +467,10 @@ function SquadHero({
 }) {
   const unavailable = injured + suspended;
   const stats: Array<[string, string, string?]> = [
-    ["KADRO", `${squadCount}`, `${activeCount} hazır`],
-    ["ORT. OVR", avgOvr],
-    ["ORT. YAŞ", avgAge],
-    ["DEĞER", fmtEUR(totalVal)],
+    ["Kadro", `${squadCount}`, `${activeCount} hazır`],
+    ["Ort. OVR", avgOvr],
+    ["Ort. Yaş", avgAge],
+    ["Değer", fmtEUR(totalVal)],
   ];
   return (
     <header
@@ -496,8 +496,8 @@ function SquadHero({
           >
             {userClubName}
           </div>
-          <span className="t-label" style={{ fontSize: 9, color: "var(--muted)" }}>
-            KADRO YÖNETİMİ
+          <span className="t-label" style={{ fontSize: 12, color: "var(--muted)" }}>
+            Kadro Yönetimi
           </span>
         </div>
       </div>
@@ -507,7 +507,7 @@ function SquadHero({
       <div style={{ display: "flex", alignItems: "center", gap: 22, flexWrap: "wrap" }}>
         {stats.map(([label, value, sub]) => (
           <div key={label} style={{ textAlign: "right" }}>
-            <span className="t-label" style={{ fontSize: 8.5 }}>
+            <span className="t-label">
               {label}
             </span>
             <div
@@ -517,7 +517,7 @@ function SquadHero({
               {value}
             </div>
             {sub && (
-              <span className="t-caption" style={{ fontSize: 9.5 }}>
+              <span className="t-caption">
                 {sub}
               </span>
             )}
@@ -533,8 +533,8 @@ function SquadHero({
               borderLeft: "1px solid var(--border)",
             }}
           >
-            <span className="t-label" style={{ fontSize: 8.5, color: "var(--warn)" }}>
-              YOK
+            <span className="t-label" style={{ color: "var(--warn)" }}>
+              Eksik
             </span>
             <div
               className="t-mono"
@@ -542,7 +542,7 @@ function SquadHero({
             >
               {unavailable}
             </div>
-            <span className="t-caption" style={{ fontSize: 9.5 }}>
+            <span className="t-caption">
               {injured} sakat · {suspended} cezalı
             </span>
           </div>
@@ -559,27 +559,27 @@ function tierPalette(ovr: number): {
 } {
   if (ovr >= 85)
     return {
-      label: "ELITE",
+      label: "Elit",
       accent: "var(--gold)",
       glow: "0 0 40px -8px color-mix(in oklab, var(--gold) 45%, transparent)",
     };
   if (ovr >= 80)
     return {
-      label: "STAR",
+      label: "Yıldız",
       accent: "var(--emerald)",
       glow:
         "0 0 32px -10px color-mix(in oklab, var(--emerald) 40%, transparent)",
     };
   if (ovr >= 75)
     return {
-      label: "FIRST-11",
+      label: "İlk 11",
       accent: "var(--cyan)",
       glow:
         "0 0 28px -12px color-mix(in oklab, var(--cyan) 35%, transparent)",
     };
   if (ovr >= 70)
-    return { label: "ROTATION", accent: "var(--indigo)", glow: "none" };
-  return { label: "DEPTH", accent: "var(--muted)", glow: "none" };
+    return { label: "Rotasyon", accent: "var(--indigo)", glow: "none" };
+  return { label: "Yedek", accent: "var(--muted)", glow: "none" };
 }
 
 const POSITION_GROUPS: Array<{ pos: Position; label: string }> = [
@@ -650,17 +650,16 @@ function PositionBand({
           {label}
         </h2>
         <span
-          className="t-mono"
           style={{
-            fontSize: 10.5,
-            fontWeight: 700,
+            fontSize: 12.5,
+            fontWeight: 600,
             padding: "3px 9px",
             borderRadius: 999,
             background: `color-mix(in oklab, ${tint} 15%, transparent)`,
             color: tint,
           }}
         >
-          {players.length} oyuncu · ort {avg}
+          {players.length} oyuncu · ort. {avg}
         </span>
         {/* A rule that runs to the edge, so the eye reads the band as a
             container without needing a box around it. */}
@@ -804,7 +803,7 @@ function PlayerCardGrid({
             background: "var(--accent)",
             color: "#fff",
             fontWeight: 800,
-            fontSize: 11,
+            fontSize: 12,
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
@@ -832,9 +831,8 @@ function PlayerCardGrid({
           <div
             className="t-mono"
             style={{
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: 700,
-              letterSpacing: "0.08em",
               color: tier.accent,
               marginTop: 2,
             }}
@@ -846,7 +844,7 @@ function PlayerCardGrid({
               className="t-mono"
               title={`Potansiyel ${p.pot}`}
               style={{
-                fontSize: 9.5,
+                fontSize: 12,
                 fontWeight: 700,
                 color: "var(--emerald)",
                 marginTop: 4,
@@ -880,10 +878,9 @@ function PlayerCardGrid({
           <div
             className="t-mono"
             style={{
-              fontSize: 10,
+              fontSize: 12,
               color: "var(--muted)",
               marginTop: 4,
-              letterSpacing: "0.06em",
             }}
           >
             {p.role} · {p.nat} · {p.age}y
@@ -899,11 +896,9 @@ function PlayerCardGrid({
             }}
           >
             <span
-              className="t-mono"
               style={{
-                fontSize: 9.5,
-                fontWeight: 700,
-                letterSpacing: "0.07em",
+                fontSize: 12,
+                fontWeight: 600,
                 padding: "2px 7px",
                 borderRadius: 5,
                 background: `color-mix(in oklab, ${tier.accent} 16%, transparent)`,
@@ -914,10 +909,9 @@ function PlayerCardGrid({
             </span>
             {status && (
               <span
-                className="t-mono"
                 style={{
-                  fontSize: 9,
-                  fontWeight: 700,
+                  fontSize: 12,
+                  fontWeight: 600,
                   padding: "2px 6px",
                   borderRadius: 5,
                   background: status.bg,
@@ -927,7 +921,7 @@ function PlayerCardGrid({
                   gap: 3,
                 }}
               >
-                <status.Icon size={9} strokeWidth={2.4} />
+                <status.Icon size={11} strokeWidth={2.4} />
                 {status.label}
               </span>
             )}
@@ -968,7 +962,6 @@ function PlayerCardGrid({
               </span>
               <span
                 className="t-label"
-                style={{ fontSize: 9.5, letterSpacing: "0.1em" }}
               >
                 {label}
               </span>
@@ -999,7 +992,7 @@ function PlayerCardGrid({
           className="t-mono"
           title={`Kondisyon ${fit}`}
           style={{
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: 700,
             marginLeft: "auto",
             color:
@@ -1068,25 +1061,25 @@ const STATUS_STYLE: Record<
   injured: {
     bg: "color-mix(in oklab, var(--danger) 20%, transparent)",
     c: "var(--danger)",
-    label: "SAKAT",
+    label: "Sakat",
     Icon: BandageIcon,
   },
   suspended: {
     bg: "color-mix(in oklab, var(--warn) 20%, transparent)",
     c: "var(--warn)",
-    label: "CEZALI",
+    label: "Cezalı",
     Icon: Square,
   },
   listed: {
     bg: "color-mix(in oklab, var(--emerald) 20%, transparent)",
     c: "var(--emerald)",
-    label: "SATIŞTA",
+    label: "Satışta",
     Icon: Tag,
   },
   training: {
     bg: "color-mix(in oklab, var(--cyan) 20%, transparent)",
     c: "var(--cyan)",
-    label: "EĞİTİM",
+    label: "Eğitim",
     Icon: Dumbbell,
   },
 };
@@ -1146,14 +1139,14 @@ function PlayerTable({
           <tr>
             {[
               ["", "left"],
-              ["OYUNCU", "left"],
+              ["Oyuncu", "left"],
               ["OVR", "center"],
               ["POT", "center"],
-              ["YAŞ", "center"],
+              ["Yaş", "center"],
               ...COLS.map(([, l]) => [l, "center"] as [string, string]),
-              ["KOND", "center"],
-              ["FORM", "center"],
-              ["DEĞER", "right"],
+              ["Kond.", "center"],
+              ["Form", "center"],
+              ["Değer", "right"],
             ].map(([label, align], idx) => (
               <th
                 key={`${label}-${idx}`}
@@ -1162,9 +1155,8 @@ function PlayerTable({
                   position: "sticky",
                   top: 0,
                   zIndex: 1,
-                  fontSize: 9.5,
-                  fontWeight: 700,
-                  letterSpacing: "0.1em",
+                  fontSize: 12,
+                  fontWeight: 600,
                   textAlign: align as "left" | "center" | "right",
                   padding: "11px 8px",
                   background: "var(--panel-2)",
@@ -1230,7 +1222,7 @@ function PlayerTable({
                   </div>
                   <span
                     className="t-mono"
-                    style={{ fontSize: 9.5, color: "var(--muted)" }}
+                    style={{ fontSize: 12, color: "var(--muted)" }}
                   >
                     {p.role} · {p.nat}
                     {p.num !== undefined && ` · #${p.num}`}
@@ -1256,7 +1248,7 @@ function PlayerTable({
                   >
                     {p.pot}
                     {growth > 0 && (
-                      <span style={{ fontSize: 9.5 }}> +{growth}</span>
+                      <span style={{ fontSize: 11.5 }}> +{growth}</span>
                     )}
                   </span>
                 </td>
@@ -1473,16 +1465,15 @@ function PlayerSheet({
             }}
           >
             <Crest clubId={userClubId} size={18} club={userClubCrest} />
-            <span className="t-mono" style={{ fontSize: 10.5, color: "var(--muted)", letterSpacing: "0.06em" }}>
+            <span className="t-mono" style={{ fontSize: 12, color: "var(--muted)" }}>
               {userClubName} · {p.nat} · {p.role}
               {p.num !== undefined && ` · #${p.num}`}
             </span>
             {p.status && STATUS_STYLE[p.status] && (
               <span
-                className="t-mono"
                 style={{
-                  fontSize: 9,
-                  fontWeight: 700,
+                  fontSize: 12,
+                  fontWeight: 600,
                   padding: "2px 6px",
                   borderRadius: 5,
                   background: STATUS_STYLE[p.status].bg,
@@ -1540,18 +1531,16 @@ function PlayerSheet({
                 </div>
                 <div
                   className="t-mono"
-                  style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.1em", color: tier.accent, marginTop: 3 }}
+                  style={{ fontSize: 12, fontWeight: 700, color: tier.accent, marginTop: 3 }}
                 >
                   {p.pos}
                 </div>
               </div>
               <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
                 <span
-                  className="t-mono"
                   style={{
-                    fontSize: 9.5,
-                    fontWeight: 700,
-                    letterSpacing: "0.08em",
+                    fontSize: 12,
+                    fontWeight: 600,
                     padding: "3px 8px",
                     borderRadius: 6,
                     background: `color-mix(in oklab, ${tier.accent} 18%, transparent)`,
@@ -1562,7 +1551,7 @@ function PlayerSheet({
                   {tier.label}
                 </span>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-                  <span className="t-label" style={{ fontSize: 9 }}>POT</span>
+                  <span className="t-label">POT</span>
                   <span
                     className="t-mono"
                     style={{ fontSize: 15, fontWeight: 800, color: growth > 0 ? "var(--emerald)" : "var(--text-2)" }}
@@ -1570,12 +1559,12 @@ function PlayerSheet({
                     {p.pot}
                   </span>
                   {growth > 0 && (
-                    <span className="t-mono" style={{ fontSize: 10, color: "var(--emerald)" }}>
+                    <span className="t-mono" style={{ fontSize: 12, color: "var(--emerald)" }}>
                       +{growth}
                     </span>
                   )}
                 </div>
-                <span className="t-mono" style={{ fontSize: 10, color: "var(--muted)" }}>
+                <span className="t-mono" style={{ fontSize: 12, color: "var(--muted)" }}>
                   {p.age} yaş
                 </span>
               </div>
@@ -1588,7 +1577,7 @@ function PlayerSheet({
                 const v = (p[key] as number | undefined) ?? 0;
                 return (
                   <div key={key as string} style={{ display: "grid", gridTemplateColumns: "34px 26px 1fr", gap: 8, alignItems: "center" }}>
-                    <span className="t-label" style={{ fontSize: 9.5, letterSpacing: "0.1em" }}>{label}</span>
+                    <span className="t-label">{label}</span>
                     <span
                       className="t-mono"
                       style={{ fontSize: 13, fontWeight: 800, color: attrTone(v), textAlign: "right" }}
@@ -1625,7 +1614,7 @@ function PlayerSheet({
               <span className="t-mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--emerald)" }}>
                 {fmtEUR(p.val ?? 0)}
               </span>
-              <span className="t-mono" style={{ fontSize: 10.5, color: "var(--muted)" }}>
+              <span className="t-mono" style={{ fontSize: 12, color: "var(--muted)" }}>
               </span>
             </div>
           </div>
@@ -1634,19 +1623,19 @@ function PlayerSheet({
           <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
               <StatTile
-                label="KONDİSYON"
+                label="Kondisyon"
                 value={String(fit)}
                 tone={fit >= 90 ? "var(--emerald)" : fit >= 75 ? "var(--cyan)" : "var(--warn)"}
                 bar={fit / 100}
               />
               <StatTile
-                label="MORAL"
+                label="Moral"
                 value={`${p.mor ?? 0}/5`}
                 tone={(p.mor ?? 0) >= 4 ? "var(--emerald)" : (p.mor ?? 0) >= 3 ? "var(--cyan)" : "var(--warn)"}
                 bar={(p.mor ?? 0) / 5}
               />
               <StatTile
-                label="SON 5 ORT."
+                label="Son 5 Ort."
                 value={form.length ? avgForm(p).toFixed(2) : "—"}
                 tone={avgForm(p) >= 7.3 ? "var(--emerald)" : "var(--text)"}
                 bar={form.length ? Math.min(1, avgForm(p) / 10) : 0}
@@ -1658,12 +1647,12 @@ function PlayerSheet({
                 wants in this slot is the thing that DOES change about a
                 player he owns: how far he still has to run. */}
             <div className="glass" style={{ padding: 14 }}>
-              <span className="t-label">GELİŞİM</span>
+              <span className="t-label">Gelişim</span>
               <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 10 }}>
                 <span className="t-mono" style={{ fontSize: 20, fontWeight: 800, color: tier.accent }}>
                   {p.ovr}
                 </span>
-                <span className="t-caption" style={{ fontSize: 11 }}>→</span>
+                <span className="t-caption" style={{ fontSize: 12 }}>→</span>
                 <span
                   className="t-mono"
                   style={{
@@ -1674,7 +1663,7 @@ function PlayerSheet({
                 >
                   {p.pot}
                 </span>
-                <span className="t-caption" style={{ fontSize: 11, marginLeft: "auto" }}>
+                <span className="t-caption" style={{ fontSize: 12, marginLeft: "auto" }}>
                   {growth > 0 ? `+${growth} kaldı` : "tavanında"}
                 </span>
               </div>
@@ -1701,13 +1690,13 @@ function PlayerSheet({
             </div>
 
             <div className="glass" style={{ padding: 14 }}>
-              <span className="t-label">FORM GEÇMİŞİ</span>
+              <span className="t-label">Form Geçmişi</span>
               {form.length ? (
                 <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
                   {form.map((r, i) => (
                     <div key={`f-${i}`} style={{ textAlign: "center" }}>
                       <RatingDot rating={r} size={36} />
-                      <div className="t-mono" style={{ fontSize: 9, color: "var(--muted)", marginTop: 4 }}>
+                      <div className="t-mono" style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
                         M-{form.length - i}
                       </div>
                     </div>
@@ -1722,7 +1711,7 @@ function PlayerSheet({
 
             {p.trainingFocus && (
               <div className="glass" style={{ padding: 14 }}>
-                <span className="t-label">ANTRENMAN ODAĞI</span>
+                <span className="t-label">Antrenman Odağı</span>
                 <div className="t-mono" style={{ fontSize: 14, fontWeight: 700, marginTop: 8, color: "var(--accent)" }}>
                   {ATTR_LABEL[p.trainingFocus as TrainableAttr] ?? p.trainingFocus}
                 </div>
@@ -1774,7 +1763,7 @@ function StatTile({
 }) {
   return (
     <div className="glass" style={{ padding: "10px 12px" }}>
-      <span className="t-label" style={{ fontSize: 9 }}>{label}</span>
+      <span className="t-label">{label}</span>
       <div className="t-mono" style={{ fontSize: 18, fontWeight: 800, color: tone, marginTop: 4 }}>
         {value}
       </div>

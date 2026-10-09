@@ -386,7 +386,7 @@ export default function TacticPage({
         }}
       >
         <div>
-          <span className="t-label">TAKTİK</span>
+          <span className="t-eyebrow">Taktik</span>
           <div className="t-h1" style={{ marginTop: 6 }}>
             İlk 11
           </div>
@@ -547,7 +547,7 @@ export default function TacticPage({
           style={{ display: "flex", flexDirection: "column", gap: 16 }}
         >
           <div>
-            <span className="t-label">DİZİLİŞ</span>
+            <span className="t-label">Diziliş</span>
             <div
               style={{
                 display: "grid",
@@ -578,7 +578,7 @@ export default function TacticPage({
               tap "Otobüs" and you have a coherent defensive plan, then find
               the sliders by seeing where it moved them. */}
           <div>
-            <span className="t-label">HAZIR KURULUM</span>
+            <span className="t-label">Hazır Kurulum</span>
             <div
               style={{
                 display: "flex",
@@ -602,7 +602,7 @@ export default function TacticPage({
                       setDials({ ...st.dials });
                       setDirty(true);
                     }}
-                    style={{ cursor: "pointer", fontSize: 11 }}
+                    style={{ cursor: "pointer", fontSize: 12 }}
                   >
                     {st.label}
                   </button>
@@ -641,7 +641,7 @@ export default function TacticPage({
               border: "1px solid var(--border)",
             }}
           >
-            <span className="t-caption" style={{ fontSize: 11 }}>
+            <span className="t-caption" style={{ fontSize: 12 }}>
               💡 Yedek → 11&apos;e almak için yedekten birini tıkla, ardından
               değiştirmek istediğin oyuncuya tıkla.
             </span>
@@ -720,7 +720,7 @@ export default function TacticPage({
           data-tactic-bench
           style={{ display: "flex", flexDirection: "column", gap: 8 }}
         >
-          <span className="t-label">YEDEKLER ({bench.length})</span>
+          <span className="t-label">Yedekler ({bench.length})</span>
           <div
             data-tactic-bench-list
             style={{
@@ -764,7 +764,7 @@ export default function TacticPage({
                   <span
                     className="t-mono"
                     style={{
-                      fontSize: 11,
+                      fontSize: 12,
                       color: "var(--muted)",
                       width: 18,
                     }}
@@ -787,7 +787,7 @@ export default function TacticPage({
                     </div>
                     <div
                       className="t-caption"
-                      style={{ fontSize: 10, marginTop: 1 }}
+                      style={{ fontSize: 12, marginTop: 1 }}
                     >
                       {[p.role, ...(p.secondaryRoles ?? [])].join(" · ")}
                     </div>
@@ -827,7 +827,7 @@ export default function TacticPage({
           }}
         >
           <span className="t-label" style={{ color: "var(--accent)" }}>
-            SEÇİLİ
+            Seçili
           </span>
           <span>
             {selected.type === "pitch"
@@ -835,7 +835,7 @@ export default function TacticPage({
               : `${squad.find((p) => (p.id ?? p.n) === selected.id)?.n}`}
           </span>
           <ChevronRight size={12} strokeWidth={1.8} />
-          <span className="t-caption" style={{ fontSize: 11 }}>
+          <span className="t-caption" style={{ fontSize: 12 }}>
             {selected.type === "pitch"
               ? "Yedekten bir oyuncuya tıkla"
               : "Saha'daki bir oyuncuya tıkla"}
@@ -898,7 +898,7 @@ function PitchSlot({
             justifyContent: "center",
             fontFamily: "var(--font-jetbrains)",
             fontWeight: 700,
-            fontSize: 11,
+            fontSize: 12,
             color: "#fff",
           }}
         >
@@ -909,11 +909,10 @@ function PitchSlot({
             background: "rgba(0,0,0,0.6)",
             padding: "2px 7px",
             borderRadius: 6,
-            fontSize: 9,
+            fontSize: 11.5,
             fontWeight: 700,
             whiteSpace: "nowrap",
             color: "#fff",
-            letterSpacing: "0.04em",
           }}
         >
           {slotRole}
@@ -972,7 +971,7 @@ function PitchSlot({
           background: "rgba(0,0,0,0.7)",
           padding: "2px 7px",
           borderRadius: 6,
-          fontSize: 10,
+          fontSize: 12,
           fontWeight: 600,
           whiteSpace: "nowrap",
           color: "#fff",
@@ -989,13 +988,13 @@ function PitchSlot({
         data-pitch-meta
         style={{
           fontFamily: "var(--font-jetbrains)",
-          fontSize: 8,
+          fontSize: 11.5,
           fontWeight: 700,
           color: slotColor,
-          letterSpacing: "0.08em",
+          whiteSpace: "nowrap",
         }}
       >
-        {slotRole} · OVR {player.ovr}
+        {slotRole} · <span data-pitch-ovr-label>OVR </span>{player.ovr}
       </div>
     </div>
   );
@@ -1033,10 +1032,7 @@ function DialControl({
         }}
       >
         <span className="t-label">{dial.label}</span>
-        <span
-          className="t-mono"
-          style={{ fontSize: 10.5, color: "var(--accent)", fontWeight: 700 }}
-        >
+        <span style={{ fontSize: 13, color: "var(--accent)", fontWeight: 700 }}>
           {dial.steps[value]}
         </span>
       </div>
@@ -1072,7 +1068,7 @@ function DialControl({
               color: i === value ? "var(--accent)" : "var(--muted)",
               fontFamily: "var(--font-jetbrains)",
               fontWeight: 700,
-              fontSize: 11,
+              fontSize: 12,
               transition:
                 "color var(--t) var(--ease), background-color var(--t) var(--ease), border-color var(--t) var(--ease)",
             }}
@@ -1087,7 +1083,7 @@ function DialControl({
           display: "flex",
           flexDirection: "column",
           gap: 3,
-          fontSize: 10.5,
+          fontSize: 12,
           lineHeight: 1.45,
         }}
       >
@@ -1141,9 +1137,9 @@ function PowerProjection({
   // moving a dial would look like it did nothing.
   const pct = (v: number) => Math.max(2, Math.min(100, ((v - 40) / 55) * 100));
   const rows: Array<[string, number, string]> = [
-    ["HÜCUM", power.attack, "var(--danger)"],
-    ["ORTA SAHA", power.midfield, "var(--accent)"],
-    ["DEFANS", power.defense, "var(--cyan)"],
+    ["Hücum", power.attack, "var(--danger)"],
+    ["Orta Saha", power.midfield, "var(--accent)"],
+    ["Defans", power.defense, "var(--cyan)"],
   ];
 
   return (
@@ -1158,7 +1154,7 @@ function PowerProjection({
         gap: 10,
       }}
     >
-      <span className="t-label">TAKIM GÜCÜ</span>
+      <span className="t-label">Takım Gücü</span>
       {rows.map(([label, value, color]) => (
         <div key={label}>
           <div
@@ -1168,12 +1164,12 @@ function PowerProjection({
               marginBottom: 4,
             }}
           >
-            <span className="t-caption" style={{ fontSize: 10.5 }}>
+            <span className="t-caption" style={{ fontSize: 12 }}>
               {label}
             </span>
             <span
               className="t-mono"
-              style={{ fontSize: 11.5, fontWeight: 700, color }}
+              style={{ fontSize: 12, fontWeight: 700, color }}
             >
               {Math.round(value)}
             </span>
@@ -1204,7 +1200,7 @@ function PowerProjection({
           display: "flex",
           gap: 10,
           flexWrap: "wrap",
-          fontSize: 10,
+          fontSize: 12,
           color: "var(--muted)",
         }}
       >

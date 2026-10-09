@@ -34,8 +34,8 @@ export default async function StatsPage() {
           <BarChart2 size={22} strokeWidth={1.6} />
         </div>
         <div>
-          <span className="t-label" style={{ color: "var(--accent)" }}>
-            İSTATİSTİKLER
+          <span className="t-eyebrow" style={{ color: "var(--accent)" }}>
+            İstatistikler
           </span>
           <div className="t-h1" style={{ marginTop: 4 }}>
             Lig Sıralamaları
@@ -81,7 +81,7 @@ export default async function StatsPage() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }} data-lp-grid="2">
         <Leaderboard title="Gol" Icon={Goal} tint="var(--emerald)" rows={s.topScorers} valueKey="goals" />
         <Leaderboard title="Asist" Icon={Hand} tint="var(--cyan)" rows={s.topAssists} valueKey="assists" />
-        <Leaderboard title="Form (5 maç ort.)" Icon={Star} tint="var(--accent)" rows={s.topRated} valueKey="ratingAvg" decimals />
+        <Leaderboard title="Form (5 Maç Ort.)" Icon={Star} tint="var(--accent)" rows={s.topRated} valueKey="ratingAvg" decimals />
         <Leaderboard title="Kart Liderleri" Icon={Square} tint="var(--warn)" rows={s.cardsLeaders} valueKey="yellow" extraKey="red" />
       </div>
       <div style={{ marginTop: 14 }}>
@@ -143,7 +143,7 @@ function Crown({
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <span className="t-label" style={{ color: tint }}>
-          {title.toUpperCase()}
+          {title}
         </span>
         <div style={{ fontSize: 22, fontWeight: 700, marginTop: 2 }}>{row.name}</div>
         <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
@@ -225,7 +225,7 @@ function Leaderboard({
               href={`/player/${r.playerId}`}
               style={{
                 display: "grid",
-                gridTemplateColumns: "24px 24px minmax(0, 1fr) 60px 60px",
+                gridTemplateColumns: "24px 38px minmax(0, 1fr) 60px 60px",
                 gap: 8,
                 alignItems: "center",
                 padding: "8px 10px",
@@ -241,7 +241,7 @@ function Leaderboard({
               <span
                 className="t-mono"
                 style={{
-                  fontSize: 11,
+                  fontSize: 12,
                   color: i === 0 ? tint : "var(--muted)",
                   fontWeight: 700,
                   textAlign: "center",
@@ -252,7 +252,7 @@ function Leaderboard({
               <span
                 className="t-mono"
                 style={{
-                  fontSize: 9,
+                  fontSize: 11.5,
                   padding: "1px 5px",
                   borderRadius: 3,
                   background: `color-mix(in oklab, ${POS_TINT[r.position]} 22%, transparent)`,
@@ -277,7 +277,7 @@ function Leaderboard({
                 </div>
                 <div
                   style={{
-                    fontSize: 10,
+                    fontSize: 12,
                     color: "var(--muted)",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -289,7 +289,7 @@ function Leaderboard({
               </div>
               <span
                 className="t-mono"
-                style={{ fontSize: 11, color: "var(--muted)", textAlign: "right" }}
+                style={{ fontSize: 12, color: "var(--muted)", textAlign: "right" }}
               >
                 OVR {r.overall}
               </span>
@@ -304,7 +304,7 @@ function Leaderboard({
               >
                 {decimals && typeof v === "number" ? v.toFixed(1) : (v ?? "—")}
                 {extraKey && e !== null && e > 0 && (
-                  <span style={{ fontSize: 10, color: "var(--danger)", marginLeft: 4 }}>
+                  <span style={{ fontSize: 12, color: "var(--danger)", marginLeft: 4 }}>
                     +{e}🟥
                   </span>
                 )}
@@ -330,7 +330,7 @@ function Header({
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
       <Icon size={14} strokeWidth={1.6} style={{ color: tint }} />
       <span className="t-label" style={{ color: tint }}>
-        {title.toUpperCase()}
+        {title}
       </span>
     </div>
   );

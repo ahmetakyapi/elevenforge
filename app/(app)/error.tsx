@@ -48,7 +48,7 @@ export default function AppError({
         <div
           className="t-mono"
           style={{
-            fontSize: 11,
+            fontSize: 12,
             color: "var(--muted)",
             marginBottom: 20,
             opacity: 0.7,

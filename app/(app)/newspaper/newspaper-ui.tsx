@@ -127,9 +127,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
                 </div>
                 <div
                   style={{
-                    fontSize: 11,
-                    letterSpacing: "0.16em",
-                    textTransform: "uppercase",
+                    fontSize: 12,
                     color: RED,
                     fontWeight: 700,
                     marginTop: 6,
@@ -145,7 +143,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
           )}
 
           {sections.table.length > 0 && (
-            <Section title="Puan Durumu" kicker="Baskıya girerken">
+            <Section title="Puan Durumu" kicker="Baskıya Girerken">
               <StandingsTable rows={sections.table} />
             </Section>
           )}
@@ -222,8 +220,8 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
                           <span
                             title="Bu kulübü gerçek bir menajer yönetiyor"
                             style={{
-                              fontSize: 9,
-                              letterSpacing: "0.1em",
+                              fontSize: 11,
+                              fontWeight: 700,
                               marginLeft: 7,
                               padding: "1px 5px",
                               color: PAPER,
@@ -231,7 +229,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
                               verticalAlign: "middle",
                             }}
                           >
-                            İNSAN
+                            İnsan
                           </span>
                         )}
                       </div>
@@ -322,7 +320,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
                 </Section>
               )}
               {sections.discipline.length > 0 && (
-                <Section title="Disiplin" kicker="Kart cetveli">
+                <Section title="Disiplin" kicker="Kart Cetveli">
                   <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
                     {sections.discipline.map((d, i) => (
                       <li
@@ -341,7 +339,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
                             {d.banned && (
                               <span
                                 style={{
-                                  fontSize: 10,
+                                  fontSize: 12,
                                   fontWeight: 700,
                                   color: PAPER,
                                   background: RED,
@@ -351,7 +349,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
                                   verticalAlign: "middle",
                                 }}
                               >
-                                CEZALI
+                                Cezalı
                               </span>
                             )}
                           </div>
@@ -407,9 +405,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
                     </p>
                     <div
                       style={{
-                        fontSize: 11.5,
-                        letterSpacing: "0.09em",
-                        textTransform: "uppercase",
+                        fontSize: 12,
                         color: INK_3,
                         marginTop: 7,
                       }}
@@ -444,7 +440,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
                       </li>
                     ))}
                   </ul>
-                  <p style={{ fontSize: 11, color: INK_3, marginTop: 8, fontStyle: "italic" }}>
+                  <p style={{ fontSize: 12, color: INK_3, marginTop: 8, fontStyle: "italic" }}>
                     Bu bölümdeki hiçbir bilgi teyit edilmemiştir ve edilmeyecektir.
                   </p>
                 </Section>
@@ -461,9 +457,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
                       </p>
                       <div
                         style={{
-                          fontSize: 11,
-                          letterSpacing: "0.09em",
-                          textTransform: "uppercase",
+                          fontSize: 12,
                           color: INK_3,
                           marginTop: 5,
                         }}
@@ -495,7 +489,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
                   </div>
                 ))}
               </div>
-              <p style={{ fontSize: 11, color: INK_3, marginTop: 8, fontStyle: "italic" }}>
+              <p style={{ fontSize: 12, color: INK_3, marginTop: 8, fontStyle: "italic" }}>
                 Tahminlerimiz tutmadığında bu köşe yayımlanmamış sayılır.
               </p>
             </Section>
@@ -512,7 +506,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
                 lineHeight: 1.6,
               }}
             >
-              <strong style={{ letterSpacing: "0.06em" }}>NOT DÜŞÜLDÜ · </strong>
+              <strong>Not Düşüldü · </strong>
               {paper.funFact}
             </div>
           )}
@@ -547,9 +541,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
             padding: "14px clamp(16px, 3.5vw, 40px)",
             display: "flex",
             justifyContent: "space-between",
-            fontSize: 11.5,
-            letterSpacing: "0.09em",
-            textTransform: "uppercase",
+            fontSize: 12,
             color: INK_3,
           }}
         >
@@ -602,9 +594,7 @@ function Masthead({ paper }: { paper: NonNullable<NewspaperData> }) {
         style={{
           display: "flex",
           justifyContent: "space-between",
-          fontSize: 11,
-          letterSpacing: "0.18em",
-          textTransform: "uppercase",
+          fontSize: 12,
           color: INK_3,
           marginBottom: 10,
         }}
@@ -628,9 +618,7 @@ function Masthead({ paper }: { paper: NonNullable<NewspaperData> }) {
       </h1>
       <div
         style={{
-          fontSize: 11,
-          letterSpacing: "0.24em",
-          textTransform: "uppercase",
+          fontSize: 12,
           color: INK_3,
           marginTop: 8,
         }}
@@ -650,9 +638,7 @@ function LeadStory({ paper }: { paper: NonNullable<NewspaperData> }) {
     <div style={{ paddingTop: 24 }}>
       <div
         style={{
-          fontSize: 11,
-          letterSpacing: "0.2em",
-          textTransform: "uppercase",
+          fontSize: 13.5,
           color: RED,
           fontWeight: 700,
           marginBottom: 10,
@@ -828,14 +814,13 @@ function MatchReport({
       {r.derby && (
         <div
           style={{
-            fontSize: 10,
-            letterSpacing: "0.18em",
+            fontSize: 12,
             color: RED,
             fontWeight: 700,
             marginBottom: 6,
           }}
         >
-          DERBİ
+          Derbi
         </div>
       )}
       <ScoreLine home={r.homeName} away={r.awayName} hs={r.homeScore} as={r.awayScore} />
@@ -875,9 +860,7 @@ function StandingsTable({
                   textAlign: i === 1 ? "left" : i === 5 ? "right" : "center",
                   padding: "6px 8px",
                   borderBottom: `2px solid ${INK}`,
-                  fontSize: 10.5,
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
+                  fontSize: 12,
                   color: INK_2,
                   whiteSpace: "nowrap",
                 }}
@@ -930,11 +913,11 @@ function StandingsTable({
                     title={f === "W" ? "Galibiyet" : f === "D" ? "Beraberlik" : "Mağlubiyet"}
                     style={{
                       display: "inline-block",
-                      width: 15,
-                      height: 15,
-                      lineHeight: "15px",
+                      width: 17,
+                      height: 17,
+                      lineHeight: "17px",
                       textAlign: "center",
-                      fontSize: 9.5,
+                      fontSize: 11,
                       fontWeight: 800,
                       marginLeft: 2,
                       color: PAPER,
@@ -977,9 +960,7 @@ function TotwStrip({ paper }: { paper: NonNullable<NewspaperData> }) {
           <div key={label}>
             <div
               style={{
-                fontSize: 10.5,
-                letterSpacing: "0.16em",
-                textTransform: "uppercase",
+                fontSize: 12,
                 color: INK_3,
                 marginBottom: 6,
               }}
@@ -998,7 +979,7 @@ function TotwStrip({ paper }: { paper: NonNullable<NewspaperData> }) {
                   }}
                 >
                   <div style={{ fontSize: 13.5, fontWeight: 700 }}>{t.name}</div>
-                  <div style={{ fontSize: 11.5, color: INK_3, marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: INK_3, marginTop: 2 }}>
                     {t.position} ·{" "}
                     <strong style={{ color: RED }}>{t.rating.toFixed(1)}</strong>
                   </div>
@@ -1052,7 +1033,7 @@ function ChartList({
               <span style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>{name}</span>
               <span style={{ fontSize: 14, fontWeight: 800 }}>
                 {n}{" "}
-                <span style={{ fontSize: 11, fontWeight: 400, color: INK_3 }}>
+                <span style={{ fontSize: 12, fontWeight: 400, color: INK_3 }}>
                   {unit}
                 </span>
               </span>
@@ -1120,9 +1101,7 @@ function Byline({ name }: { name: string }) {
       </div>
       <div
         style={{
-          fontSize: 9.5,
-          letterSpacing: "0.14em",
-          textTransform: "uppercase",
+          fontSize: 12,
           color: INK_3,
           marginTop: 3,
         }}
@@ -1167,9 +1146,7 @@ function Section({
         {kicker && (
           <div
             style={{
-              fontSize: 10.5,
-              letterSpacing: "0.2em",
-              textTransform: "uppercase",
+              fontSize: 13.5,
               color: RED,
               fontWeight: 700,
             }}

@@ -176,21 +176,21 @@ export function SquadBoard({
               />
               <span
                 className="t-label"
-                style={{ fontSize: 10, color: g.token, letterSpacing: "0.1em" }}
+                style={{ fontSize: 12, color: g.token }}
               >
-                {g.label.toUpperCase()}
+                {g.label}
               </span>
               <div style={{ flex: 1 }} />
               <span
                 className="t-mono"
-                style={{ fontSize: 10, color: "var(--muted)" }}
+                style={{ fontSize: 12, color: "var(--muted)" }}
               >
                 {list.length}
               </span>
               {list.length > 0 && (
                 <span
                   className="t-mono"
-                  style={{ fontSize: 11, fontWeight: 700, color: ovrTone(avg) }}
+                  style={{ fontSize: 12, fontWeight: 700, color: ovrTone(avg) }}
                   title="Ortalama reyting"
                 >
                   {avg}
@@ -201,7 +201,7 @@ export function SquadBoard({
             {list.length === 0 ? (
               <p
                 className="t-caption"
-                style={{ fontSize: 11.5, padding: "14px 12px", margin: 0 }}
+                style={{ fontSize: 12, padding: "14px 12px", margin: 0 }}
               >
                 Bu mevkide oyuncun yok.
               </p>
@@ -255,7 +255,7 @@ function BoardRow({
         style={{
           width: "100%",
           display: "grid",
-          gridTemplateColumns: "26px minmax(0, 1fr) auto 30px",
+          gridTemplateColumns: "26px minmax(0, 1fr) auto 46px",
           alignItems: "center",
           gap: 8,
           padding: "7px 10px",
@@ -274,7 +274,7 @@ function BoardRow({
       >
         <span
           className="t-mono"
-          style={{ fontSize: 10.5, color: "var(--muted)" }}
+          style={{ fontSize: 12, color: "var(--muted)" }}
         >
           {p.num ?? "–"}
         </span>
@@ -312,7 +312,7 @@ function BoardRow({
                 className="t-mono"
                 title={label}
                 style={{
-                  fontSize: 10.5,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: attrTone(v),
                   minWidth: 17,
@@ -332,7 +332,7 @@ function BoardRow({
             fontWeight: 800,
             color: ovrTone(p.ovr),
             textAlign: "right",
-            position: "relative",
+            whiteSpace: "nowrap",
           }}
         >
           {p.ovr}
@@ -341,10 +341,8 @@ function BoardRow({
               aria-hidden
               title={`Potansiyel ${p.pot}`}
               style={{
-                position: "absolute",
-                top: -5,
-                right: -6,
-                fontSize: 7.5,
+                marginLeft: 3,
+                fontSize: 11.5,
                 fontWeight: 700,
                 color: "var(--emerald)",
               }}

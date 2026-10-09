@@ -95,8 +95,8 @@ export default function RegisterPage() {
               width: "100%",
             }}
           >
-            <span className="t-label" style={{ color: "var(--emerald)" }}>
-              KAYIT
+            <span className="t-eyebrow" style={{ color: "var(--emerald)" }}>
+              Kayıt
             </span>
             <div className="t-h1" style={{ marginTop: 8, marginBottom: 8 }}>
               Takımını kur.
@@ -118,7 +118,7 @@ export default function RegisterPage() {
                   required
                 />
               </LabeledField>
-              <LabeledField label="Takım adı">
+              <LabeledField label="Takım Adı">
                 <input
                   className="input"
                   placeholder="İstanbul Şehir FK"
@@ -141,7 +141,7 @@ export default function RegisterPage() {
                   required
                 />
               </LabeledField>
-              <LabeledField label="Şifre tekrar">
+              <LabeledField label="Şifre Tekrar">
                 <input
                   className={`input ${
                     p2 ? (passMatch ? "valid" : "invalid") : ""
@@ -153,7 +153,7 @@ export default function RegisterPage() {
                   required
                 />
               </LabeledField>
-              <LabeledField label="Davet kodu (opsiyonel)">
+              <LabeledField label="Davet Kodu (Opsiyonel)">
                 <input
                   className="input"
                   placeholder="Arkadaşının ligine katılmak için"

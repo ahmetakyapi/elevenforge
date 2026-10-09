@@ -82,7 +82,7 @@ export function PosBadge({ pos, size = 28, showLabel = false }: PosBadgeProps) {
             color: "#fff",
             fontFamily: "var(--font-jetbrains)",
             fontWeight: 800,
-            fontSize: 10,
+            fontSize: 11,
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
@@ -95,9 +95,8 @@ export function PosBadge({ pos, size = 28, showLabel = false }: PosBadgeProps) {
           style={{
             fontFamily: "var(--font-jetbrains)",
             fontWeight: 700,
-            fontSize: 11,
+            fontSize: 12,
             color,
-            letterSpacing: "0.08em",
           }}
         >
           {label}
@@ -134,13 +133,13 @@ export function PosBadge({ pos, size = 28, showLabel = false }: PosBadgeProps) {
 type AgePillProps = { age: number; size?: "sm" | "md" };
 export function AgePill({ age, size = "md" }: AgePillProps) {
   const stage =
-    age <= 21 ? { l: "GENÇ", c: "var(--emerald)" } :
-    age <= 25 ? { l: "YÜKSELİŞ", c: "var(--cyan)" } :
-    age <= 29 ? { l: "ZİRVE", c: "var(--accent)" } :
-    age <= 32 ? { l: "TECRÜBE", c: "var(--gold)" } :
-                { l: "VETERAN", c: "var(--warn)" };
-  const fs = size === "sm" ? 11 : 13;
-  const lfs = size === "sm" ? 8 : 9;
+    age <= 21 ? { l: "Genç", c: "var(--emerald)" } :
+    age <= 25 ? { l: "Yükseliş", c: "var(--cyan)" } :
+    age <= 29 ? { l: "Zirve", c: "var(--accent)" } :
+    age <= 32 ? { l: "Tecrübe", c: "var(--gold)" } :
+                { l: "Veteran", c: "var(--warn)" };
+  const fs = size === "sm" ? 12 : 13;
+  const lfs = size === "sm" ? 12 : 12.5;
   return (
     <span
       style={{
@@ -168,11 +167,9 @@ export function AgePill({ age, size = "md" }: AgePillProps) {
       <span style={{ width: 1, height: 10, background: "var(--border-strong)" }} />
       <span
         style={{
-          fontFamily: "var(--font-jetbrains)",
           fontSize: lfs,
-          fontWeight: 700,
+          fontWeight: 600,
           color: stage.c,
-          letterSpacing: "0.08em",
           lineHeight: 1,
         }}
       >
@@ -188,9 +185,9 @@ export function OvrChip({ ovr, size = "md" }: OvrChipProps) {
   const color = tierColor(ovr);
   const tier = tierLabel(ovr);
   const dims =
-    size === "sm" ? { w: 38, h: 38, fs: 18, lfs: 8, r: 8, gap: 0 } :
-    size === "lg" ? { w: 64, h: 64, fs: 32, lfs: 10, r: 12, gap: 1 } :
-                    { w: 48, h: 48, fs: 22, lfs: 9, r: 10, gap: 1 };
+    size === "sm" ? { w: 38, h: 38, fs: 18, lfs: 11.5, r: 8, gap: 0 } :
+    size === "lg" ? { w: 64, h: 64, fs: 32, lfs: 12, r: 12, gap: 1 } :
+                    { w: 48, h: 48, fs: 22, lfs: 11.5, r: 10, gap: 1 };
   return (
     <div
       style={{
@@ -230,7 +227,6 @@ export function OvrChip({ ovr, size = "md" }: OvrChipProps) {
             fontSize: dims.lfs,
             fontWeight: 700,
             color: `color-mix(in oklab, ${color} 75%, var(--muted))`,
-            letterSpacing: "0.1em",
             lineHeight: 1,
           }}
         >
@@ -415,7 +411,7 @@ export function SectionHead({ label, title, right }: SectionHeadProps) {
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        {label && <span className="t-label">{label}</span>}
+        {label && <span className="t-eyebrow">{label}</span>}
         {title && <span className="t-h2">{title}</span>}
       </div>
       {right}
@@ -486,7 +482,7 @@ export function Bar({ value, max = 100, color, height = 4, showValue = false }: 
       {showValue && (
         <span
           className="t-mono"
-          style={{ fontSize: 11, color: "var(--muted)", minWidth: 24, textAlign: "right" }}
+          style={{ fontSize: 12, color: "var(--muted)", minWidth: 24, textAlign: "right" }}
         >
           {Math.round(pct)}
         </span>
@@ -517,8 +513,8 @@ export function FormDot({ result }: FormDotProps) {
         color: m.bg,
         border: `1px solid color-mix(in oklab, ${m.bg} 40%, transparent)`,
         fontFamily: "var(--font-jetbrains)",
-        fontWeight: 600,
-        fontSize: 10,
+        fontWeight: 700,
+        fontSize: 11.5,
         letterSpacing: 0,
       }}
     >
@@ -583,7 +579,7 @@ export function StatChip({ label, value, icon, accent }: StatChipProps) {
         >
           {value}
         </span>
-        <span className="t-label" style={{ fontSize: 10, lineHeight: 1 }}>
+        <span className="t-label" style={{ fontSize: 12, lineHeight: 1.1, color: "var(--muted)" }}>
           {label}
         </span>
       </div>

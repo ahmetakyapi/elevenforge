@@ -85,15 +85,15 @@ export default async function DashboardPage() {
         </div>
         <div style={{ flex: 1 }} />
         <StatChip
-          label="KASA"
+          label="Kasa"
           value={
             <span className="t-mono">{fmtEUR(d.myClub.balanceEur)}</span>
           }
           icon={<span style={{ color: "var(--emerald)" }}>◉</span>}
         />
-        <StatChip label="MORAL" value={`${d.myClub.morale}/5`} icon="❤" />
+        <StatChip label="Moral" value={`${d.myClub.morale}/5`} icon="❤" />
         <StatChip
-          label="SIRALAMA"
+          label="Sıralama"
           value={`${d.myClub.position}.`}
           icon={<span style={{ color: "var(--gold)" }}>★</span>}
         />
@@ -145,7 +145,7 @@ export default async function DashboardPage() {
                     animation: "pulse-accent 2s ease-in-out infinite",
                   }}
                 />
-                {d.nextFixture ? "SONRAKİ MAÇ" : "MAÇ YOK"}
+                {d.nextFixture ? "Sonraki Maç" : "Maç Yok"}
                 {d.nextFixture
                   ? " · " +
                     formatInZone(d.nextFixture.scheduledAtMs, ctx.league.timeZone, { dateStyle: "short", timeStyle: "short" })
@@ -203,8 +203,8 @@ export default async function DashboardPage() {
                   >
                     vs
                   </span>
-                  <span className="t-eyebrow" style={{ color: "var(--muted)" }}>
-                    {d.nextFixture.isHome ? "EV SAHİBİ" : "DEPLASMAN"}
+                  <span className="t-label" style={{ color: "var(--muted)" }}>
+                    {d.nextFixture.isHome ? "Ev Sahibi" : "Deplasman"}
                   </span>
                 </div>
                 <div
@@ -244,8 +244,8 @@ export default async function DashboardPage() {
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span className="t-label" style={{ fontSize: 10 }}>
-                    RAKİBİN SON 5
+                  <span className="t-label">
+                    Rakibin Son 5
                   </span>
                   <div style={{ display: "flex", gap: 3 }}>
                     {d.nextFixture.opponentForm.map((r, i) => (
@@ -255,7 +255,7 @@ export default async function DashboardPage() {
                 </div>
                 {d.nextFixture.h2h.length > 0 && (
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span className="t-label" style={{ fontSize: 10 }}>
+                    <span className="t-label">
                       H2H
                     </span>
                     <div style={{ display: "flex", gap: 5 }}>
@@ -264,7 +264,7 @@ export default async function DashboardPage() {
                           key={i}
                           className="t-mono"
                           style={{
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: 700,
                             padding: "3px 7px",
                             borderRadius: 6,
@@ -325,8 +325,8 @@ export default async function DashboardPage() {
               padding: "4px 0",
             }}
           >
-            <span className="t-eyebrow" style={{ color: "var(--muted)" }}>
-              LİG HAFTA
+            <span className="t-label">
+              Lig Haftası
             </span>
             <div
               className="t-mono"
@@ -363,7 +363,7 @@ export default async function DashboardPage() {
         }}
       >
         <GlassCard pad={18} hover={false}>
-          <span className="t-label">POZİSYON</span>
+          <span className="t-label">Pozisyon</span>
           <div
             className="t-mono"
             style={{ fontSize: 26, fontWeight: 600, marginTop: 10 }}
@@ -375,7 +375,7 @@ export default async function DashboardPage() {
           </div>
         </GlassCard>
         <GlassCard pad={18} hover={false}>
-          <span className="t-label">PUAN</span>
+          <span className="t-label">Puan</span>
           <div
             className="t-mono"
             style={{ fontSize: 26, fontWeight: 600, marginTop: 10 }}
@@ -387,7 +387,7 @@ export default async function DashboardPage() {
           </div>
         </GlassCard>
         <GlassCard pad={18} hover={false}>
-          <span className="t-label">KADRO</span>
+          <span className="t-label">Kadro</span>
           <div
             className="t-mono"
             style={{ fontSize: 26, fontWeight: 600, marginTop: 10 }}
@@ -404,7 +404,7 @@ export default async function DashboardPage() {
           </div>
         </GlassCard>
         <GlassCard pad={18} hover={false}>
-          <span className="t-label">KASA</span>
+          <span className="t-label">Kasa</span>
           <div
             className="t-mono"
             style={{
@@ -432,7 +432,7 @@ export default async function DashboardPage() {
       >
         <GlassCard pad={20} hover={false}>
           <SectionHead
-            label="LİG TABLOSU"
+            label="Lig Tablosu"
             title={`${d.leagueInfo.name} · Sezon ${d.leagueInfo.seasonNumber}`}
             right={
               <div
@@ -446,7 +446,7 @@ export default async function DashboardPage() {
                 <InviteChip code={d.leagueInfo.inviteCode} />
                 <span
                   className="t-caption"
-                  style={{ color: "var(--muted)", fontSize: 11 }}
+                  style={{ color: "var(--muted)", fontSize: 12 }}
                 >
                   {d.leagueInfo.memberCount} insan · {d.leagueInfo.botCount} bot
                 </span>
@@ -475,7 +475,7 @@ export default async function DashboardPage() {
                   key={h}
                   className="t-label"
                   style={{
-                    fontSize: 10,
+                    fontSize: 12,
                     textAlign: i > 1 && i < 7 ? "center" : "left",
                   }}
                 >
@@ -584,7 +584,7 @@ export default async function DashboardPage() {
         </GlassCard>
         <GlassCard pad={20} hover={false}>
           <SectionHead
-            label="AKTİVİTE"
+            label="Aktivite"
             title="Crew feed'i"
             right={
               <Link
@@ -658,8 +658,8 @@ export default async function DashboardPage() {
           gap: 10,
         }}
       >
-        <span className="t-label" style={{ fontSize: 11, color: "var(--muted)" }}>
-          SEZON KARARLARI
+        <span className="t-label" style={{ color: "var(--text-2)" }}>
+          Sezon Kararları
         </span>
         <div
           style={{

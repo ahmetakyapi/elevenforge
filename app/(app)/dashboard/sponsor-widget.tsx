@@ -81,13 +81,13 @@ export function SponsorWidget({
           <Briefcase size={16} strokeWidth={1.6} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="t-caption" style={{ fontSize: 11 }}>
-            SPONSOR
+          <div className="t-caption" style={{ fontSize: 12 }}>
+            Sponsor
           </div>
           {active ? (
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontWeight: 600 }}>{active.name}</span>
-              <span className="t-mono" style={{ fontSize: 11, color: "var(--muted)" }}>
+              <span className="t-mono" style={{ fontSize: 12, color: "var(--muted)" }}>
                 {active.weeksLeft}w · €{(active.payPerMatchCents / 100 / 1_000_000).toFixed(1)}M/maç
               </span>
             </div>
@@ -136,8 +136,8 @@ export function SponsorWidget({
               overflow: "auto",
             }}
           >
-            <span className="t-label" style={{ color: "var(--indigo)" }}>
-              SPONSOR TEKLİFLERİ
+            <span className="t-eyebrow" style={{ color: "var(--indigo)" }}>
+              Sponsor Teklifleri
             </span>
             <div className="t-h2" style={{ marginTop: 4 }}>
               Sözleşme imzala
@@ -171,7 +171,7 @@ export function SponsorWidget({
                       <span
                         className="t-mono"
                         style={{
-                          fontSize: 11,
+                          fontSize: 12,
                           padding: "2px 6px",
                           borderRadius: 4,
                           background: "var(--panel-2)",

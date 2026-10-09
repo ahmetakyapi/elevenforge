@@ -122,7 +122,7 @@ export default function TransferMarketUi({ data }: { data: TransferPageData }) {
         <span style={{ fontSize: 13, fontWeight: 600 }}>
           {data.window.label}
         </span>
-        <span className="t-caption" style={{ fontSize: 11.5 }}>
+        <span className="t-caption" style={{ fontSize: 12 }}>
           {data.window.open
             ? data.window.closesAtWeek !== null
               ? `${data.window.closesAtWeek}. hafta sonunda kapanıyor`
@@ -182,7 +182,7 @@ export default function TransferMarketUi({ data }: { data: TransferPageData }) {
                 }}
               >
                 <div>
-                  <span className="t-label">TRANSFER PAZARI</span>
+                  <span className="t-eyebrow">Transfer Pazarı</span>
                   <div className="t-h1" style={{ marginTop: 6, fontSize: 28 }}>
                     {sorted.length} oyuncu
                   </div>
@@ -194,7 +194,7 @@ export default function TransferMarketUi({ data }: { data: TransferPageData }) {
                       type="button"
                       className={`chip ${sort === k ? "active" : ""}`}
                       onClick={() => setSort(k)}
-                      style={{ cursor: "pointer", fontSize: 11 }}
+                      style={{ cursor: "pointer", fontSize: 12 }}
                     >
                       {l}
                     </button>
@@ -219,7 +219,7 @@ export default function TransferMarketUi({ data }: { data: TransferPageData }) {
                         type="button"
                         className={`chip ${pos === p ? "active" : ""}`}
                         onClick={() => setPos(p)}
-                        style={{ cursor: "pointer", fontSize: 11 }}
+                        style={{ cursor: "pointer", fontSize: 12 }}
                       >
                         {p === "ALL" ? "Tüm Mevki" : p}
                       </button>
@@ -431,7 +431,7 @@ function ReturnedScoutsBanner({
       >
         <Compass size={16} strokeWidth={1.6} color="var(--indigo)" />
         <span className="t-label" style={{ color: "var(--indigo)" }}>
-          KAŞİF DÖNDÜ
+          Kaşif Döndü
         </span>
         <span className="t-small" style={{ color: "var(--text-2)" }}>
           {scouts.length} rapor · her raporda 3 aday, birini imzalarsın
@@ -445,7 +445,7 @@ function ReturnedScoutsBanner({
                 type="button"
                 className={`chip ${openId === s.id ? "active" : ""}`}
                 onClick={() => setOpenId(s.id)}
-                style={{ cursor: "pointer", fontSize: 11 }}
+                style={{ cursor: "pointer", fontSize: 12 }}
               >
                 {s.country} {s.position} #{i + 1}
               </button>
@@ -499,7 +499,7 @@ function ReturnedScoutsBanner({
                   <div
                     className="t-caption"
                     style={{
-                      fontSize: 11,
+                      fontSize: 12,
                       marginTop: 2,
                       display: "flex",
                       alignItems: "center",
@@ -516,19 +516,17 @@ function ReturnedScoutsBanner({
                         between a name you can trust and one you cannot. */}
                     {c.real && (
                       <span
-                        className="t-mono"
                         title="Gerçek oyuncu — yaş ve mevki bilgisi doğru"
                         style={{
-                          fontSize: 8.5,
-                          fontWeight: 700,
-                          letterSpacing: "0.08em",
+                          fontSize: 12,
+                          fontWeight: 600,
                           padding: "1px 5px",
                           borderRadius: 4,
                           background: "color-mix(in oklab, var(--gold) 18%, transparent)",
                           color: "var(--gold)",
                         }}
                       >
-                        GERÇEK
+                        Gerçek
                       </span>
                     )}
                   </div>
@@ -564,7 +562,7 @@ function ReturnedScoutsBanner({
                       <span
                         className="t-mono"
                         style={{
-                          fontSize: 11.5,
+                          fontSize: 12,
                           fontWeight: 800,
                           minWidth: 18,
                           color: scoutAttrTone(v),
@@ -572,7 +570,7 @@ function ReturnedScoutsBanner({
                       >
                         {v}
                       </span>
-                      <span className="t-label" style={{ fontSize: 8.5, letterSpacing: "0.1em" }}>
+                      <span className="t-label">
                         {label}
                       </span>
                     </div>
@@ -587,7 +585,7 @@ function ReturnedScoutsBanner({
                   gap: 6,
                 }}
               >
-                <span className="t-caption" style={{ fontSize: 11 }}>
+                <span className="t-caption" style={{ fontSize: 12 }}>
                   Potansiyel{" "}
                   <span
                     className="t-mono"
@@ -675,7 +673,7 @@ function ModeTabs({
     >
       {(["buy", "sell"] as const).map((m) => {
         const active = mode === m;
-        const label = m === "buy" ? "AL" : "SAT";
+        const label = m === "buy" ? "Al" : "Sat";
         return (
           <button
             key={m}
@@ -698,8 +696,7 @@ function ModeTabs({
                 : "var(--muted)",
               cursor: "pointer",
               fontWeight: 700,
-              fontSize: 11,
-              letterSpacing: "0.1em",
+              fontSize: 13.5,
               transition: "opacity 200ms, transform 200ms, color 200ms, background-color 200ms, border-color 200ms, box-shadow 200ms",
             }}
           >
@@ -745,7 +742,7 @@ function GlobalTicker({
           }}
         />
         <span className="t-label" style={{ color: "var(--emerald)" }}>
-          CANLI · TÜM LİGLER
+          Canlı · Tüm Ligler
         </span>
         <span
           className="t-small"
@@ -808,14 +805,14 @@ function MarketStats({
   ];
   return (
     <GlassCard pad={16} hover={false}>
-      <SectionHead label="PİYASA" title={<span style={{ fontSize: 16 }}>Özet</span>} />
+      <SectionHead label="Piyasa" title={<span style={{ fontSize: 16 }}>Özet</span>} />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         {items.map((s) => (
           <div
             key={s.l}
             style={{ display: "flex", flexDirection: "column", gap: 4 }}
           >
-            <span className="t-caption" style={{ fontSize: 10 }}>
+            <span className="t-caption" style={{ fontSize: 12 }}>
               {s.l}
             </span>
             <span
@@ -872,12 +869,12 @@ function TransferRow({
       : 0;
   const deal =
     premiumPct <= -10
-      ? { label: `${premiumPct}% FIRSAT`, tint: "var(--emerald)" }
+      ? { label: `%${-premiumPct} Fırsat`, tint: "var(--emerald)" }
       : premiumPct <= 5
-        ? { label: "PİYASA FİYATI", tint: "var(--cyan)" }
+        ? { label: "Piyasa Fiyatı", tint: "var(--cyan)" }
         : premiumPct <= 30
-          ? { label: `+${premiumPct}% PRİM`, tint: "var(--muted)" }
-          : { label: `+${premiumPct}% PAHALI`, tint: "var(--warn)" };
+          ? { label: `+%${premiumPct} Prim`, tint: "var(--muted)" }
+          : { label: `+%${premiumPct} Pahalı`, tint: "var(--warn)" };
   const priceColor = canAfford ? deal.tint : "var(--danger)";
 
   // Measured against the best you already have in that position, because that
@@ -891,8 +888,8 @@ function TransferRow({
             tint: "var(--emerald)",
           }
         : listing.overall - squadBest >= -2
-          ? { label: "İLK 11 ADAYI", tint: "var(--cyan, #22d3ee)" }
-          : { label: "YEDEK", tint: "var(--muted)" };
+          ? { label: "İlk 11 Adayı", tint: "var(--cyan, #22d3ee)" }
+          : { label: "Yedek", tint: "var(--muted)" };
 
   const isAuction = listing.bidsCloseAtMs !== null;
   const leading =
@@ -1019,12 +1016,10 @@ function TransferRow({
             <span style={{ fontSize: 15, fontWeight: 600 }}>{listing.name}</span>
             {isAuction && (
               <span
-                className="t-mono"
                 title={closesLabel}
                 style={{
-                  fontSize: 9.5,
-                  fontWeight: 700,
-                  letterSpacing: "0.03em",
+                  fontSize: 12,
+                  fontWeight: 600,
                   padding: "2px 7px",
                   borderRadius: 999,
                   whiteSpace: "nowrap",
@@ -1033,17 +1028,15 @@ function TransferRow({
                   color: "var(--gold)",
                 }}
               >
-                {leading ? "AÇIK ARTIRMA · ÖNDESİN" : `AÇIK ARTIRMA · ${closesLabel}`}
+                {leading ? "Açık Artırma · Öndesin" : `Açık Artırma · ${closesLabel}`}
               </span>
             )}
             {fit && (
               <span
-                className="t-mono"
                 title={`Bu mevkideki en iyi oyuncun ${squadBest} overall`}
                 style={{
-                  fontSize: 9.5,
-                  fontWeight: 700,
-                  letterSpacing: "0.03em",
+                  fontSize: 12,
+                  fontWeight: 600,
                   padding: "2px 7px",
                   borderRadius: 999,
                   whiteSpace: "nowrap",
@@ -1056,20 +1049,18 @@ function TransferRow({
             )}
             {trending && (
               <span
-                className="t-mono"
                 title="Trend yukarı"
                 style={{
-                  fontSize: 10,
-                  fontWeight: 700,
+                  fontSize: 12,
+                  fontWeight: 600,
                   color: "var(--emerald)",
                   background:
                     "color-mix(in oklab, var(--emerald) 14%, transparent)",
                   padding: "2px 6px",
                   borderRadius: 4,
-                  letterSpacing: "0.05em",
                 }}
               >
-                TREND
+                Trend
               </span>
             )}
           </div>
@@ -1091,7 +1082,7 @@ function TransferRow({
             <span
               className="t-caption"
               style={{
-                fontSize: 11.5,
+                fontSize: 12,
                 color: "var(--muted)",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -1119,11 +1110,11 @@ function TransferRow({
                 >
                   <span
                     className="t-mono"
-                    style={{ fontSize: 10.5, fontWeight: 800, color: marketAttrTone(v) }}
+                    style={{ fontSize: 12, fontWeight: 800, color: marketAttrTone(v) }}
                   >
                     {v}
                   </span>
-                  <span className="t-label" style={{ fontSize: 8, letterSpacing: "0.1em" }}>
+                  <span className="t-label">
                     {label}
                   </span>
                 </span>
@@ -1141,7 +1132,7 @@ function TransferRow({
           <span
             className="t-caption"
             style={{
-              fontSize: 11.5,
+              fontSize: 12,
               display: "flex",
               alignItems: "center",
               gap: 5,
@@ -1168,12 +1159,12 @@ function TransferRow({
             <div
               className="t-mono"
               title={`Potansiyel ${listing.potential}`}
-              style={{ fontSize: 10, fontWeight: 700, color: "var(--gold)" }}
+              style={{ fontSize: 12, fontWeight: 700, color: "var(--gold)" }}
             >
               ↑{growth}
             </div>
           ) : (
-            <div className="t-caption" style={{ fontSize: 10 }}>
+            <div className="t-caption" style={{ fontSize: 12 }}>
               yaş
             </div>
           )}
@@ -1189,11 +1180,9 @@ function TransferRow({
           title={`Piyasa değeri ${fmtEUR(listing.marketValueEur)} · ${listing.hoursOn} saat önce listelendi`}
         >
           <span
-            className="t-mono"
             style={{
-              fontSize: 9.5,
-              fontWeight: 700,
-              letterSpacing: "0.03em",
+              fontSize: 12,
+              fontWeight: 600,
               padding: "3px 8px",
               borderRadius: 999,
               whiteSpace: "nowrap",
@@ -1203,7 +1192,7 @@ function TransferRow({
           >
             {deal.label}
           </span>
-          <span className="t-caption" style={{ fontSize: 10 }}>
+          <span className="t-caption" style={{ fontSize: 12 }}>
             {isAuction
               ? listing.bidCount === 0
                 ? "henüz teklif yok"
@@ -1238,7 +1227,7 @@ function TransferRow({
             >
               {fmtEUR(listing.priceEur)}
             </span>
-            <span className="t-caption" style={{ fontSize: 10 }}>
+            <span className="t-caption" style={{ fontSize: 12 }}>
               {listing.sellerType === "bot" ? "Bot" : `@${listing.sellerName ?? ""}`}
             </span>
           </div>
@@ -1332,7 +1321,7 @@ function TransferRow({
 function StatRow({ l, v, c }: { l: string; v: ReactNode; c?: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <span className="t-caption" style={{ fontSize: 10 }}>
+      <span className="t-caption" style={{ fontSize: 12 }}>
         {l}
       </span>
       <span
@@ -1357,7 +1346,7 @@ function SellTab({ userSquad }: { userSquad: SellRowView[] }) {
         }}
       >
         <div>
-          <span className="t-label">KENDİ OYUNCULARIN</span>
+          <span className="t-eyebrow">Kendi Oyuncuların</span>
           <div className="t-h1" style={{ marginTop: 6, fontSize: 28 }}>
             Listele &amp; Sat
           </div>
@@ -1448,7 +1437,7 @@ function SellRow({ p, idx }: { p: SellRowView; idx: number }) {
         >
           {p.name}
         </div>
-        <div className="t-caption" style={{ fontSize: 11, marginTop: 2 }}>
+        <div className="t-caption" style={{ fontSize: 12, marginTop: 2 }}>
           {p.role} · {p.age}y
         </div>
       </div>
@@ -1457,14 +1446,14 @@ function SellRow({ p, idx }: { p: SellRowView; idx: number }) {
         <div className="t-mono" style={{ fontSize: 13, fontWeight: 700 }}>
           {p.lastFormRating ? p.lastFormRating.toFixed(1) : "—"}
         </div>
-        <div className="t-caption" style={{ fontSize: 10 }}>
-          form
+        <div className="t-caption">
+          Form
         </div>
       </div>
       <Currency value={p.marketValueEur} size={14} color="var(--emerald)" />
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <span className="t-caption" style={{ fontSize: 10, whiteSpace: "nowrap" }}>
-          Asking
+        <span className="t-caption" style={{ fontSize: 12, whiteSpace: "nowrap" }}>
+          Fiyat
         </span>
         <input
           type="number"
@@ -1479,7 +1468,7 @@ function SellRow({ p, idx }: { p: SellRowView; idx: number }) {
           }}
           disabled={p.isListed || pending}
         />
-        <span className="t-caption" style={{ fontSize: 10 }}>
+        <span className="t-caption" style={{ fontSize: 12 }}>
           M€
         </span>
       </div>
@@ -1487,7 +1476,7 @@ function SellRow({ p, idx }: { p: SellRowView; idx: number }) {
         {p.isListed ? (
           <span
             className="t-caption"
-            style={{ fontSize: 11, color: "var(--warn)" }}
+            style={{ fontSize: 12, color: "var(--warn)" }}
           >
             Listede
           </span>
@@ -1534,7 +1523,7 @@ function MyListRow({ listing }: { listing: MyListingView }) {
         >
           {listing.name}
         </div>
-        <div className="t-caption" style={{ fontSize: 10 }}>
+        <div className="t-caption" style={{ fontSize: 12 }}>
           OVR {listing.overall} · {listing.age}y
         </div>
       </div>
@@ -1543,7 +1532,7 @@ function MyListRow({ listing }: { listing: MyListingView }) {
         type="button"
         className="btn btn-sm btn-ghost"
         disabled={pending}
-        style={{ color: "var(--danger)", padding: "4px 8px", fontSize: 11 }}
+        style={{ color: "var(--danger)", padding: "4px 8px", fontSize: 12 }}
         onClick={() =>
           startTransition(async () => {
             const res = await removeListing(listing.id);
@@ -1605,7 +1594,7 @@ function ScoutActiveCard({
         >
           {pad(h)}:{pad(m)}:{pad(s)}
         </div>
-        <div className="t-caption" style={{ fontSize: 11, marginTop: 2 }}>
+        <div className="t-caption" style={{ fontSize: 12, marginTop: 2 }}>
           kalan süre
         </div>
       </div>
@@ -1755,13 +1744,13 @@ function ScoutModal({
           }}
         >
           <div>
-            <span className="t-label" style={{ color: "var(--indigo)" }}>
-              KAŞİF
+            <span className="t-eyebrow" style={{ color: "var(--indigo)" }}>
+              Kaşif
             </span>
             <div className="t-h2" style={{ marginTop: 5, fontSize: 22 }}>
               Yeni Görev
             </div>
-            <div className="t-caption" style={{ fontSize: 11.5, marginTop: 4 }}>
+            <div className="t-caption" style={{ fontSize: 12, marginTop: 4 }}>
               {inField} / 3 kaşif sahada · her rapor 3 aday getirir, birini
               imzalarsın
             </div>
@@ -1772,7 +1761,7 @@ function ScoutModal({
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 15 }}>
-          <Field label="Hedef ülke">
+          <Field label="Hedef Ülke">
             <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
               {SCOUT_NATIONALITIES.map((code) => (
                 <button
@@ -1781,7 +1770,7 @@ function ScoutModal({
                   className={`chip ${nat === code ? "active" : ""}`}
                   onClick={() => setNat(code)}
                   title={NAT_NAMES[code] ?? code}
-                  style={{ cursor: "pointer", fontSize: 11.5, padding: "5px 9px" }}
+                  style={{ cursor: "pointer", fontSize: 12, padding: "5px 9px" }}
                 >
                   {NAT_FLAGS[code] ?? "🏳"} {code}
                 </button>
@@ -1842,8 +1831,8 @@ function ScoutModal({
             }`,
           }}
         >
-          <span className="t-label" style={{ fontSize: 9.5 }}>
-            BU BRİFE UYAN GERÇEK OYUNCU
+          <span className="t-label">
+            Bu Brife Uyan Gerçek Oyuncu
           </span>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 6 }}>
             <span
@@ -1866,7 +1855,7 @@ function ScoutModal({
               </span>
             )}
           </div>
-          <p className="t-caption" style={{ fontSize: 11.5, margin: "8px 0 0", lineHeight: 1.55 }}>
+          <p className="t-caption" style={{ fontSize: 12, margin: "8px 0 0", lineHeight: 1.55 }}>
             {preview.count > 0 ? (
               <>
                 {preview.sample.map((p) => p.name).join(", ")}
@@ -1889,7 +1878,7 @@ function ScoutModal({
             gap: 14,
             marginTop: 14,
             flexWrap: "wrap",
-            fontSize: 11.5,
+            fontSize: 12,
             color: "var(--muted)",
           }}
         >

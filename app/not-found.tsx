@@ -16,8 +16,6 @@ export default function NotFound() {
           style={{
             fontFamily: "var(--font-mono, monospace)",
             fontSize: 13,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
             color: "var(--muted, #8b93a7)",
             marginBottom: 10,
           }}

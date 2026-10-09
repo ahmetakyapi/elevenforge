@@ -20,9 +20,9 @@ export function AchievementsStrip({ badges }: { badges: AchievementBadge[] }) {
     >
       <span
         className="t-label"
-        style={{ fontSize: 11, alignSelf: "center", marginRight: 4 }}
+        style={{ fontSize: 12, alignSelf: "center", marginRight: 4 }}
       >
-        VİTRİN
+        Vitrin
       </span>
       {badges.map((b) => (
         <span
@@ -47,7 +47,7 @@ export function AchievementsStrip({ badges }: { badges: AchievementBadge[] }) {
             <span
               className="t-mono"
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 padding: "1px 5px",
                 borderRadius: 3,
                 background: `color-mix(in oklab, ${b.tint} 28%, transparent)`,

@@ -13,7 +13,7 @@ export function Field({ label, children, hint }: FieldProps) {
       <span className="t-label">{label}</span>
       {children}
       {hint && (
-        <span className="t-caption" style={{ fontSize: 11 }}>
+        <span className="t-caption" style={{ fontSize: 12 }}>
           {hint}
         </span>
       )}
@@ -51,7 +51,7 @@ export function SliderField({
       >
         <span
           className="t-caption"
-          style={{ fontSize: 10, whiteSpace: "nowrap" }}
+          style={{ fontSize: 12, whiteSpace: "nowrap" }}
         >
           {label}
         </span>

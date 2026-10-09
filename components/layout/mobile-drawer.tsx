@@ -121,7 +121,7 @@ export function MobileDrawer() {
                 marginBottom: 12,
               }}
             >
-              <span className="t-label">MENÜ</span>
+              <span className="t-label">Menü</span>
               <button
                 type="button"
                 className="btn btn-ghost btn-sm"
@@ -181,7 +181,7 @@ export function MobileDrawer() {
             </form>
             <div
               style={{
-                fontSize: 11,
+                fontSize: 12,
                 color: "var(--muted)",
                 textAlign: "center",
                 paddingTop: 12,

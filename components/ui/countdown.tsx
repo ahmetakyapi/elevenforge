@@ -38,10 +38,10 @@ export function Countdown({
   const urgent = total < 3600;
   const color = urgent ? "var(--warn)" : "var(--text)";
   const parts = [
-    { v: pad(d), l: "GÜN" },
-    { v: pad(h), l: "SAAT" },
-    { v: pad(m), l: "DK" },
-    { v: pad(s), l: "SN" },
+    { v: pad(d), l: "Gün" },
+    { v: pad(h), l: "Saat" },
+    { v: pad(m), l: "Dk" },
+    { v: pad(s), l: "Sn" },
   ];
   return (
     <div
@@ -75,7 +75,7 @@ export function Countdown({
               {p.v}
             </span>
             {labels && (
-              <span className="t-label" style={{ fontSize: 10 }}>
+              <span className="t-label">
                 {p.l}
               </span>
             )}

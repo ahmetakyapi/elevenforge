@@ -15,10 +15,10 @@ const RESULT_TINT: Record<"W" | "D" | "L", string> = {
 };
 
 const STATUS_BADGE: Record<string, { label: string; tint: string }> = {
-  injured: { label: "SAKAT", tint: "var(--danger)" },
-  suspended: { label: "CEZALI", tint: "var(--warn)" },
-  listed: { label: "SATIŞTA", tint: "var(--emerald)" },
-  training: { label: "ANTRENMAN", tint: "var(--cyan)" },
+  injured: { label: "Sakat", tint: "var(--danger)" },
+  suspended: { label: "Cezalı", tint: "var(--warn)" },
+  listed: { label: "Satışta", tint: "var(--emerald)" },
+  training: { label: "Antrenman", tint: "var(--cyan)" },
 };
 
 export default async function ClubPage({
@@ -90,13 +90,12 @@ export default async function ClubPage({
                 flexWrap: "wrap",
               }}
             >
-              <span className="t-label" style={{ fontSize: 10.5 }}>
-                {club.division === 1 ? "SÜPER LİG" : "1. LİG"}
+              <span className="t-label">
+                {club.division === 1 ? "Süper Lig" : "1. Lig"}
               </span>
               <span
-                className="t-mono"
                 style={{
-                  fontSize: 10,
+                  fontSize: 12.5,
                   padding: "2px 8px",
                   borderRadius: 999,
                   display: "inline-flex",
@@ -118,9 +117,8 @@ export default async function ClubPage({
               </span>
               {club.isMine && (
                 <span
-                  className="t-mono"
                   style={{
-                    fontSize: 10,
+                    fontSize: 12.5,
                     padding: "2px 8px",
                     borderRadius: 999,
                     background: "color-mix(in oklab, var(--accent) 28%, transparent)",
@@ -128,7 +126,7 @@ export default async function ClubPage({
                     fontWeight: 700,
                   }}
                 >
-                  SENİN KULÜBÜN
+                  Senin Kulübün
                 </span>
               )}
             </div>
@@ -173,8 +171,8 @@ export default async function ClubPage({
                 /{club.divisionSize}
               </span>
             </div>
-            <span className="t-label" style={{ fontSize: 10 }}>
-              SIRA · {club.points} PUAN
+            <span className="t-label">
+              Sıra · {club.points} Puan
             </span>
           </div>
         </div>
@@ -191,17 +189,17 @@ export default async function ClubPage({
       >
         {(
           [
-            ["OYNANAN", String(club.played), "var(--text)"],
+            ["Oynanan", String(club.played), "var(--text)"],
             ["G / B / M", `${club.wins}/${club.draws}/${club.losses}`, "var(--text)"],
             [
-              "AVERAJ",
+              "Averaj",
               `${gd > 0 ? "+" : ""}${gd}`,
               gd > 0 ? "var(--emerald)" : gd < 0 ? "var(--danger)" : "var(--muted)",
             ],
-            ["ATILAN / YENEN", `${club.goalsFor}/${club.goalsAgainst}`, "var(--text)"],
-            ["KADRO DEĞERİ", fmtEUR(club.squadValueEur), "var(--emerald)"],
-            ["ORT. OVERALL", club.avgOverall.toFixed(1), "var(--gold)"],
-            ["ORT. YAŞ", club.avgAge.toFixed(1), "var(--text)"],
+            ["Atılan / Yenen", `${club.goalsFor}/${club.goalsAgainst}`, "var(--text)"],
+            ["Kadro Değeri", fmtEUR(club.squadValueEur), "var(--emerald)"],
+            ["Ort. Overall", club.avgOverall.toFixed(1), "var(--gold)"],
+            ["Ort. Yaş", club.avgAge.toFixed(1), "var(--text)"],
           ] as Array<[string, string, string]>
         ).map(([label, value, tint]) => (
           <div
@@ -213,7 +211,7 @@ export default async function ClubPage({
               padding: "12px 14px",
             }}
           >
-            <span className="t-label" style={{ fontSize: 9.5 }}>
+            <span className="t-label">
               {label}
             </span>
             <div
@@ -254,10 +252,10 @@ export default async function ClubPage({
               borderBottom: "1px solid var(--border)",
             }}
           >
-            <span className="t-label" style={{ fontSize: 11 }}>
-              KADRO · {club.squad.length} OYUNCU
+            <span className="t-label">
+              Kadro · {club.squad.length} Oyuncu
             </span>
-            <span className="t-caption" style={{ fontSize: 11 }}>
+            <span className="t-caption" style={{ fontSize: 12 }}>
               Bir oyuncuya tıkla → teklif yap
             </span>
           </div>
@@ -306,7 +304,7 @@ export default async function ClubPage({
                     </div>
                     <span
                       className="t-mono"
-                      style={{ fontSize: 10, color: "var(--muted)" }}
+                      style={{ fontSize: 12, color: "var(--muted)" }}
                     >
                       {p.role} · {p.nat}
                       {p.num !== null && ` · #${p.num}`}
@@ -315,10 +313,9 @@ export default async function ClubPage({
                   <div>
                     {badge && (
                       <span
-                        className="t-mono"
                         style={{
-                          fontSize: 9,
-                          fontWeight: 700,
+                          fontSize: 12,
+                          fontWeight: 600,
                           padding: "2px 7px",
                           borderRadius: 5,
                           background: `color-mix(in oklab, ${badge.tint} 16%, transparent)`,
@@ -367,8 +364,8 @@ export default async function ClubPage({
                 padding: 16,
               }}
             >
-              <span className="t-label" style={{ fontSize: 10.5 }}>
-                SIRADAKİ MAÇ
+              <span className="t-label">
+                Sıradaki Maç
               </span>
               <div
                 style={{
@@ -391,8 +388,8 @@ export default async function ClubPage({
                   <div style={{ fontSize: 13.5, fontWeight: 600 }}>
                     {club.next.opponentName}
                   </div>
-                  <span className="t-mono" style={{ fontSize: 10, color: "var(--muted)" }}>
-                    {club.next.isHome ? "EV SAHİBİ" : "DEPLASMAN"} · HAFTA{" "}
+                  <span style={{ fontSize: 12.5, color: "var(--muted)" }}>
+                    {club.next.isHome ? "Ev Sahibi" : "Deplasman"} · Hafta{" "}
                     {club.next.week}
                   </span>
                 </div>
@@ -408,8 +405,8 @@ export default async function ClubPage({
               padding: 16,
             }}
           >
-            <span className="t-label" style={{ fontSize: 10.5 }}>
-              SON MAÇLAR
+            <span className="t-label">
+              Son Maçlar
             </span>
             {club.recent.length === 0 ? (
               <p className="t-caption" style={{ fontSize: 12, marginTop: 10 }}>
@@ -439,7 +436,7 @@ export default async function ClubPage({
                         display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: 800,
                         color: f.result ? RESULT_TINT[f.result] : "var(--muted)",
                         background: f.result

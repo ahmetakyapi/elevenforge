@@ -60,14 +60,13 @@ export function StreakBanner({ streak }: { streak: StreakInfo }) {
         color={streak.rewardAvailable ? "var(--gold)" : "var(--muted)"}
       />
       <span
-        className="t-mono"
         style={{
-          fontSize: 12,
+          fontSize: 12.5,
           fontWeight: 700,
           color: streak.rewardAvailable ? "var(--gold)" : "var(--text-2)",
         }}
       >
-        {streak.streak}. GÜN
+        {streak.streak}. Gün
       </span>
       {streak.rewardAvailable && (
         <button
@@ -77,7 +76,7 @@ export function StreakBanner({ streak }: { streak: StreakInfo }) {
           onClick={claim}
           style={{
             padding: "3px 10px",
-            fontSize: 11,
+            fontSize: 12,
             borderRadius: 999,
             background: "var(--gold)",
             // Paired with --gold, which inverts between themes; see the note

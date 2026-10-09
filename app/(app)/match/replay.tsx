@@ -53,19 +53,19 @@ type EventStyle = {
 };
 
 const STYLE: Record<MatchEvent["type"], EventStyle> = {
-  start: { label: "BAŞLANGIÇ", color: "var(--muted)", emphasis: false },
+  start: { label: "Başlangıç", color: "var(--muted)", emphasis: false },
   goal: { label: "GOL", color: "var(--emerald)", emphasis: true },
-  chance: { label: "POZİSYON", color: "var(--cyan)", emphasis: false },
-  save: { label: "KURTARIŞ", color: "var(--cyan)", emphasis: true },
-  miss: { label: "KAÇAN FIRSAT", color: "var(--muted-2)", emphasis: false },
-  corner: { label: "KORNER", color: "var(--muted)", emphasis: false },
-  duel: { label: "MÜCADELE", color: "var(--muted)", emphasis: false },
+  chance: { label: "Pozisyon", color: "var(--cyan)", emphasis: false },
+  save: { label: "Kurtarış", color: "var(--cyan)", emphasis: true },
+  miss: { label: "Kaçan Fırsat", color: "var(--muted-2)", emphasis: false },
+  corner: { label: "Korner", color: "var(--muted)", emphasis: false },
+  duel: { label: "Mücadele", color: "var(--muted)", emphasis: false },
   card: { label: "KART", color: "var(--warn)", emphasis: true },
-  sub: { label: "DEĞİŞİKLİK", color: "var(--indigo)", emphasis: false },
-  injury: { label: "SAKATLIK", color: "var(--danger)", emphasis: true },
+  sub: { label: "Değişiklik", color: "var(--indigo)", emphasis: false },
+  injury: { label: "Sakatlık", color: "var(--danger)", emphasis: true },
   analysis: { label: "YORUM", color: "var(--gold)", emphasis: false },
-  half: { label: "DEVRE ARASI", color: "var(--text-2)", emphasis: true },
-  end: { label: "MAÇ SONU", color: "var(--text-2)", emphasis: true },
+  half: { label: "Devre Arası", color: "var(--text-2)", emphasis: true },
+  end: { label: "Maç Sonu", color: "var(--text-2)", emphasis: true },
 };
 
 export function MatchReplay({
@@ -180,7 +180,7 @@ export function MatchReplay({
             border: "1px solid var(--border)",
           }}
         >
-          <span className="t-mono" style={{ fontSize: 11, color: "var(--muted)" }}>
+          <span className="t-mono" style={{ fontSize: 12, color: "var(--muted)" }}>
             {homeShort}
           </span>
           <span
@@ -196,7 +196,7 @@ export function MatchReplay({
           >
             {scoreHome} – {scoreAway}
           </span>
-          <span className="t-mono" style={{ fontSize: 11, color: "var(--muted)" }}>
+          <span className="t-mono" style={{ fontSize: 12, color: "var(--muted)" }}>
             {awayShort}
           </span>
         </div>
@@ -417,14 +417,13 @@ function ReplayLine({
         >
           <span
             className="t-label"
-            style={{ color: s.color, fontSize: 9.5, letterSpacing: "0.12em" }}
+            style={{ color: s.color }}
           >
             {s.label}
           </span>
           {club && (
             <span
-              className="t-mono"
-              style={{ fontSize: 9.5, color: "var(--muted)" }}
+              style={{ fontSize: 12.5, color: "var(--muted)" }}
             >
               {club}
             </span>

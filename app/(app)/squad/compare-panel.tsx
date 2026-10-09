@@ -63,7 +63,7 @@ export function ComparePanel({
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <span className="t-label" style={{ color: "var(--indigo)" }}>
-            KARŞILAŞTIRMA
+            Karşılaştırma
           </span>
           <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
             <X size={14} strokeWidth={1.6} />
@@ -138,7 +138,7 @@ function Row({
       >
         {fmt(a)}
       </div>
-      <div className="t-caption" style={{ textAlign: "center", fontSize: 11 }}>
+      <div className="t-caption" style={{ textAlign: "center", fontSize: 12 }}>
         {label}
       </div>
       <div

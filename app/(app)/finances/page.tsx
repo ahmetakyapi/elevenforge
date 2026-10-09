@@ -59,8 +59,8 @@ export default async function FinancesPage() {
           <Wallet size={22} strokeWidth={1.6} />
         </div>
         <div>
-          <span className="t-label" style={{ color: "var(--emerald)" }}>
-            FİNANS · SON 30 GÜN
+          <span className="t-eyebrow" style={{ color: "var(--emerald)" }}>
+            Finans · Son 30 Gün
           </span>
           <div className="t-h1" style={{ marginTop: 4 }}>
             {ctx.club.name}
@@ -79,16 +79,16 @@ export default async function FinancesPage() {
       >
         {(
           [
-            ["KASA", fmtEUR(d.balanceEur), "var(--text)", "Güncel bakiye"],
-            ["GELİR", fmtEUR(d.incomeEur), "var(--emerald)", "Son 30 gün"],
+            ["Kasa", fmtEUR(d.balanceEur), "var(--text)", "Güncel bakiye"],
+            ["Gelir", fmtEUR(d.incomeEur), "var(--emerald)", "Son 30 gün"],
             [
-              "GİDER",
+              "Gider",
               fmtEUR(Math.abs(d.expenseEur)),
               "var(--danger)",
               "Son 30 gün",
             ],
             [
-              "NET",
+              "Net",
               `${d.netEur >= 0 ? "+" : "−"}${fmtEUR(Math.abs(d.netEur))}`,
               d.netEur >= 0 ? "var(--emerald)" : "var(--danger)",
               d.netEur >= 0 ? "Kâr ediyorsun" : "Zarar ediyorsun",
@@ -104,7 +104,7 @@ export default async function FinancesPage() {
               padding: "16px 18px",
             }}
           >
-            <span className="t-label" style={{ fontSize: 10 }}>
+            <span className="t-label">
               {label}
             </span>
             <div
@@ -119,7 +119,7 @@ export default async function FinancesPage() {
             >
               {value}
             </div>
-            <span className="t-caption" style={{ fontSize: 11 }}>
+            <span className="t-caption" style={{ fontSize: 12 }}>
               {hint}
             </span>
           </div>
@@ -152,14 +152,14 @@ export default async function FinancesPage() {
             data-finance-cols
           >
             <Column
-              title="GELİR KALEMLERİ"
+              title="Gelir Kalemleri"
               icon={<ArrowUpRight size={14} strokeWidth={2} />}
               tint="var(--emerald)"
               lines={d.income}
               scale={scale}
             />
             <Column
-              title="GİDER KALEMLERİ"
+              title="Gider Kalemleri"
               icon={<ArrowDownRight size={14} strokeWidth={2} />}
               tint="var(--danger)"
               lines={d.expense}
@@ -181,8 +181,8 @@ export default async function FinancesPage() {
                 borderBottom: "1px solid var(--border)",
               }}
             >
-              <span className="t-label" style={{ fontSize: 11 }}>
-                SON HAREKETLER
+              <span className="t-label">
+                Son Hareketler
               </span>
             </div>
             {d.recent.map((e, i) => (
@@ -220,7 +220,7 @@ export default async function FinancesPage() {
                     <span
                       className="t-caption"
                       style={{
-                        fontSize: 11,
+                        fontSize: 12,
                         display: "block",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
@@ -304,7 +304,7 @@ function Column({
         }}
       >
         {icon}
-        <span className="t-label" style={{ fontSize: 10.5, color: tint }}>
+        <span className="t-label" style={{ color: tint }}>
           {title}
         </span>
       </div>
@@ -335,7 +335,7 @@ function Column({
                     <span
                       className="t-mono"
                       style={{
-                        fontSize: 10,
+                        fontSize: 12,
                         color: "var(--muted)",
                         marginLeft: 6,
                       }}

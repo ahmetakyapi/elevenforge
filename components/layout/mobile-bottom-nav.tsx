@@ -63,7 +63,7 @@ export function MobileBottomNav() {
               color: active ? "var(--accent)" : "var(--muted)",
               fontFamily: "var(--font-manrope)",
               fontWeight: 600,
-              fontSize: 10,
+              fontSize: 12,
               transition: "color var(--t) var(--ease)",
             }}
           >

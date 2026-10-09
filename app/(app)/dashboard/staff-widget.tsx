@@ -68,8 +68,8 @@ export function StaffWidget({ staffJson }: { staffJson: string | null }) {
         border: "1px solid var(--border)",
       }}
     >
-      <span className="t-label" style={{ fontSize: 11 }}>
-        TEKNİK KADRO
+      <span className="t-label">
+        Teknik Kadro
       </span>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginTop: 10 }}>
         {(["headCoach", "physio", "scout"] as const).map((role) => {
@@ -90,19 +90,19 @@ export function StaffWidget({ staffJson }: { staffJson: string | null }) {
             >
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <meta.Icon size={14} strokeWidth={1.6} style={{ color: meta.tint }} />
-                <span style={{ fontSize: 11, color: "var(--muted)" }}>{meta.label}</span>
+                <span style={{ fontSize: 12, color: "var(--muted)" }}>{meta.label}</span>
               </div>
               {member ? (
                 <>
                   <div style={{ fontWeight: 600, fontSize: 13 }}>{member.name}</div>
-                  <div style={{ fontSize: 11, color: "var(--muted)" }}>
+                  <div style={{ fontSize: 12, color: "var(--muted)" }}>
                     T{member.tier} · sezonluk
                   </div>
                   <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
                     <button
                       type="button"
                       className="btn btn-ghost btn-sm"
-                      style={{ flex: 1, padding: "4px 8px", fontSize: 11 }}
+                      style={{ flex: 1, padding: "4px 8px", fontSize: 12 }}
                       onClick={() => setOpenRole(role)}
                       disabled={pending}
                     >
@@ -111,7 +111,7 @@ export function StaffWidget({ staffJson }: { staffJson: string | null }) {
                     <button
                       type="button"
                       className="btn btn-ghost btn-sm"
-                      style={{ padding: "4px 8px", fontSize: 11 }}
+                      style={{ padding: "4px 8px", fontSize: 12 }}
                       onClick={() => fire(role)}
                       disabled={pending}
                     >
@@ -173,10 +173,10 @@ export function StaffWidget({ staffJson }: { staffJson: string | null }) {
             }}
           >
             <span
-              className="t-label"
+              className="t-eyebrow"
               style={{ color: ROLE_META[openRole].tint }}
             >
-              {ROLE_META[openRole].label.toUpperCase()} ADAYLAR
+              {ROLE_META[openRole].label} Adayları
             </span>
             <div className="t-h2" style={{ marginTop: 4 }}>
               İşe alınacak kişiyi seç
@@ -206,11 +206,11 @@ export function StaffWidget({ staffJson }: { staffJson: string | null }) {
                 >
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <span style={{ fontWeight: 600 }}>{s.name}</span>
-                    <span className="t-mono" style={{ fontSize: 10 }}>
+                    <span className="t-mono" style={{ fontSize: 12 }}>
                       T{s.tier}
                     </span>
                   </div>
-                  <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+                  <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
                     {s.bio}
                   </div>
                   <div style={{ fontSize: 12, marginTop: 6 }}>

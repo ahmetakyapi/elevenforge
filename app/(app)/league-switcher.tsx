@@ -41,7 +41,7 @@ export function LeagueSwitcher({
   if (owned.length <= 1) {
     // Single-league user — don't render the dropdown chrome at all.
     return (
-      <span className="t-mono" style={{ fontSize: 12, color: "var(--muted)" }}>
+      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-2)" }}>
         {current.leagueName}
       </span>
     );
@@ -56,7 +56,7 @@ export function LeagueSwitcher({
         disabled={pending}
         style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
       >
-        <span className="t-mono" style={{ fontSize: 12 }}>
+        <span style={{ fontSize: 13, fontWeight: 600 }}>
           {current.leagueName}
         </span>
         <ChevronDown size={12} strokeWidth={1.6} />
@@ -114,22 +114,22 @@ export function LeagueSwitcher({
                   <span style={{ fontSize: 13, fontWeight: 600 }}>
                     {o.leagueName}
                   </span>
-                  <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                  <span style={{ fontSize: 12, color: "var(--muted)" }}>
                     {o.clubName}
                   </span>
                 </div>
                 {isCurrent && (
                   <span
-                    className="t-mono"
                     style={{
-                      fontSize: 10,
+                      fontSize: 12,
+                      fontWeight: 600,
                       padding: "2px 6px",
                       borderRadius: 4,
                       background: "color-mix(in oklab, var(--accent) 22%, transparent)",
                       color: "var(--accent)",
                     }}
                   >
-                    AKTİF
+                    Aktif
                   </span>
                 )}
               </button>

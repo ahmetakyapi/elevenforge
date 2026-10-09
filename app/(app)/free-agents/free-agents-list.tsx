@@ -81,7 +81,7 @@ export function FreeAgentsList({ agents }: { agents: FreeAgentView[] }) {
             <span
               className="t-mono"
               style={{
-                fontSize: 11,
+                fontSize: 12,
                 padding: "2px 8px",
                 borderRadius: 4,
                 background: `color-mix(in oklab, ${POS_TINT[a.position]} 22%, transparent)`,
@@ -93,7 +93,7 @@ export function FreeAgentsList({ agents }: { agents: FreeAgentView[] }) {
             </span>
             <div>
               <div style={{ fontWeight: 600 }}>{a.name}</div>
-              <div style={{ fontSize: 11, color: "var(--muted)" }}>
+              <div style={{ fontSize: 12, color: "var(--muted)" }}>
                 {a.nationality} · {a.age} yaş
               </div>
             </div>
@@ -110,7 +110,7 @@ export function FreeAgentsList({ agents }: { agents: FreeAgentView[] }) {
             </span>
             <span
               className="t-mono"
-              style={{ fontSize: 11, color: "var(--muted)", textAlign: "right" }}
+              style={{ fontSize: 12, color: "var(--muted)", textAlign: "right" }}
             >
               POT {a.potential}
             </span>

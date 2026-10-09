@@ -92,12 +92,12 @@ export function PressWidget() {
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <Mic size={16} strokeWidth={1.6} style={{ color: "var(--cyan)" }} />
         <span className="t-label" style={{ color: "var(--cyan)" }}>
-          BASIN TOPLANTISI
+          Basın Toplantısı
         </span>
         {answered && (
           <span
             style={{
-              fontSize: 10,
+              fontSize: 12,
               padding: "1px 6px",
               borderRadius: 3,
               background: "color-mix(in oklab, var(--emerald) 28%, transparent)",
@@ -106,7 +106,7 @@ export function PressWidget() {
               marginLeft: "auto",
             }}
           >
-            CEVAPLANDI
+            Cevaplandı
           </span>
         )}
       </div>
@@ -124,7 +124,7 @@ export function PressWidget() {
           }}
         >
           <div style={{ fontWeight: 600 }}>&ldquo;{chosenAnswer.text}&rdquo;</div>
-          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+          <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
             {chosenAnswer.description}
           </div>
         </div>

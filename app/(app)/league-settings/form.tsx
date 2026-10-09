@@ -63,7 +63,7 @@ export function LeagueSettingsForm({
         gap: 22,
       }}
     >
-      <Field label="Maç saati" desc="Her gün fikstürlerin oynanacağı saat (HH:MM).">
+      <Field label="Maç Saati" desc="Her gün fikstürlerin oynanacağı saat (HH:MM).">
         <input
           className="input"
           type="time"

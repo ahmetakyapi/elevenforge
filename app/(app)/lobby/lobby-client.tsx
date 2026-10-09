@@ -104,8 +104,8 @@ function LobbyEntry({
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 24px" }}>
-      <span className="t-label" style={{ color: "var(--indigo)" }}>
-        LİG
+      <span className="t-eyebrow" style={{ color: "var(--indigo)" }}>
+        Lig
       </span>
       <div className="t-h1" style={{ marginTop: 8 }}>
         Ligine başla.
@@ -152,7 +152,7 @@ function LobbyEntry({
               gap: 6,
             }}
           >
-            <span className="chip" style={{ fontSize: 11 }}>
+            <span className="chip" style={{ fontSize: 12 }}>
               3 dk
             </span>
           </div>
@@ -179,7 +179,7 @@ function LobbyEntry({
           gap: 12,
         }}
       >
-        <span className="t-label">LİGLERİN</span>
+        <span className="t-label">Liglerin</span>
         {leagues.length === 0 && (
           <GlassCard pad={18} hover={false}>
             <div style={{ color: "var(--muted)", fontSize: 14 }}>
@@ -361,7 +361,7 @@ function CreateWizard({
       <GlassCard pad={32} hover={false}>
         {step === 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            <Field label="Lig adı">
+            <Field label="Lig Adı">
               <input
                 className="input"
                 value={name}
@@ -369,7 +369,7 @@ function CreateWizard({
               />
             </Field>
             <div>
-              <span className="t-label">Lig rengi</span>
+              <span className="t-label">Lig Rengi</span>
               <div
                 style={{
                   display: "flex",
@@ -413,7 +413,7 @@ function CreateWizard({
         {step === 1 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <div>
-              <span className="t-label">Sezon uzunluğu</span>
+              <span className="t-label">Sezon Uzunluğu</span>
               <div
                 style={{
                   marginTop: 10,
@@ -430,7 +430,7 @@ function CreateWizard({
                 + paralel 4 round&apos;luk kupa.
               </div>
             </div>
-            <Field label="Maç saati (her gün)">
+            <Field label="Maç Saati (Her Gün)">
               <input
                 className="input"
                 type="time"
@@ -454,7 +454,7 @@ function CreateWizard({
               </span>
             </Field>
             <div>
-              <span className="t-label">Manuel oynatma butonu</span>
+              <span className="t-label">Manuel Oynatma Butonu</span>
               <span
                 style={{
                   fontSize: 12,
@@ -819,7 +819,7 @@ function JoinFlow({
       {byDivision.map(({ division, list }) => (
         <section key={division} style={{ marginTop: 26 }}>
           <span className="t-label">
-            {division === 1 ? "SÜPER LİG" : "1. LİG"} · {list.length} kulüp
+            {division === 1 ? "Süper Lig" : "1. Lig"} · {list.length} Kulüp
           </span>
           <div
             style={{
@@ -861,7 +861,7 @@ function JoinFlow({
                     />
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ fontWeight: 700, fontSize: 14 }}>{c.name}</div>
-                      <div className="t-caption" style={{ fontSize: 11 }}>
+                      <div className="t-caption" style={{ fontSize: 12 }}>
                         {c.city}
                       </div>
                     </div>
@@ -890,7 +890,7 @@ function JoinFlow({
                       display: "flex",
                       gap: 12,
                       marginTop: 10,
-                      fontSize: 11,
+                      fontSize: 12,
                       color: "var(--muted)",
                       flexWrap: "wrap",
                     }}
@@ -901,7 +901,7 @@ function JoinFlow({
                   </div>
 
                   {c.starName && (
-                    <div style={{ fontSize: 11.5, marginTop: 6 }}>
+                    <div style={{ fontSize: 12, marginTop: 6 }}>
                       <span style={{ color: "var(--muted)" }}>Yıldızı: </span>
                       <span style={{ fontWeight: 600 }}>{c.starName}</span>{" "}
                       <span className="t-mono" style={{ color: "var(--gold)" }}>
@@ -911,15 +911,14 @@ function JoinFlow({
                   )}
 
                   <div
-                    className="t-mono"
                     style={{
-                      fontSize: 10,
+                      fontSize: 12.5,
+                      fontWeight: 600,
                       marginTop: 8,
-                      color: active ? "var(--accent)" : "var(--muted-2)",
-                      letterSpacing: "0.05em",
+                      color: active ? "var(--accent)" : "var(--muted)",
                     }}
                   >
-                    {c.expectation.toUpperCase()}
+                    {c.expectation}
                   </div>
                 </button>
               );

@@ -124,8 +124,8 @@ export function TweaksPanel() {
             }}
           >
             <div>
-              <span className="t-label" style={{ color: "var(--accent)" }}>
-                TWEAKS
+              <span className="t-eyebrow" style={{ color: "var(--accent)" }}>
+                Tweaks
               </span>
               <div className="t-h3" style={{ marginTop: 2 }}>
                 Görünüm
@@ -141,7 +141,7 @@ export function TweaksPanel() {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div>
-              <span className="t-label">AKSAN RENGİ</span>
+              <span className="t-label">Aksan Rengi</span>
               <div
                 style={{
                   display: "grid",
@@ -174,7 +174,7 @@ export function TweaksPanel() {
               </div>
             </div>
             <div>
-              <span className="t-label">TEMA</span>
+              <span className="t-label">Tema</span>
               <div
                 style={{
                   display: "grid",

@@ -90,7 +90,7 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
     return (
       <section className="space-y-3" style={PANEL_CONTAINER}>
         <SectionHead label="Pazarlık" title="Transfer Teklifleri" />
-        <p className="rounded-xl border border-white/8 bg-white/[0.02] px-4 py-6 text-center text-xs text-white/40">
+        <p className="rounded-xl border border-white/8 bg-white/[0.02] px-4 py-6 text-center text-xs text-muted">
           Henüz teklif yok. Listede olmayan bir oyuncu için kulübüne doğrudan
           teklif götürebilirsin — oyuncu sayfasındaki <strong>Teklif Yap</strong>{" "}
           düğmesini kullan.
@@ -105,7 +105,7 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
         label="Pazarlık"
         title="Transfer Teklifleri"
         right={
-          <span className="font-mono text-[11px] text-white/40">
+          <span className="font-mono text-[12px] text-muted">
             {incoming.length} gelen · {outgoing.length} giden
           </span>
         }
@@ -113,7 +113,7 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
 
       {incoming.length > 0 && (
         <div className="space-y-2">
-          <h4 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/45">
+          <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-text-2">
             <ArrowDownLeft size={12} /> Sana Gelen Teklifler
           </h4>
           <AnimatePresence initial={false}>
@@ -133,7 +133,7 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
                     {o.playerName}
                   </span>
                   <OvrChip ovr={o.playerOvr} size="sm" />
-                  <span className="text-[11px] text-white/45">
+                  <span className="text-[12px] text-muted">
                     değeri {eur(o.playerValueEur)}
                   </span>
                 </div>
@@ -199,7 +199,7 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
                       onChange={(e) => setCounterValue(e.target.value)}
                       className="w-24 rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 font-mono text-xs text-white/90 outline-none focus:border-indigo-400/40"
                     />
-                    <span className="text-[11px] text-white/40">milyon €</span>
+                    <span className="text-[12px] text-muted">milyon €</span>
                     <button
                       type="button"
                       disabled={pending}
@@ -228,7 +228,7 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
 
       {outgoing.length > 0 && (
         <div className="space-y-2">
-          <h4 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/45">
+          <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-text-2">
             <ArrowUpRight size={12} /> Gönderdiğin Teklifler
           </h4>
           {outgoing.map((o) => (
@@ -242,11 +242,11 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
                   {o.playerName}
                 </span>
                 <OvrChip ovr={o.playerOvr} size="sm" />
-                <span className="text-[11px] text-white/45">
+                <span className="text-[12px] text-muted">
                   {o.otherClubName}
                 </span>
                 <span
-                  className="ml-auto rounded-full px-2 py-0.5 font-mono text-[10px]"
+                  className="ml-auto rounded-full px-2 py-0.5 text-[12px] font-semibold"
                   style={{
                     background: `color-mix(in oklab, ${STATUS_LABEL[o.status]?.color ?? "var(--muted)"} 14%, transparent)`,
                     color: STATUS_LABEL[o.status]?.color ?? "var(--muted)",
@@ -267,7 +267,7 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
                 )}
               </p>
               {o.message && (
-                <p className="mt-1 text-[11px] italic text-white/40">
+                <p className="mt-1 text-[12px] italic text-muted">
                   “{o.message}”
                 </p>
               )}
@@ -308,22 +308,22 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
 
       {settled.length > 0 && (
         <details className="group">
-          <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-wider text-white/35 transition hover:text-white/55">
+          <summary className="cursor-pointer text-[13px] font-semibold text-text-2 transition hover:text-text">
             Geçmiş ({settled.length})
           </summary>
           <ul className="mt-2 space-y-1">
             {settled.slice(0, 12).map((o) => (
               <li
                 key={o.id}
-                className="flex items-center gap-2 rounded-lg bg-white/[0.02] px-2.5 py-1.5 text-[11px]"
+                className="flex items-center gap-2 rounded-lg bg-white/[0.02] px-2.5 py-1.5 text-[12px]"
               >
                 <span className="text-white/60">{o.playerName}</span>
-                <span className="text-white/30">{o.otherClubName}</span>
-                <span className="ml-auto font-mono text-white/40">
+                <span className="text-muted">{o.otherClubName}</span>
+                <span className="ml-auto font-mono text-muted">
                   {eur(o.amountEur)}
                 </span>
                 <span
-                  className="rounded-full px-1.5 py-0.5 font-mono text-[9px]"
+                  className="rounded-full px-1.5 py-0.5 text-[11.5px] font-semibold"
                   style={{
                     background: `color-mix(in oklab, ${STATUS_LABEL[o.status]?.color ?? "var(--muted)"} 14%, transparent)`,
                     color: STATUS_LABEL[o.status]?.color ?? "var(--muted)",

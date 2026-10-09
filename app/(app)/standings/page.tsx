@@ -37,8 +37,8 @@ export default async function StandingsPage() {
           <ListOrdered size={22} strokeWidth={1.6} />
         </div>
         <div>
-          <span className="t-label" style={{ color: "var(--accent)" }}>
-            PUAN DURUMU · {d.division.name.toUpperCase()}
+          <span className="t-eyebrow" style={{ color: "var(--accent)" }}>
+            Puan Durumu · {d.division.name}
           </span>
           <div className="t-h1" style={{ marginTop: 4 }}>
             {d.leagueInfo.name}
@@ -70,11 +70,9 @@ export default async function StandingsPage() {
             padding: "12px 14px",
             background: "color-mix(in oklab, var(--panel-2) 60%, transparent)",
             borderBottom: "1px solid var(--border)",
-            fontSize: 11,
+            fontSize: 12,
             color: "var(--muted)",
             fontWeight: 600,
-            letterSpacing: "0.04em",
-            textTransform: "uppercase",
           }}
         >
           <span>#</span>
@@ -180,7 +178,7 @@ export default async function StandingsPage() {
                 {row.isMe && (
                   <span
                     style={{
-                      fontSize: 9,
+                      fontSize: 11.5,
                       padding: "1px 6px",
                       borderRadius: 3,
                       background: "color-mix(in oklab, var(--accent) 30%, transparent)",
@@ -188,7 +186,7 @@ export default async function StandingsPage() {
                       fontWeight: 700,
                     }}
                   >
-                    SEN
+                    Sen
                   </span>
                 )}
               </div>
@@ -205,21 +203,21 @@ export default async function StandingsPage() {
               />
               <div style={{ display: "flex", gap: 3, justifyContent: "center" }}>
                 {row.form.length === 0 ? (
-                  <span style={{ fontSize: 10, color: "var(--muted)" }}>—</span>
+                  <span style={{ fontSize: 12, color: "var(--muted)" }}>—</span>
                 ) : (
                   row.form.map((r, j) => (
                     <span
                       key={j}
                       style={{
-                        width: 14,
-                        height: 14,
+                        width: 17,
+                        height: 17,
                         borderRadius: 3,
                         background: `color-mix(in oklab, ${FORM_TINT[r]} 28%, transparent)`,
                         color: FORM_TINT[r],
                         display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: 9,
+                        fontSize: 11,
                         fontWeight: 700,
                       }}
                     >
@@ -244,7 +242,7 @@ export default async function StandingsPage() {
           display: "flex",
           gap: 14,
           flexWrap: "wrap",
-          fontSize: 11,
+          fontSize: 12,
           color: "var(--muted)",
         }}
       >

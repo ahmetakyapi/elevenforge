@@ -109,7 +109,7 @@ export default async function PlayerDetailPage({
             <span
               className="t-mono"
               style={{
-                fontSize: 11,
+                fontSize: 12,
                 padding: "2px 8px",
                 borderRadius: 4,
                 background: `color-mix(in oklab, ${POS_TINT[p.position]} 28%, transparent)`,
@@ -120,13 +120,13 @@ export default async function PlayerDetailPage({
               {p.role}
             </span>
             {p.secondaryRoles.length > 0 && (
-              <span style={{ fontSize: 11, color: "var(--muted)" }}>
+              <span style={{ fontSize: 12, color: "var(--muted)" }}>
                 {p.secondaryRoles.join(" / ")} de oynar
               </span>
             )}
             <span
               style={{
-                fontSize: 11,
+                fontSize: 12,
                 padding: "2px 8px",
                 borderRadius: 4,
                 background: `color-mix(in oklab, ${status.tint} 22%, transparent)`,
@@ -168,7 +168,7 @@ export default async function PlayerDetailPage({
           >
             {p.overall}
           </div>
-          <span style={{ fontSize: 11, color: "var(--muted)" }}>
+          <span style={{ fontSize: 12, color: "var(--muted)" }}>
             Pot. {p.potential}
           </span>
         </div>
@@ -211,7 +211,7 @@ export default async function PlayerDetailPage({
           marginBottom: 18,
         }}
       >
-        <span className="t-label">ATRİBÜLER</span>
+        <span className="t-label">Atribüler</span>
         <div
           style={{
             display: "grid",
@@ -253,7 +253,7 @@ export default async function PlayerDetailPage({
           marginBottom: 18,
         }}
       >
-        <span className="t-label">SON 5 MAÇ REYTİNG</span>
+        <span className="t-label">Son 5 Maç Reytingi</span>
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
           {p.recentForm.length === 0 ? (
             <span style={{ color: "var(--muted)", fontSize: 13 }}>
@@ -297,7 +297,7 @@ export default async function PlayerDetailPage({
           borderRadius: 12,
         }}
       >
-        <span className="t-label">TRANSFER GEÇMİŞİ</span>
+        <span className="t-label">Transfer Geçmişi</span>
         {p.history.length === 0 ? (
           <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 12 }}>
             Henüz transfer olmadı.
@@ -351,7 +351,7 @@ function Stat({
         borderRadius: 10,
       }}
     >
-      <div className="t-caption" style={{ fontSize: 10 }}>
+      <div className="t-caption" style={{ fontSize: 12 }}>
         {label}
       </div>
       <div
@@ -386,10 +386,10 @@ function Bar({
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <span className="t-caption" style={{ fontSize: 10 }}>
+        <span className="t-caption" style={{ fontSize: 12 }}>
           {label}
         </span>
-        <span className="t-mono" style={{ fontSize: 11, color: tint }}>
+        <span className="t-mono" style={{ fontSize: 12, color: tint }}>
           {value}/{max}
         </span>
       </div>
@@ -430,10 +430,10 @@ function AttrBar({ label, value }: { label: string; value: number }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <span className="t-caption" style={{ fontSize: 10 }}>
+        <span className="t-caption" style={{ fontSize: 12 }}>
           {label}
         </span>
-        <span className="t-mono" style={{ fontSize: 11, color: tint, fontWeight: 700 }}>
+        <span className="t-mono" style={{ fontSize: 12, color: tint, fontWeight: 700 }}>
           {value}
         </span>
       </div>
@@ -470,7 +470,7 @@ function KV({ label, value }: { label: string; value: string }) {
         alignItems: "center",
       }}
     >
-      <span className="t-caption" style={{ fontSize: 11 }}>
+      <span className="t-caption" style={{ fontSize: 12 }}>
         {label}
       </span>
       <span className="t-mono" style={{ fontWeight: 600 }}>

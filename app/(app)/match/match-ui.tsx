@@ -156,14 +156,14 @@ export default function MatchUi({ match }: { match: MatchReplayData }) {
                     justifyContent: "center",
                   }}
                 >
-                  <span className="t-eyebrow" style={{ color: "var(--muted)" }}>
-                    HAFTA {match.weekNumber} · SEZON {match.seasonNumber}
+                  <span className="t-label">
+                    Hafta {match.weekNumber} · Sezon {match.seasonNumber}
                   </span>
                   {isDerby && (
-                    <span className="chip chip-gold chip-sm">DERBİ</span>
+                    <span className="chip chip-gold chip-sm">Derbi</span>
                   )}
                 </div>
-                <div className="t-caption" style={{ fontSize: 11 }}>
+                <div className="t-caption" style={{ fontSize: 12 }}>
                   {/* Formatted on the server in the league's timezone. A
                       bare toLocaleDateString here produced one string during
                       SSR (Vercel runs at UTC) and a different one on
@@ -291,7 +291,7 @@ function FeedTab({
   if (!revealed) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <span className="t-label">TARAFTAR ENERJİSİ</span>
+        <span className="t-label">Taraftar Enerjisi</span>
         <div className="t-mono" style={{ fontSize: 32, color: "var(--gold)" }}>
           {Math.round(match.stats.crowdEnergy)}
         </div>
@@ -308,7 +308,7 @@ function FeedTab({
 
   return (
     <div>
-      <span className="t-label">TARAFTAR ENERJİSİ</span>
+      <span className="t-label">Taraftar Enerjisi</span>
       <div
         className="t-mono"
         style={{
@@ -321,7 +321,7 @@ function FeedTab({
         {Math.round(match.stats.crowdEnergy)}
       </div>
       <div style={{ marginTop: 16 }}>
-        <span className="t-label">GOLLER</span>
+        <span className="t-label">Goller</span>
         <div
           style={{
             display: "flex",
@@ -342,7 +342,7 @@ function FeedTab({
             >
               <span
                 className="t-mono"
-                style={{ fontSize: 11, color: "var(--muted)", minWidth: 24 }}
+                style={{ fontSize: 12, color: "var(--muted)", minWidth: 24 }}
               >
                 {c.minute}&apos;
               </span>
@@ -361,7 +361,7 @@ function FeedTab({
           )}
         </div>
         <span className="t-label" style={{ marginTop: 12, display: "block" }}>
-          KARTLAR
+          Kartlar
         </span>
         <div
           style={{
@@ -383,7 +383,7 @@ function FeedTab({
             >
               <span
                 className="t-mono"
-                style={{ fontSize: 11, color: "var(--muted)", minWidth: 24 }}
+                style={{ fontSize: 12, color: "var(--muted)", minWidth: 24 }}
               >
                 {c.minute}&apos;
               </span>
@@ -444,8 +444,8 @@ function StatsPanel({ match }: { match: NonNullable<MatchReplayData> }) {
         >
           {match.stats.xgHome.toFixed(1)}
         </span>
-        <span className="t-label" style={{ fontSize: 9.5 }}>
-          BEKLENEN GOL
+        <span className="t-label">
+          Beklenen Gol
         </span>
         <span
           className="t-mono"
@@ -481,7 +481,7 @@ function StatsPanel({ match }: { match: NonNullable<MatchReplayData> }) {
               {h}
               {pct ? "%" : ""}
             </span>
-            <span className="t-caption" style={{ fontSize: 11 }}>
+            <span className="t-caption" style={{ fontSize: 12 }}>
               {l}
             </span>
             <span

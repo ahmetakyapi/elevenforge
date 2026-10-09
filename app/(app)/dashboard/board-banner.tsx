@@ -46,14 +46,14 @@ export function BoardBanner({
         <Target size={18} strokeWidth={1.6} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div className="t-caption" style={{ fontSize: 11 }}>
-          YÖNETİM HEDEFİ
+        <div className="t-label">
+          Yönetim Hedefi
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
           <span style={{ fontWeight: 600 }}>{goalLabel(goal)}</span>
           <span
             style={{
-              fontSize: 11,
+              fontSize: 12,
               padding: "2px 8px",
               borderRadius: 4,
               background: `color-mix(in oklab, ${tone.fg} 22%, transparent)`,
@@ -65,8 +65,8 @@ export function BoardBanner({
         </div>
       </div>
       <div style={{ width: 140 }}>
-        <div className="t-mono" style={{ fontSize: 11, color: "var(--muted)" }}>
-          GÜVEN {confidence}/100
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-2)" }}>
+          Güven {confidence}/100
         </div>
         <div
           style={{

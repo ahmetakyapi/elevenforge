@@ -10,7 +10,7 @@ const ROUND_LABEL: Record<number, string> = {
   1: "Son 16",
   2: "Çeyrek Final",
   3: "Yarı Final",
-  4: "FİNAL",
+  4: "Final",
 };
 
 export default async function CupPage() {
@@ -44,8 +44,8 @@ export default async function CupPage() {
           <Trophy size={22} strokeWidth={1.6} />
         </div>
         <div>
-          <span className="t-label" style={{ color: "var(--gold)" }}>
-            KUPA
+          <span className="t-eyebrow" style={{ color: "var(--gold)" }}>
+            Kupa
           </span>
           <div className="t-h1" style={{ marginTop: 4 }}>
             Sezon {season} Kupası
@@ -254,7 +254,7 @@ function Side({
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: 700,
             color: "var(--muted-2)",
             background: "color-mix(in oklab, var(--muted) 12%, transparent)",
@@ -269,14 +269,15 @@ function Side({
           <span
             style={{
               marginLeft: 6,
-              fontSize: 9,
+              fontSize: 11.5,
+              fontWeight: 700,
               padding: "1px 5px",
               borderRadius: 3,
               background: "color-mix(in oklab, var(--accent) 30%, transparent)",
               color: "var(--accent)",
             }}
           >
-            SEN
+            Sen
           </span>
         )}
       </span>

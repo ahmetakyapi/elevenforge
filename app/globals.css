@@ -240,9 +240,15 @@ body {
 .t-body { font-weight: 500; font-size: 14px; line-height: 1.5; }
 .t-small { font-weight: 500; font-size: 13px; color: var(--text-2); line-height: 1.45; }
 .t-mono { font-family: var(--font-jetbrains), ui-monospace, Menlo, monospace; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
-.t-label { font-weight: 600; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+/* Small labels (field names, stat captions, card headers) and section
+   eyebrows. These used to be 10–11px, UPPERCASE and tracked 0.12–0.16em in
+   --muted: a texture rather than something you read. Both are now normal-case
+   sans at a size you can actually read, with the secondary text colour; the
+   source strings are written in Turkish Title Case instead of relying on a
+   CSS transform (which also got İ/I wrong). */
+.t-label { font-weight: 600; font-size: 13px; letter-spacing: 0; line-height: 1.35; color: var(--text-2); }
 .t-caption { font-weight: 500; font-size: 12px; color: var(--muted); line-height: 1.4; }
-.t-eyebrow { font-weight: 700; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); }
+.t-eyebrow { font-weight: 600; font-size: 14.5px; letter-spacing: -0.005em; line-height: 1.3; color: var(--text-2); }
 
 /* Gradient text — for premium hero headlines. Falls back to solid on
    browsers that don't support background-clip:text. */
@@ -399,7 +405,7 @@ body {
   color: var(--text);
   box-shadow: inset 0 1px 0 color-mix(in oklab, var(--accent) 30%, transparent);
 }
-.chip-sm { padding: 3px 9px; font-size: 11px; }
+.chip-sm { padding: 3px 9px; font-size: 12px; }
 .chip-lg { padding: 7px 14px; font-size: 13px; }
 /* Status variant */
 .chip-success { background: color-mix(in oklab, var(--emerald) 14%, transparent); border-color: color-mix(in oklab, var(--emerald) 35%, var(--border)); color: var(--emerald); }
@@ -819,6 +825,12 @@ body[data-modal-open="true"] { overflow: hidden; }
   [style*="grid-template-columns: repeat(4"] {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
+  /* The squad board's rows (shirt no. · name · three ratings · OVR) need
+     more than half a phone's width — at two-up the names were cut to a
+     single letter. One line per row instead. */
+  [data-squad-board] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
   [style*="grid-template-columns:repeat(3"],
   [style*="grid-template-columns: repeat(3"],
   [style*="grid-template-columns:1fr 1fr 1fr"],
@@ -997,10 +1009,12 @@ body[data-modal-open="true"] { overflow: hidden; }
     tap away in the player sheet.
   */
   [data-pitch-name] { display: none !important; }
+  /* Position + rating stays legible: 11px, and the "OVR" word drops so
+     "CB · 78" fits between neighbouring discs. */
   [data-pitch-meta] {
-    font-size: 7.5px !important;
-    letter-spacing: 0.04em !important;
+    font-size: 11px !important;
   }
+  [data-pitch-ovr-label] { display: none; }
 
   /* Tactic layout on mobile: re-order so the user sees PITCH → BENCH on the
      same screen (the main interaction pair). Controls move below so the
@@ -1183,7 +1197,7 @@ body[data-modal-open="true"] { overflow: hidden; }
 
   /* TopNav container + right-side cluster: hide heavy desktop-only items
      and shrink everything else so the bar fits <390px viewports. */
-  header [class*="t-mono"] { font-size: 11px !important; }
+  header [class*="t-mono"] { font-size: 12px !important; }
   [data-topnav-container] {
     padding: 10px 12px !important;
     gap: 8px !important;
@@ -1194,7 +1208,7 @@ body[data-modal-open="true"] { overflow: hidden; }
   }
   [data-topnav-right] .v-divider { display: none !important; }
   [data-topnav-right] [data-topnav-balance] {
-    font-size: 11px !important;
+    font-size: 12px !important;
     white-space: nowrap;
   }
   [data-topnav-right] [data-topnav-league] {
@@ -1342,7 +1356,7 @@ body[data-modal-open="true"] { overflow: hidden; }
   }
   [data-dashboard-ribbon] > .chip,
   [data-dashboard-ribbon] [class*="chip"] {
-    font-size: 11px !important;
+    font-size: 12px !important;
     padding: 3px 8px !important;
   }
   /* The invisible flex:1 spacer is useless on mobile (prevents wrap
@@ -1360,7 +1374,7 @@ body[data-modal-open="true"] { overflow: hidden; }
   [data-profile-league-row] > *:nth-child(4),
   [data-profile-league-row] > *:nth-child(5) {
     grid-column: 2 / 4;
-    font-size: 11px !important;
+    font-size: 12px !important;
   }
 }
 
