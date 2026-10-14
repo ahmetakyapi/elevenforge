@@ -54,7 +54,7 @@ export function PitchPatternSide() {
           color: "var(--text-2)",
         }}
       >
-        <div className="t-h2">Futbol yönetimine yeni bir başlangıç.</div>
+        <div className="t-h2">Futbol Yönetimine Yeni Bir Başlangıç</div>
         <div
           className="t-small"
           style={{ marginTop: 8, color: "var(--muted)" }}

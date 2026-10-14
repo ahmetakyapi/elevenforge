@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart2,
-  Bell,
   MoreHorizontal,
   Settings,
   User2,
@@ -14,6 +13,7 @@ import {
   Wallet,
   type LucideIcon,
 } from "lucide-react";
+import { NAV_MAIN, isActivePath } from "./nav-items";
 
 type Item = { href: string; label: string; hint: string; Icon: LucideIcon };
 
@@ -31,13 +31,20 @@ type Item = { href: string; label: string; hint: string; Icon: LucideIcon };
  */
 const ITEMS: Item[] = [
   { href: "/finances", label: "Finans", hint: "Gelir, gider, kasa geçmişi", Icon: Wallet },
-  { href: "/crew", label: "Crew", hint: "Sohbet ve etkinlik akışı", Icon: Bell },
   { href: "/stats", label: "İstatistikler", hint: "Gol krallığı, form", Icon: BarChart2 },
   { href: "/free-agents", label: "Serbest Oyuncular", hint: "Kulüpsüz oyuncular", Icon: UserPlus },
   { href: "/profile", label: "Menajer Profili", hint: "Kupalar ve geçmiş", Icon: User2 },
   { href: "/lobby", label: "Lig Kur / Katıl", hint: "Davet koduyla katıl", Icon: Users2 },
   { href: "/league-settings", label: "Lig Ayarları", hint: "Maç saati, yetkiler", Icon: Settings },
 ];
+
+/** Hints for the bar links that drop into this menu on narrower desktops. */
+const TIER2_HINTS: Record<string, string> = {
+  "/cup": "Tek maçlık eleme turları",
+  "/standings": "Puan durumu",
+  "/newspaper": "Haftanın gazetesi",
+  "/crew": "Lig sohbeti ve akış",
+};
 
 export function NavOverflow() {
   const [open, setOpen] = useState(false);
@@ -70,8 +77,11 @@ export function NavOverflow() {
     };
   }, [open]);
 
-  const activeInMenu = ITEMS.some(
-    (i) => pathname === i.href || pathname.startsWith(`${i.href}/`),
+  const activeInMenu = ITEMS.some((i) => isActivePath(pathname, i.href));
+  // Tier-2 bar links live in this menu only below 1180px, so the button
+  // lights up for them only there (CSS, keyed on this attribute).
+  const activeTier2 = NAV_MAIN.some(
+    (i) => i.tier === 2 && isActivePath(pathname, i.href),
   );
 
   return (
@@ -79,10 +89,12 @@ export function NavOverflow() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="btn btn-ghost btn-sm"
+        className="btn btn-ghost btn-sm nav-overflow-btn"
         aria-haspopup="menu"
         aria-expanded={open}
-        title="Diğer sayfalar"
+        aria-label="Diğer Sayfalar"
+        title="Diğer Sayfalar"
+        data-active-tier2={activeTier2 || undefined}
         style={{
           color: activeInMenu ? "var(--accent)" : undefined,
           background: activeInMenu
@@ -110,13 +122,22 @@ export function NavOverflow() {
             animation: "slide-up 160ms var(--ease) both",
           }}
         >
-          {ITEMS.map(({ href, label, hint, Icon }) => {
-            const active = pathname === href || pathname.startsWith(`${href}/`);
+          {[
+            ...NAV_MAIN.filter((i) => i.tier === 2).map((i) => ({
+              ...i,
+              hint: TIER2_HINTS[i.href] ?? "",
+              compactOnly: true,
+            })),
+            ...ITEMS.map((i) => ({ ...i, compactOnly: false })),
+          ].map(({ href, label, hint, Icon, compactOnly }) => {
+            const active = isActivePath(pathname, href);
             return (
               <Link
                 key={href}
                 href={href}
                 role="menuitem"
+                aria-current={active ? "page" : undefined}
+                className={compactOnly ? "topnav-overflow-tier-2" : undefined}
                 style={{
                   display: "flex",
                   alignItems: "center",

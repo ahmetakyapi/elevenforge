@@ -42,6 +42,7 @@ export function FooterCredit() {
         href="https://github.com/ahmetakyapi"
         target="_blank"
         rel="noopener noreferrer"
+        aria-label="Ahmet Akyapı GitHub profili (yeni sekmede açılır)"
         style={{
           display: "inline-flex",
           alignItems: "center",
@@ -61,7 +62,7 @@ export function FooterCredit() {
         </span>
       </a>
       <span style={{ opacity: 0.5 }}>·</span>
-      <span>made by Ahmet Akyapı</span>
+      <span>Ahmet Akyapı yaptı</span>
     </footer>
   );
 }

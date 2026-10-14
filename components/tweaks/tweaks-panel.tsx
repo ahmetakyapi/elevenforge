@@ -8,10 +8,10 @@ type AccentKey = "indigo" | "emerald" | "cyan" | "gold" | "rose";
 
 const ACCENTS: Record<AccentKey, { main: string; alt: string; label: string }> = {
   indigo: { main: "#6366f1", alt: "#10b981", label: "İndigo" },
-  emerald: { main: "#10b981", alt: "#6366f1", label: "Emerald" },
-  cyan: { main: "#22d3ee", alt: "#6366f1", label: "Cyan" },
-  gold: { main: "#facc15", alt: "#6366f1", label: "Gold" },
-  rose: { main: "#f43f5e", alt: "#6366f1", label: "Rose" },
+  emerald: { main: "#10b981", alt: "#6366f1", label: "Zümrüt" },
+  cyan: { main: "#22d3ee", alt: "#6366f1", label: "Camgöbeği" },
+  gold: { main: "#facc15", alt: "#6366f1", label: "Altın" },
+  rose: { main: "#f43f5e", alt: "#6366f1", label: "Gül" },
 };
 
 const STORAGE_KEY = "ef.tweaks";

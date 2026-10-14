@@ -386,9 +386,9 @@ export default function TacticPage({
         }}
       >
         <div>
-          <div className="t-h1">
+          <h1 className="t-h1">
             İlk 11
-          </div>
+          </h1>
         </div>
         <div
           style={{
@@ -398,7 +398,7 @@ export default function TacticPage({
             flexWrap: "wrap",
           }}
         >
-          <span className="t-caption">Preset:</span>
+          <span className="t-caption">Kayıtlı Taktikler</span>
           {PRESETS.map((l, i) => {
             const slot = presetState[i];
             const filled = !!slot;
@@ -410,7 +410,7 @@ export default function TacticPage({
                 title={
                   filled
                     ? `${slot!.formation} · M${slot!.mentality + 1} P${slot!.pressing + 1} T${slot!.tempo + 1} (yüklemek için tıkla)`
-                    : "Boş slot — kaydet butonu bunu doldurur"
+                    : "Boş yuva — Kaydet butonu bunu doldurur"
                 }
                 onClick={() => {
                   setPreset(i);
@@ -430,7 +430,7 @@ export default function TacticPage({
                       });
                       toast({
                         icon: "↻",
-                        title: `Preset ${l} yüklendi`,
+                        title: `${l} taktiği yüklendi`,
                         body: `${res.preset.formation}`,
                         accent: "var(--cyan)",
                       });
@@ -505,7 +505,7 @@ export default function TacticPage({
                   });
                   toast({
                     icon: "✓",
-                    title: `Preset ${PRESETS[preset]} kaydedildi`,
+                    title: `${PRESETS[preset]} yuvasına kaydedildi`,
                     body: `${formation} · sıradaki maçta uygulanır`,
                     accent: "var(--emerald)",
                   });

@@ -95,9 +95,9 @@ export default function RegisterPage() {
               width: "100%",
             }}
           >
-            <div className="t-h1" style={{ marginBottom: 8 }}>
-              Takımını kur.
-            </div>
+            <h1 className="t-h1" style={{ marginBottom: 8 }}>
+              Takımını Kur
+            </h1>
             <div style={{ color: "var(--muted)", fontSize: 14, marginBottom: 24 }}>
               5 dakikada ligini kur, arkadaşlarını davet et.
             </div>
@@ -193,7 +193,7 @@ export default function RegisterPage() {
                 style={{ justifyContent: "center", textDecoration: "none" }}
               >
                 Zaten hesabın var mı?{" "}
-                <span style={{ color: "var(--indigo)" }}>Giriş yap</span>
+                <span style={{ color: "var(--indigo)" }}>Giriş Yap</span>
               </Link>
             </div>
           </form>
@@ -210,11 +210,12 @@ function LabeledField({
   label: string;
   children: React.ReactNode;
 }) {
+  // A <label>, so each input is named by its caption (see login/page.tsx).
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       <span className="t-label">{label}</span>
       {children}
-    </div>
+    </label>
   );
 }
 
@@ -224,7 +225,7 @@ function PreviewCrest({ name }: { name: string }) {
     .map((s) => s[0])
     .slice(0, 2)
     .join("")
-    .toUpperCase();
+    .toLocaleUpperCase("tr-TR");
   return (
     <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10 }}>
       <div

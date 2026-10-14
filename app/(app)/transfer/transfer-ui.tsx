@@ -13,14 +13,15 @@ import {
   Currency,
   GlassCard,
   OvrChip,
+  PlayerAvatar,
   PosBadge,
   ProgressRing,
   SectionHead,
-  UserAvatar,
 } from "@/components/ui/primitives";
 import { Field, SliderField } from "@/components/ui/form";
 import { useToast } from "@/components/ui/toast";
 import { NAT_FLAGS, NAT_NAMES, fmtEUR, tierColor } from "@/lib/utils";
+import { durationTr } from "@/lib/time-words";
 import type { Position } from "@/types";
 import {
   findScoutCandidates,
@@ -182,9 +183,9 @@ export default function TransferMarketUi({ data }: { data: TransferPageData }) {
                 }}
               >
                 <div>
-                  <div className="t-h1" style={{ fontSize: 28 }}>
+                  <h1 className="t-h1" style={{ fontSize: 28 }}>
                     Transfer Pazarı
-                  </div>
+                  </h1>
                   <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>
                     {sorted.length} oyuncu
                   </div>
@@ -898,10 +899,9 @@ function TransferRow({
     listing.myBidEur === listing.topBidEur;
   const closesLabel = (() => {
     if (!listing.bidsCloseAtMs) return "";
-    const mins = Math.round((listing.bidsCloseAtMs - Date.now()) / 60000);
-    if (mins <= 0) return "kapanıyor";
-    if (mins < 60) return `${mins}dk`;
-    return `${Math.round(mins / 60)}sa`;
+    const secs = (listing.bidsCloseAtMs - Date.now()) / 1000;
+    if (secs <= 0) return "Kapanıyor";
+    return `${durationTr(secs)} kaldı`;
   })();
 
   const onBid = () =>
@@ -994,26 +994,36 @@ function TransferRow({
           cursor: "pointer",
         }}
       >
-        <div style={{ position: "relative", width: 44, height: 44 }}>
-          <UserAvatar name={listing.name} size={44} />
-          <div
-            style={{
-              position: "absolute",
-              bottom: -2,
-              right: -2,
-              border: "2px solid var(--bg)",
-              borderRadius: "50%",
-            }}
-          >
-            <PosBadge pos={listing.position} size={18} />
-          </div>
-        </div>
+        <PlayerAvatar name={listing.name} pos={listing.position} size={44} />
 
         <div
           style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 15, fontWeight: 600 }}>{listing.name}</span>
+            {/* The whole row toggles the details on click, but a div is not
+                reachable by keyboard and cannot be a button (it holds its own
+                buttons). The name is the keyboard handle for the same toggle. */}
+            <button
+              type="button"
+              aria-expanded={open}
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpen(!open);
+              }}
+              style={{
+                fontSize: 15,
+                fontWeight: 600,
+                color: "inherit",
+                background: "none",
+                border: 0,
+                padding: 0,
+                cursor: "pointer",
+                textAlign: "left",
+                minHeight: 0,
+              }}
+            >
+              {listing.name}
+            </button>
             {isAuction && (
               <span
                 title={closesLabel}
@@ -1292,7 +1302,7 @@ function TransferRow({
             v={
               listing.hoursOn < 6
                 ? "Kısa süre"
-                : `${Math.max(0, 30 - listing.hoursOn)}sa`
+                : durationTr(Math.max(0, 30 - listing.hoursOn) * 3600)
             }
             c="var(--warn)"
           />
@@ -1346,9 +1356,9 @@ function SellTab({ userSquad }: { userSquad: SellRowView[] }) {
         }}
       >
         <div>
-          <div className="t-h1" style={{ fontSize: 28 }}>
+          <h1 className="t-h1" style={{ fontSize: 28 }}>
             Listele &amp; Sat
-          </div>
+          </h1>
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -1410,20 +1420,7 @@ function SellRow({ p, idx }: { p: SellRowView; idx: number }) {
           : undefined,
       }}
     >
-      <div style={{ position: "relative", width: 44, height: 44 }}>
-        <UserAvatar name={p.name} size={44} />
-        <div
-          style={{
-            position: "absolute",
-            bottom: -2,
-            right: -2,
-            border: "2px solid var(--bg)",
-            borderRadius: "50%",
-          }}
-        >
-          <PosBadge pos={p.position} size={18} />
-        </div>
-      </div>
+      <PlayerAvatar name={p.name} pos={p.position} size={44} />
       <div style={{ minWidth: 0 }}>
         <div
           style={{

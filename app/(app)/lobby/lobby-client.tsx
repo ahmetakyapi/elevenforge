@@ -59,6 +59,23 @@ export function LobbyClient({ leagues }: { leagues: LobbyLeagueRow[] }) {
   return <LobbyEntry setMode={setMode} leagues={leagues} />;
 }
 
+/** The two choice cards, as buttons (see LobbyEntry). */
+const LOBBY_CHOICE = {
+  padding: 28,
+  minHeight: 220,
+  position: "relative",
+  overflow: "hidden",
+  textAlign: "left",
+  cursor: "pointer",
+  // A button centres its content vertically by default; the two cards are
+  // read top-down like the GlassCards they replaced.
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  justifyContent: "flex-start",
+  width: "100%",
+} as const;
+
 function LobbyEntry({
   setMode,
   leagues,
@@ -104,9 +121,9 @@ function LobbyEntry({
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 24px" }}>
-      <div className="t-h1">
-        Ligine başla.
-      </div>
+      <h1 className="t-h1">
+        Ligine Başla
+      </h1>
       <div
         style={{
           color: "var(--muted)",
@@ -127,18 +144,22 @@ function LobbyEntry({
           marginTop: 36,
         }}
       >
-        <GlassCard
-          pad={28}
+        {/* Buttons, not clickable cards: as GlassCard divs these two — the
+            only ways forward from this screen — could not be reached with
+            the keyboard at all. */}
+        <button
+          type="button"
+          className="glass glass-hover"
           onClick={() => setMode("create")}
-          style={{ minHeight: 220, position: "relative", overflow: "hidden" }}
+          style={LOBBY_CHOICE}
         >
           <BigIconBadge Icon={Sparkles} color="var(--indigo)" />
           <div className="t-h2" style={{ marginTop: 18 }}>
             Yeni Lig Kur
           </div>
           <div style={{ color: "var(--muted)", marginTop: 6 }}>
-            16 slotlu özel lig. Sezon uzunluğu, maç saati ve görünürlüğü sen
-            belirle.
+            Süper Lig ve 1. Lig, toplam 36 kulüp. Maç saatini ve ligin kimlere
+            açık olacağını sen seçersin.
           </div>
           <div
             style={{
@@ -153,11 +174,12 @@ function LobbyEntry({
               3 dk
             </span>
           </div>
-        </GlassCard>
-        <GlassCard
-          pad={28}
+        </button>
+        <button
+          type="button"
+          className="glass glass-hover"
           onClick={() => setMode("join")}
-          style={{ minHeight: 220, position: "relative", overflow: "hidden" }}
+          style={LOBBY_CHOICE}
         >
           <BigIconBadge Icon={Link2} color="var(--emerald)" />
           <div className="t-h2" style={{ marginTop: 18 }}>
@@ -166,7 +188,7 @@ function LobbyEntry({
           <div style={{ color: "var(--muted)", marginTop: 6 }}>
             Arkadaşının gönderdiği 6 haneli kodu gir, hemen oynamaya başla.
           </div>
-        </GlassCard>
+        </button>
       </div>
       <div
         style={{
@@ -384,11 +406,13 @@ function CreateWizard({
                   "#6366f1",
                   "#a855f7",
                   "#ec4899",
-                ].map((c) => (
+                ].map((c, i) => (
                   <button
                     key={c}
                     type="button"
                     onClick={() => setColor(c)}
+                    aria-label={`Lig rengi ${i + 1}`}
+                    aria-pressed={color === c}
                     style={{
                       width: 36,
                       height: 36,
@@ -399,7 +423,6 @@ function CreateWizard({
                           ? "3px solid var(--text)"
                           : "1px solid var(--border)",
                       cursor: "pointer",
-                      outline: "none",
                     }}
                   />
                 ))}
@@ -730,9 +753,9 @@ function JoinFlow({
         <button type="button" className="btn btn-ghost btn-sm" onClick={onBack}>
           <ChevronLeft size={14} strokeWidth={1.6} /> Geri
         </button>
-        <div className="t-h1" style={{ marginTop: 20 }}>
-          Davet kodu
-        </div>
+        <h1 className="t-h1" style={{ marginTop: 20 }}>
+          Davet Kodu
+        </h1>
         <div style={{ color: "var(--muted)", fontSize: 14, marginTop: 6 }}>
           Arkadaşın sana 6 haneli bir kod yolladı.
         </div>
@@ -792,15 +815,15 @@ function JoinFlow({
           setErr(null);
         }}
       >
-        <ChevronLeft size={14} strokeWidth={1.6} /> Kodu değiştir
+        <ChevronLeft size={14} strokeWidth={1.6} /> Kodu Değiştir
       </button>
 
-      <div className="t-h1" style={{ marginTop: 18 }}>
+      <h1 className="t-h1" style={{ marginTop: 18 }}>
         {league.name}
-      </div>
+      </h1>
       <div style={{ color: "var(--muted)", fontSize: 14, marginTop: 6 }}>
         Sezon {league.seasonNumber} · Hafta {league.weekNumber}/{league.seasonLength} ·
-        maçlar {league.matchTime}&apos;de · {available.length} kulüp müsait.
+        maçlar her gün saat {league.matchTime} · {available.length} kulüp müsait.
         Hangisini devralacağını sen seç — bu kararı sonradan değiştiremezsin.
       </div>
 

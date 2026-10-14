@@ -81,7 +81,7 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
         pushToast({
           title: "İşlem başarısız",
           body: res.error,
-          accent: "#ef4444",
+          accent: "var(--danger)",
         });
     });
   }
@@ -90,7 +90,7 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
     return (
       <section className="space-y-3" style={PANEL_CONTAINER}>
         <SectionHead title="Transfer Teklifleri" />
-        <p className="rounded-xl border border-white/8 bg-white/[0.02] px-4 py-6 text-center text-xs text-muted">
+        <p className="rounded-xl border border-border bg-panel px-4 py-5 text-center text-[13px] text-muted">
           Henüz teklif yok. Listede olmayan bir oyuncu için kulübüne doğrudan
           teklif götürebilirsin — oyuncu sayfasındaki <strong>Teklif Yap</strong>{" "}
           düğmesini kullan.
@@ -124,11 +124,11 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.25, ease: EASE }}
-                className="rounded-xl border border-amber-400/20 bg-amber-500/[0.04] p-3"
+                className="rounded-xl border border-warn/30 bg-warn/5 p-3"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <PosBadge pos={o.playerPos as Position} size={22} />
-                  <span className="text-sm font-semibold text-white/90">
+                  <span className="text-sm font-semibold text-text">
                     {o.playerName}
                   </span>
                   <OvrChip ovr={o.playerOvr} size="sm" />
@@ -136,8 +136,8 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
                     değeri {eur(o.playerValueEur)}
                   </span>
                 </div>
-                <p className="mt-1.5 text-xs text-white/60">
-                  <strong className="text-white/85">{o.otherClubName}</strong>{" "}
+                <p className="mt-1.5 text-[13px] text-text-2">
+                  <strong className="text-text">{o.otherClubName}</strong>{" "}
                   {eur(o.amountEur)} teklif ediyor.
                 </p>
                 <div className="mt-2.5 flex flex-wrap items-center gap-2">
@@ -171,7 +171,7 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
                         "Teklif reddedildi",
                       )
                     }
-                    className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/70 transition hover:bg-white/10 disabled:opacity-50"
+                    className="btn btn-sm"
                   >
                     Reddet
                   </button>
@@ -184,7 +184,7 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
                         String(Math.round((o.playerValueEur * 1.3) / 1_000_000)),
                       );
                     }}
-                    className="rounded-lg border border-indigo-400/25 bg-indigo-500/10 px-3 py-1.5 text-xs font-semibold text-indigo-200 transition hover:bg-indigo-500/20 disabled:opacity-50"
+                    className="btn btn-sm btn-outline"
                   >
                     Karşı Teklif
                   </button>
@@ -196,7 +196,9 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
                       min={1}
                       value={counterValue}
                       onChange={(e) => setCounterValue(e.target.value)}
-                      className="w-24 rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 font-mono text-xs text-white/90 outline-none focus:border-indigo-400/40"
+                      aria-label="Karşı teklif, milyon euro"
+                      className="input t-mono"
+                      style={{ width: 96, padding: "6px 10px", fontSize: 13 }}
                     />
                     <span className="text-[12px] text-muted">milyon €</span>
                     <button
@@ -213,7 +215,7 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
                           "Karşı teklif gönderildi",
                         )
                       }
-                      className="rounded-lg bg-indigo-500/90 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-400 disabled:opacity-50"
+                      className="btn btn-sm btn-primary"
                     >
                       Gönder
                     </button>
@@ -233,11 +235,11 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
           {outgoing.map((o) => (
             <div
               key={o.id}
-              className="rounded-xl border border-white/8 bg-white/[0.02] p-3"
+              className="rounded-xl border border-border bg-panel p-3"
             >
               <div className="flex flex-wrap items-center gap-2">
                 <PosBadge pos={o.playerPos as Position} size={22} />
-                <span className="text-sm font-semibold text-white/90">
+                <span className="text-sm font-semibold text-text">
                   {o.playerName}
                 </span>
                 <OvrChip ovr={o.playerOvr} size="sm" />
@@ -254,12 +256,12 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
                   {STATUS_LABEL[o.status]?.text ?? o.status}
                 </span>
               </div>
-              <p className="mt-1.5 text-xs text-white/55">
+              <p className="mt-1.5 text-[13px] text-text-2">
                 Teklifin: {eur(o.amountEur)}
                 {o.counterEur !== null && (
                   <>
                     {" · "}
-                    <span className="text-indigo-300">
+                    <span className="text-accent">
                       İstenen: {eur(o.counterEur)}
                     </span>
                   </>
@@ -295,7 +297,7 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
                       "Teklif geri çekildi",
                     )
                   }
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/60 transition hover:bg-white/10 disabled:opacity-50"
+                  className="btn btn-sm"
                 >
                   <X size={13} /> Geri Çek
                 </button>
@@ -314,15 +316,15 @@ export default function OffersPanel({ offers }: { offers: OfferView[] }) {
             {settled.slice(0, 12).map((o) => (
               <li
                 key={o.id}
-                className="flex items-center gap-2 rounded-lg bg-white/[0.02] px-2.5 py-1.5 text-[12px]"
+                className="flex items-center gap-2 rounded-lg bg-panel-2 px-2.5 py-1.5 text-[12px]"
               >
-                <span className="text-white/60">{o.playerName}</span>
+                <span className="text-text-2">{o.playerName}</span>
                 <span className="text-muted">{o.otherClubName}</span>
                 <span className="ml-auto font-mono text-muted">
                   {eur(o.amountEur)}
                 </span>
                 <span
-                  className="rounded-full px-1.5 py-0.5 text-[11.5px] font-semibold"
+                  className="rounded-full px-1.5 py-0.5 text-[12px] font-semibold"
                   style={{
                     background: `color-mix(in oklab, ${STATUS_LABEL[o.status]?.color ?? "var(--muted)"} 14%, transparent)`,
                     color: STATUS_LABEL[o.status]?.color ?? "var(--muted)",

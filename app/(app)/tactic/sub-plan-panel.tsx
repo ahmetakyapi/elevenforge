@@ -71,7 +71,7 @@ export function SubPlanPanel({
           <div>
             <span className="t-label">Maç İçi Değişiklikler</span>
             <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
-              3 slot. Engine maç dakikası geldiğinde otomatik uygular.
+              En fazla 3 değişiklik. Maç motoru o dakika gelince kendisi yapar.
             </div>
           </div>
         </div>

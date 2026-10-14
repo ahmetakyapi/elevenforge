@@ -26,9 +26,9 @@ export default async function LeagueSettingsPage() {
           <Settings size={22} strokeWidth={1.6} />
         </div>
         <div>
-          <div className="t-h1">
+          <h1 className="t-h1">
             {ctx.league.name}
-          </div>
+          </h1>
           <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>
             Davet kodu <span className="t-mono">{ctx.league.inviteCode}</span> ·{" "}
             Sezon {ctx.league.seasonNumber} · Hafta {ctx.league.weekNumber}

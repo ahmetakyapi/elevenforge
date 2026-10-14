@@ -41,7 +41,7 @@ const ITEMS: Item[] = [
   { href: "/standings", label: "Puan Durumu", Icon: ListOrdered },
   { href: "/stats", label: "İstatistik", Icon: BarChart2 },
   { href: "/newspaper", label: "Gazete", Icon: Newspaper },
-  { href: "/crew", label: "Crew", Icon: MessageSquare },
+  { href: "/crew", label: "Sohbet", Icon: MessageSquare },
   { href: "/profile", label: "Profil", Icon: User2 },
   { href: "/league-settings", label: "Ayarlar", Icon: Settings },
   // Nothing linked here before, so joining a friend's league with an invite
@@ -139,6 +139,7 @@ export function MobileDrawer() {
                 <Link
                   key={href}
                   href={href}
+                  aria-current={active ? "page" : undefined}
                   style={{
                     display: "inline-flex",
                     alignItems: "center",

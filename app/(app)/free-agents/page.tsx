@@ -31,9 +31,9 @@ export default async function FreeAgentsPage() {
           <UserPlus size={22} strokeWidth={1.6} />
         </div>
         <div>
-          <div className="t-h1">
-            Bonservisle imzala
-          </div>
+          <h1 className="t-h1">
+            Serbest Oyuncular
+          </h1>
           <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>
             Kulübü olmayan oyuncular havuzda — transfer ücreti yok, sadece
             piyasa değerinin %40&apos;ı imzalama bonusu. Bütçen: €{(balanceEur / 1_000_000).toFixed(1)}M
@@ -49,7 +49,7 @@ export default async function FreeAgentsPage() {
             // EmptyStateProps — passing `Icon={UserX}` crashed this page
             // whenever the pool happened to be empty.
             icon={<UserX size={26} strokeWidth={1.7} />}
-            title="Havuz şu an boş"
+            title="Havuz Şu An Boş"
             description="Şu anda kulübü olmayan oyuncu yok. Bir kulüp oyuncusunu serbest bıraktığında ya da altyapıdan fazla oyuncu çıktığında burada belirirler."
             tint="var(--muted)"
             compact

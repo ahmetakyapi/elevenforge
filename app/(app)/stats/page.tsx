@@ -34,9 +34,9 @@ export default async function StatsPage() {
           <BarChart2 size={22} strokeWidth={1.6} />
         </div>
         <div>
-          <div className="t-h1">
+          <h1 className="t-h1">
             Lig Sıralamaları
-          </div>
+          </h1>
           <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>
             Sezon {ctx.league.seasonNumber} · Hafta {ctx.league.weekNumber} ·
             Toplam {s.totalGoals} gol · {s.totalCards} kart

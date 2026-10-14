@@ -179,11 +179,15 @@
 [data-accent="emerald"] { --accent: #10b981; --accent-2: #22d3ee; }
 [data-accent="cyan"] { --accent: #22d3ee; --accent-2: #6366f1; }
 [data-accent="gold"] { --accent: #facc15; --accent-2: #f59e0b; }
+/* The tweaks panel offered "rose" but no rule existed, so picking it silently
+   kept the previous accent. */
+[data-accent="rose"] { --accent: #f43f5e; --accent-2: #6366f1; }
 
 [data-theme="light"][data-accent="indigo"] { --accent: #4338ca; --accent-2: #047857; }
 [data-theme="light"][data-accent="emerald"] { --accent: #047857; --accent-2: #0e7490; }
 [data-theme="light"][data-accent="cyan"] { --accent: #0e7490; --accent-2: #4338ca; }
 [data-theme="light"][data-accent="gold"] { --accent: #8a5a06; --accent-2: #b45309; }
+[data-theme="light"][data-accent="rose"] { --accent: #be123c; --accent-2: #4338ca; }
 
 /* Tailwind v4 — expose CSS vars as utility colors */
 @theme inline {
@@ -494,6 +498,51 @@ a:focus-visible,
   outline-offset: 1px;
 }
 
+/* ───────────────────────────────────────────────────────────────
+   Top bar links. Breakpoints live here, not in inline styles, so the bar
+   can shed width in steps — see the comment on NAV_MAIN in
+   components/layout/nav-items.ts for the measurements behind them.
+─────────────────────────────────────────────────────────────── */
+.topnav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-family: var(--font-manrope);
+  font-weight: 600;
+  font-size: 13.5px;
+  text-decoration: none;
+  white-space: nowrap;
+  color: var(--muted);
+  border: 1px solid transparent;
+  transition: color var(--t) var(--ease), background-color var(--t) var(--ease), border-color var(--t) var(--ease);
+}
+.topnav-link:hover { color: var(--text); }
+.topnav-link[data-active] {
+  color: var(--text);
+  background: color-mix(in oklab, var(--accent) 12%, var(--panel));
+  border-color: color-mix(in oklab, var(--accent) 30%, var(--border));
+}
+/* The overflow menu repeats the tier-2 links, but only where the bar drops them. */
+.topnav-overflow-tier-2 { display: none !important; }
+@media (max-width: 1499px) {
+  .topnav-link { padding: 8px 11px; }
+  .topnav-link-icon { display: none; }
+}
+@media (max-width: 1279px) {
+  /* The notification toggle keeps its icon; the words come back at 1280px. */
+  .btn-label-compact-hidden { display: none !important; }
+}
+@media (max-width: 1179px) {
+  .topnav-tier-2 { display: none; }
+  .topnav-overflow-tier-2 { display: flex !important; }
+  .nav-overflow-btn[data-active-tier2] {
+    color: var(--accent) !important;
+    background: color-mix(in oklab, var(--accent) 14%, transparent) !important;
+  }
+}
+
 /* Standings + dense-table row hover — lightens the row as a whole so
    the cursor has a clear focus anchor on long tables. */
 .standings-row:hover:not([data-is-me]) {
@@ -733,7 +782,17 @@ body[data-modal-open="true"] { overflow: hidden; }
     overflow-x: hidden;
     max-width: 100vw;
   }
-  body main, body section, body article { word-break: break-word; }
+  /*
+    overflow-wrap, not `word-break: break-word`.
+
+    The legacy `word-break: break-word` behaves like `overflow-wrap: anywhere`,
+    which also lowers every element's MIN-CONTENT width to a single letter. A
+    flex row then shrinks its text children until words split wherever the
+    box ends — the board goal read "Şampiyon / luk" and its "Sağlam" chip
+    "Sağla / m" at 390px. `overflow-wrap: break-word` still breaks a string
+    that genuinely cannot fit, but only after it has been given its own width.
+  */
+  body main, body section, body article { overflow-wrap: break-word; }
 
   /* Any element that tries to set an inline max-width exceeding the
      viewport on mobile gets clamped — catches hero banners and modals

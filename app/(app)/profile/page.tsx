@@ -44,9 +44,9 @@ export default async function ProfilePage() {
           <User2 size={36} strokeWidth={1.6} style={{ color: "#fff" }} />
         </div>
         <div>
-          <div className="t-h1">
+          <h1 className="t-h1">
             {p.name}
-          </div>
+          </h1>
           <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>
             {p.email} · {since.getFullYear()}&apos;den beri menajer
           </div>
@@ -143,7 +143,7 @@ export default async function ProfilePage() {
               <div>
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{l.leagueName}</div>
                 <div style={{ fontSize: 12, color: "var(--muted)" }}>
-                  {l.clubName} · S{l.seasonNumber} W{l.weekNumber}
+                  {l.clubName} · Sezon {l.seasonNumber}, Hafta {l.weekNumber}
                   {l.isCommissioner && " · ⚙ kurucu"}
                 </div>
               </div>
@@ -255,7 +255,7 @@ function TrophyCabinet({
           }}
         >
           <div style={{ fontSize: 30, opacity: 0.5 }}>🏆</div>
-          <div style={{ fontWeight: 600, marginTop: 8 }}>Vitrin boş</div>
+          <div style={{ fontWeight: 600, marginTop: 8 }}>Vitrin Boş</div>
           <div
             className="t-caption"
             style={{ fontSize: 12, marginTop: 4, lineHeight: 1.6 }}

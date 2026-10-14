@@ -1,5 +1,6 @@
 import { and, desc, eq, or } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { timeAgoTr } from "@/lib/time-words";
 import {
   clubs,
   feedEvents,
@@ -105,13 +106,6 @@ export type DashboardData = {
   streak: StreakInfo;
 };
 
-function relativeTime(from: Date, now: number): string {
-  const diff = Math.max(1, Math.floor((now - from.getTime()) / 1000));
-  if (diff < 60) return `${diff}s`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}dk`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}sa`;
-  return `${Math.floor(diff / 86400)}g`;
-}
 
 export async function loadDashboardData(
   ctx: LeagueContext,
@@ -305,7 +299,7 @@ export async function loadDashboardData(
     type: f.eventType,
     text: f.text,
     clubId: f.clubId,
-    relativeTime: relativeTime(new Date(f.createdAt), Date.now()),
+    relativeTime: timeAgoTr(new Date(f.createdAt).getTime(), Date.now()),
   }));
 
   // Squad status

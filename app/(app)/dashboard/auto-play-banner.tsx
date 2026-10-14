@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Clock } from "lucide-react";
+import { durationTr } from "@/lib/time-words";
 
 /**
  * Tells users when matches will play next. With manual-advance OFF
@@ -28,11 +29,8 @@ export function AutoPlayBanner({
   }, []);
   const upcoming =
     now !== null && nextFixtureMs && nextFixtureMs > now ? nextFixtureMs : null;
-  const hours = upcoming && now !== null ? Math.floor((upcoming - now) / 3600000) : null;
-  const minutes =
-    upcoming && now !== null
-      ? Math.floor(((upcoming - now) % 3600000) / 60000)
-      : null;
+  const remaining =
+    upcoming && now !== null ? durationTr((upcoming - now) / 1000) : null;
   return (
     <div
       style={{
@@ -56,7 +54,9 @@ export function AutoPlayBanner({
         style={{ color: manualAdvance ? "var(--warn)" : "var(--cyan)" }}
       />
       <span style={{ fontSize: 13, fontWeight: 600 }}>
-        Maçlar her gün {matchTime}&apos;da otomatik oynanır.
+        {/* No suffix after the time: "21:00'da" was wrong for 21:00
+            ("yirmi birde"), and the right one changes with the hour. */}
+        Maçlar her gün otomatik oynanır · Saat {matchTime}
       </span>
       {upcoming && (
         <span
@@ -66,7 +66,7 @@ export function AutoPlayBanner({
             marginLeft: "auto",
           }}
         >
-          Sıradaki maça {hours}sa {minutes}dk
+          Sıradaki maça {remaining} var
         </span>
       )}
       {manualAdvance && isCommissioner && (

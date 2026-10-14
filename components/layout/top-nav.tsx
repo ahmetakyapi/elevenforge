@@ -2,19 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  ArrowLeftRight,
-  Home,
-  ListOrdered,
-  MessageSquare,
-  Newspaper,
-  Play,
-  LogOut,
-  Target,
-  Trophy,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
+import { LogOut } from "lucide-react";
 import { Crest } from "@/components/ui/primitives";
 import { LogoLockup } from "@/components/brand/logo";
 import { LeagueSwitcher, type OwnedLeague } from "@/app/(app)/league-switcher";
@@ -23,24 +11,7 @@ import { MobileDrawer } from "./mobile-drawer";
 import { signOutAction } from "@/app/(app)/session-actions";
 import { NavOverflow } from "./nav-overflow";
 import { ThemeToggle } from "@/components/tweaks/theme-toggle";
-
-type NavItem = {
-  href: string;
-  label: string;
-  Icon: LucideIcon;
-};
-
-const NAV_MAIN: NavItem[] = [
-  { href: "/dashboard", label: "Ana",      Icon: Home },
-  { href: "/squad",     label: "Kadro",    Icon: Users },
-  { href: "/transfer",  label: "Transfer", Icon: ArrowLeftRight },
-  { href: "/tactic",    label: "Taktik",   Icon: Target },
-  { href: "/match",     label: "Maç",      Icon: Play },
-  { href: "/cup",       label: "Kupa",     Icon: Trophy },
-  { href: "/standings", label: "Tablo",    Icon: ListOrdered },
-  { href: "/newspaper", label: "Gazete",   Icon: Newspaper },
-  { href: "/crew",      label: "Crew",     Icon: MessageSquare },
-];
+import { NAV_MAIN, isActivePath } from "./nav-items";
 
 export function TopNav({
   owned,
@@ -102,6 +73,7 @@ export function TopNav({
 
         <nav
           className="desktop-only"
+          aria-label="Ana Menü"
           style={{
             display: "flex",
             gap: 2,
@@ -114,36 +86,17 @@ export function TopNav({
             minWidth: 0,
           }}
         >
-          {NAV_MAIN.map(({ href, label, Icon }) => {
-            const active = pathname === href || pathname.startsWith(`${href}/`);
+          {NAV_MAIN.map(({ href, label, Icon, tier }) => {
+            const active = isActivePath(pathname, href);
             return (
               <Link
                 key={href}
                 href={href}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "8px 14px",
-                  borderRadius: 8,
-                  fontFamily: "var(--font-manrope)",
-                  fontWeight: 600,
-                  fontSize: 13.5,
-                  textDecoration: "none",
-                  background: active
-                    ? "color-mix(in oklab, var(--accent) 12%, var(--panel))"
-                    : "transparent",
-                  color: active ? "var(--text)" : "var(--muted)",
-                  border: `1px solid ${
-                    active
-                      ? "color-mix(in oklab, var(--accent) 30%, var(--border))"
-                      : "transparent"
-                  }`,
-                  transition: "opacity var(--t) var(--ease), transform var(--t) var(--ease), color var(--t) var(--ease), background-color var(--t) var(--ease), border-color var(--t) var(--ease), box-shadow var(--t) var(--ease)",
-                  whiteSpace: "nowrap",
-                }}
+                aria-current={active ? "page" : undefined}
+                className={`topnav-link${tier === 2 ? " topnav-tier-2" : ""}`}
+                data-active={active || undefined}
               >
-                <Icon size={14} strokeWidth={1.6} />
+                <Icon className="topnav-link-icon" size={14} strokeWidth={1.6} aria-hidden />
                 {label}
               </Link>
             );
@@ -179,7 +132,8 @@ export function TopNav({
             <button
               type="submit"
               className="btn btn-ghost btn-sm"
-              title="Çıkış yap"
+              title="Çıkış Yap"
+              aria-label="Çıkış Yap"
             >
               <LogOut size={14} strokeWidth={1.6} />
             </button>

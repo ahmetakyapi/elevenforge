@@ -137,7 +137,7 @@ export default async function PlayerDetailPage({
               {status.label}
             </span>
           </div>
-          <div style={{ fontSize: 32, fontWeight: 700 }}>{p.name}</div>
+          <h1 style={{ fontSize: 32, fontWeight: 700 }}>{p.name}</h1>
           <div style={{ fontSize: 13, color: "var(--muted)" }}>
             {p.clubName && (
               <>

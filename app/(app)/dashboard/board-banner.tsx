@@ -24,6 +24,9 @@ export function BoardBanner({
       style={{
         display: "flex",
         alignItems: "center",
+        // Wraps on a phone: with the goal, its chip and a fixed 140px meter
+        // in one row, "Sağlam" slid underneath "Güven 60/100" at 390px.
+        flexWrap: "wrap",
         gap: 14,
         padding: "12px 16px",
         borderRadius: 12,
@@ -45,11 +48,19 @@ export function BoardBanner({
       >
         <Target size={18} strokeWidth={1.6} />
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ flex: "1 1 160px", minWidth: 0 }}>
         <div className="t-label">
           Yönetim Hedefi
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 8,
+            marginTop: 2,
+          }}
+        >
           <span style={{ fontWeight: 600 }}>{goalLabel(goal)}</span>
           <span
             style={{
@@ -64,11 +75,16 @@ export function BoardBanner({
           </span>
         </div>
       </div>
-      <div style={{ width: 140 }}>
+      <div style={{ flex: "1 1 140px", maxWidth: 220, minWidth: 120 }}>
         <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-2)" }}>
           Güven {confidence}/100
         </div>
         <div
+          role="meter"
+          aria-label="Yönetimin güveni"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={confidence}
           style={{
             height: 6,
             borderRadius: 3,

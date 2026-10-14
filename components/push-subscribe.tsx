@@ -109,7 +109,13 @@ export function PushSubscribeButton() {
   if (supported === null) return null;
   if (!supported) {
     return (
-      <button type="button" className="btn btn-ghost btn-sm" disabled title="Tarayıcı push desteklemiyor">
+      <button
+        type="button"
+        className="btn btn-ghost btn-sm"
+        disabled
+        title="Tarayıcın bildirimleri desteklemiyor"
+        aria-label="Tarayıcın bildirimleri desteklemiyor"
+      >
         <BellOff size={14} strokeWidth={1.6} />
       </button>
     );
@@ -121,7 +127,8 @@ export function PushSubscribeButton() {
       className={`btn btn-sm ${subscribed ? "btn-ghost" : ""}`}
       onClick={subscribed ? unsubscribe : subscribe}
       disabled={pending}
-      title={subscribed ? "Bildirimleri kapat" : "Bildirimleri aç"}
+      title={subscribed ? "Bildirimleri Kapat" : "Bildirimleri Aç"}
+      aria-label={subscribed ? "Bildirimleri Kapat" : "Bildirimleri Aç"}
       style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
     >
       {/* The label is hidden on phones (see .btn-label-mobile-hidden in
@@ -132,14 +139,20 @@ export function PushSubscribeButton() {
       {subscribed ? (
         <>
           <Bell size={14} strokeWidth={1.6} style={{ color: "var(--emerald)" }} />
-          <span className="btn-label-mobile-hidden" style={{ fontSize: 12 }}>
+          <span
+            className="btn-label-mobile-hidden btn-label-compact-hidden"
+            style={{ fontSize: 12 }}
+          >
             Açık
           </span>
         </>
       ) : (
         <>
           <BellOff size={14} strokeWidth={1.6} />
-          <span className="btn-label-mobile-hidden" style={{ fontSize: 12 }}>
+          <span
+            className="btn-label-mobile-hidden btn-label-compact-hidden"
+            style={{ fontSize: 12 }}
+          >
             Bildirimleri Aç
           </span>
         </>

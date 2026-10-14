@@ -86,7 +86,7 @@ export function StreakBanner({ streak }: { streak: StreakInfo }) {
             fontWeight: 700,
           }}
         >
-          {pending ? "…" : `+${fmtEUR(streak.rewardEur)} al`}
+          {pending ? "…" : `+${fmtEUR(streak.rewardEur)} Al`}
         </button>
       )}
     </div>

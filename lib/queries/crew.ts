@@ -1,5 +1,6 @@
 import { desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { timeAgoTr } from "@/lib/time-words";
 import { chatMessages, clubs, feedEvents, users } from "@/lib/schema";
 import type { LeagueContext } from "@/lib/session";
 import type { CrestLookup } from "@/lib/queries/transfer";
@@ -40,13 +41,6 @@ export type CrewPageData = {
   userId: string;
 };
 
-function relativeTime(from: Date, now: number): string {
-  const diff = Math.max(1, Math.floor((now - from.getTime()) / 1000));
-  if (diff < 60) return `${diff}s`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}dk`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}sa`;
-  return `${Math.floor(diff / 86400)}g`;
-}
 
 export async function loadCrewData(ctx: LeagueContext): Promise<CrewPageData> {
   const { league, user } = ctx;
@@ -124,7 +118,7 @@ export async function loadCrewData(ctx: LeagueContext): Promise<CrewPageData> {
     type: f.eventType,
     text: f.text,
     clubId: f.clubId,
-    relativeTime: relativeTime(new Date(f.createdAt), now),
+    relativeTime: timeAgoTr(new Date(f.createdAt).getTime(), now),
   }));
 
   const crestLookup: CrestLookup = {};

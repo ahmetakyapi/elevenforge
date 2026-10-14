@@ -245,7 +245,8 @@ export function UserAvatar({ name, size = 24 }: UserAvatarProps) {
     .map((s) => s[0])
     .slice(0, 2)
     .join("")
-    .toUpperCase();
+    // tr-TR, or "ilkay" becomes "I" instead of "İ".
+    .toLocaleUpperCase("tr-TR");
   const hue = [...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
   return (
     <div
@@ -269,6 +270,32 @@ export function UserAvatar({ name, size = 24 }: UserAvatarProps) {
     >
       {initials}
     </div>
+  );
+}
+
+// ─── PlayerAvatar — initials with the position as a coloured ring ───
+//
+// The market rows put an 18px PosBadge over the bottom-right of a 44px
+// avatar. At that size the badge's "FWD" was 7px text nobody could read, and
+// the badge itself covered half of the second initial ("TA" read as "T"). The
+// position already has its own column in the row; what the avatar adds is
+// the colour, so the colour becomes the ring and the letters stay whole.
+type PlayerAvatarProps = { name: string; pos: Position; size?: number };
+export function PlayerAvatar({ name, pos, size = 44 }: PlayerAvatarProps) {
+  const color = posColor(pos);
+  return (
+    <span
+      title={pos}
+      style={{
+        display: "inline-flex",
+        flexShrink: 0,
+        borderRadius: "50%",
+        boxShadow: `0 0 0 2px var(--bg), 0 0 0 4px ${color}`,
+        margin: 4,
+      }}
+    >
+      <UserAvatar name={name} size={size - 8} />
+    </span>
   );
 }
 
@@ -409,7 +436,11 @@ export function SectionHead({ title, right }: SectionHeadProps) {
         gap: 12,
       }}
     >
-      {title && <span className="t-h2">{title}</span>}
+      {/* A real heading, not a styled span: screen-reader users navigate a
+          page by its headings, and every panel title on the dashboard and the
+          transfer market was invisible to that. Preflight zeroes the h2's own
+          margin and size, so the class still decides how it looks. */}
+      {title && <h2 className="t-h2">{title}</h2>}
       {right}
     </div>
   );
@@ -562,7 +593,9 @@ export function StatChip({ label, value, icon, accent }: StatChipProps) {
       className="glass"
       style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}
     >
-      {icon && <span style={{ fontSize: 16, opacity: 0.9 }}>{icon}</span>}
+      {icon && (
+        <span style={{ fontSize: 16, opacity: 0.9, display: "inline-flex" }}>{icon}</span>
+      )}
       <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
         <span
           className="t-mono"

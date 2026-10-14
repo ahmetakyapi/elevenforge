@@ -11,7 +11,18 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   return (
     <ToastProvider>
       <div className="app-bg" aria-hidden />
-      <div style={{ position: "relative", zIndex: 1, minHeight: "100vh" }}>
+      {/* A column, so the footer sits at the bottom of the window on short
+          pages (an empty match or newspaper screen) instead of floating
+          mid-screen with the background showing underneath it. */}
+      <div
+        style={{
+          position: "relative",
+          zIndex: 1,
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         <TopNav
           owned={ctx?.ownedLeagues ?? []}
           currentLeagueId={ctx?.league.id ?? null}
@@ -28,7 +39,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
               : null
           }
         />
-        <main data-page-enter>{children}</main>
+        <main data-page-enter style={{ flex: "1 0 auto" }}>
+          {children}
+        </main>
         <FooterCredit />
         <MobileBottomNav />
         <TweaksPanel />

@@ -37,9 +37,9 @@ export default async function StandingsPage() {
           <ListOrdered size={22} strokeWidth={1.6} />
         </div>
         <div>
-          <div className="t-h1">
+          <h1 className="t-h1">
             {d.leagueInfo.name}
-          </div>
+          </h1>
           <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>
             Sezon {d.leagueInfo.seasonNumber} · Hafta {d.leagueInfo.weekNumber} ·{" "}
             {d.division.name}, {d.division.size} takım ·{" "}
@@ -246,7 +246,7 @@ export default async function StandingsPage() {
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           <span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--emerald)" }} />
           {d.division.number === 1
-            ? "1-4: Avrupa kupası + prize money"
+            ? "1-4: Sezon sonu para ödülü"
             : `1-${PROMOTION_SLOTS}: Süper Lig'e yükselme`}
         </span>
         {d.division.number === 1 && (
@@ -257,7 +257,7 @@ export default async function StandingsPage() {
         )}
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           <ChevronRight size={11} strokeWidth={2} />
-          Bir takıma tıkla → kadrosunu gör
+          Kadrosunu görmek için bir takıma dokun
         </span>
       </div>
     </div>

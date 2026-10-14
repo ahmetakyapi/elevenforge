@@ -51,6 +51,12 @@ const EMOJI = ["⚽", "🔥", "💎", "🏆", "🟨", "🟥", "😂", "💀"] as
 export default function CrewUi({ data }: { data: CrewPageData }) {
   const router = useRouter();
   const toast = useToast();
+  // You first, then the other people in the league, then the bots — the
+  // humans were scattered between seventeen bot chips in table order.
+  const rosterSorted = [...data.roster].sort(
+    (a, b) =>
+      Number(b.isMe) - Number(a.isMe) || Number(a.isBot) - Number(b.isBot),
+  );
 
   // Poll the server every 5s while the tab is visible — chat is the page
   // most users keep open; new messages from other players show up without
@@ -126,9 +132,9 @@ export default function CrewUi({ data }: { data: CrewPageData }) {
           className="t-label"
           style={{ marginRight: 10, whiteSpace: "nowrap" }}
         >
-          Crew
+          Kulüpler
         </span>
-        {data.roster.map((m) => (
+        {rosterSorted.map((m) => (
           <div
             key={m.clubId}
             style={{
@@ -151,8 +157,11 @@ export default function CrewUi({ data }: { data: CrewPageData }) {
               size={18}
               club={data.crestLookup[m.clubId]}
             />
+            {/* A bot's "name" is "Bot · GS"; its first word was printed next
+                to the "Bot" tag, so seventeen chips read "Bot Bot". The club
+                is what tells bots apart. */}
             <span style={{ fontSize: 12, fontWeight: 500 }}>
-              {m.userName.split(" ")[0]}
+              {m.isBot ? m.clubShort : m.userName.split(" ")[0]}
             </span>
             {m.isBot && (
               <span
@@ -170,7 +179,12 @@ export default function CrewUi({ data }: { data: CrewPageData }) {
           display: "grid",
           gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)",
           gap: 16,
-          minHeight: 640,
+          // A fixed row height, so each panel scrolls inside itself. With
+          // only a minimum, a busy match day grew the feed to ~2,700px and
+          // dragged the chat panel down with it — the message box ended up
+          // two screens below the first message. Applies per row, so on a
+          // phone, where the panels stack, each keeps the same window.
+          gridAutoRows: "clamp(480px, calc(100svh - 200px), 720px)",
         }}
       >
         <GlassCard
@@ -189,9 +203,9 @@ export default function CrewUi({ data }: { data: CrewPageData }) {
             }}
           >
             <span className="t-label">#genel</span>
-            <div className="t-h3" style={{ marginTop: 2 }}>
-              Crew sohbeti
-            </div>
+            <h1 className="t-h3" style={{ marginTop: 2 }}>
+              Lig Sohbeti
+            </h1>
           </div>
           <div
             style={{
@@ -403,7 +417,7 @@ export default function CrewUi({ data }: { data: CrewPageData }) {
                         />
                       )}
                       <span className="t-caption" style={{ fontSize: 12 }}>
-                        {f.relativeTime} önce
+                        {f.relativeTime}
                       </span>
                     </div>
                     <span

@@ -63,61 +63,62 @@ export function LeagueSettingsForm({
         gap: 22,
       }}
     >
-      <Field label="Maç Saati" desc="Her gün fikstürlerin oynanacağı saat (HH:MM).">
+      <Field label="Maç Saati" desc="Ligdeki maçlar her gün bu saatte oynanır.">
         <input
           className="input"
           type="time"
           value={matchTime}
           onChange={(e) => setMatchTime(e.target.value)}
+          aria-label="Maç Saati"
           style={{ maxWidth: 160, fontFamily: "var(--font-jetbrains)" }}
         />
       </Field>
 
       <Field
         label="Görünürlük"
-        desc="Davet-only: sadece koduyla katılım. Herkese açık: keşfet listesinde."
+        desc="Davetle: yalnızca davet koduyla katılınır. Herkese açık: lig, katılınabilir ligler listesinde görünür."
       >
         <div style={{ display: "flex", gap: 8 }}>
           <Pill
             active={visibility === "private"}
             onClick={() => setVisibility("private")}
-            label="Davet-only"
+            label="Davetle"
           />
           <Pill
             active={visibility === "public"}
             onClick={() => setVisibility("public")}
-            label="Herkese açık"
+            label="Herkese Açık"
           />
         </div>
       </Field>
 
       <Field
-        label="Manuel oynatma butonu"
-        desc="Varsayılan kapalı. Açtığında dashboard'da Sıradaki Haftayı Oyna butonu çıkar (test/hızlı tur için). Normalde maçlar her gün belirlenen saatte cron ile otomatik oynanır."
+        label="Manuel Oynatma Butonu"
+        desc="Normalde maçlar her gün seçilen saatte kendiliğinden oynanır. Açarsan ana sayfada bir sonraki haftayı hemen oynatan bir buton çıkar; hızlı bir tur için kullanışlı."
       >
         <div style={{ display: "flex", gap: 8 }}>
           <Pill
             active={!manualAdvance}
             onClick={() => setManualAdvance(false)}
-            label="Kapalı (sadece otomatik)"
+            label="Kapalı (Yalnızca Otomatik)"
           />
           <Pill
             active={manualAdvance}
             onClick={() => setManualAdvance(true)}
-            label="Açık (manuel + otomatik)"
+            label="Açık (Manuel ve Otomatik)"
           />
         </div>
       </Field>
 
       <Field
-        label="Manuel oynatma yetkisi"
-        desc="Manuel buton açıksa: kurucu mı yoksa herkes mi tetikleyebilir."
+        label="Manuel Oynatma Yetkisi"
+        desc="Buton açıksa onu kimin kullanabileceği: yalnızca ligi kuran mı, herkes mi."
       >
         <div style={{ display: "flex", gap: 8 }}>
           <Pill
             active={commOnly}
             onClick={() => setCommOnly(true)}
-            label="Sadece kurucu"
+            label="Yalnızca Kurucu"
           />
           <Pill
             active={!commOnly}
@@ -151,9 +152,13 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div
+      role="group"
+      aria-label={label}
+      style={{ display: "flex", flexDirection: "column", gap: 8 }}
+    >
       <span className="t-label">{label}</span>
-      <span style={{ fontSize: 12, color: "var(--muted)" }}>{desc}</span>
+      <span style={{ fontSize: 13, color: "var(--muted)" }}>{desc}</span>
       {children}
     </div>
   );
@@ -173,6 +178,7 @@ function Pill({
       type="button"
       className={`chip ${active ? "active" : ""}`}
       onClick={onClick}
+      aria-pressed={active}
       style={{ cursor: "pointer", padding: "8px 16px" }}
     >
       {label}

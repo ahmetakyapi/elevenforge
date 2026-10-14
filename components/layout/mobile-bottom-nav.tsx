@@ -32,6 +32,7 @@ export function MobileBottomNav() {
   return (
     <nav
       className="mobile-only"
+      aria-label="Ana Menü"
       style={{
         position: "fixed",
         bottom: 0,
@@ -53,6 +54,7 @@ export function MobileBottomNav() {
           <Link
             key={href}
             href={href}
+            aria-current={active ? "page" : undefined}
             style={{
               display: "flex",
               flexDirection: "column",
@@ -67,7 +69,7 @@ export function MobileBottomNav() {
               transition: "color var(--t) var(--ease)",
             }}
           >
-            <Icon size={18} strokeWidth={1.6} />
+            <Icon size={18} strokeWidth={1.6} aria-hidden />
             <span>{label}</span>
           </Link>
         );

@@ -254,11 +254,12 @@ export default function SquadPage({
           </div>
           <select
             value={sort}
+            aria-label="Sıralama"
             onChange={(e) => setSort(e.target.value as SortKey)}
             className="input"
             style={{ padding: "8px 12px", fontSize: 13, width: "auto" }}
           >
-            <option value="ovr">Overall ↓</option>
+            <option value="ovr">OVR ↓</option>
             <option value="pot">Potansiyel ↓</option>
             <option value="age">Yaş ↑</option>
             <option value="val">Değer ↓</option>
@@ -413,10 +414,16 @@ function ViewToggle({
   onClick: () => void;
 }) {
   const Icon = v === "board" ? Columns3 : v === "grid" ? LayoutGrid : List;
+  // Icon-only, so the name has to be given: these three were unlabelled.
+  const label =
+    v === "board" ? "Mevki Panosu" : v === "grid" ? "Kart Görünümü" : "Liste Görünümü";
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-label={label}
+      aria-pressed={current === v}
+      title={label}
       className="btn btn-ghost btn-sm"
       style={{
         padding: "6px 10px",
@@ -424,7 +431,7 @@ function ViewToggle({
         color: current === v ? "var(--text)" : "var(--muted)",
       }}
     >
-      <Icon size={14} strokeWidth={1.6} />
+      <Icon size={14} strokeWidth={1.6} aria-hidden />
     </button>
   );
 }
@@ -490,12 +497,12 @@ function SquadHero({
       <div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
         <Crest clubId={userClubId} size={34} club={userClubCrest} />
         <div style={{ minWidth: 0 }}>
-          <div
+          <h1
             className="t-h2"
             style={{ fontSize: 19, lineHeight: 1.1, letterSpacing: "-0.02em" }}
           >
             {userClubName}
-          </div>
+          </h1>
           <span className="t-label" style={{ fontSize: 12, color: "var(--muted)" }}>
             Kadro Yönetimi
           </span>

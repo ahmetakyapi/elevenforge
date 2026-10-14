@@ -44,9 +44,9 @@ export default async function CupPage() {
           <Trophy size={22} strokeWidth={1.6} />
         </div>
         <div>
-          <div className="t-h1">
+          <h1 className="t-h1">
             Sezon {season} Kupası
-          </div>
+          </h1>
           <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>
             Tek-eleme, 16 takım. Beraberlik halinde uzatma + penaltı (otomatik).
           </div>

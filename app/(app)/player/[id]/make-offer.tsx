@@ -35,7 +35,7 @@ export default function MakeOffer({
   function submit() {
     const amountEur = Number(amountM) * 1_000_000;
     if (!Number.isFinite(amountEur) || amountEur <= 0) {
-      pushToast({ title: "Geçersiz tutar", accent: "#ef4444" });
+      pushToast({ title: "Geçersiz tutar", accent: "var(--danger)" });
       return;
     }
     startTransition(async () => {
@@ -44,11 +44,11 @@ export default function MakeOffer({
         pushToast({
           title: "Teklif gönderildi",
           body: `${playerName} için ${amountM}M € teklif ettin.`,
-          accent: "#10b981",
+          accent: "var(--emerald)",
         });
         setOpen(false);
       } else {
-        pushToast({ title: "Teklif reddedildi", body: res.error, accent: "#ef4444" });
+        pushToast({ title: "Teklif reddedildi", body: res.error, accent: "var(--danger)" });
       }
     });
   }
@@ -58,7 +58,7 @@ export default function MakeOffer({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-lg bg-indigo-500/90 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-400"
+        className="btn btn-primary"
       >
         <Handshake size={15} /> Teklif Yap
       </button>
@@ -70,11 +70,11 @@ export default function MakeOffer({
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: EASE }}
-      className="rounded-xl border border-indigo-400/25 bg-indigo-500/[0.06] p-3"
+      className="rounded-xl border border-accent/30 bg-accent/5 p-3"
     >
-      <p className="mb-2 text-xs text-white/60">
+      <p className="mb-2 text-[13px] text-text-2">
         {playerName} için kulübüne teklif götür. En az{" "}
-        <strong className="text-white/85">{minM}M €</strong> olmalı.
+        <strong className="text-text">{minM}M €</strong> olmalı.
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <input
@@ -82,21 +82,23 @@ export default function MakeOffer({
           min={minM}
           value={amountM}
           onChange={(e) => setAmountM(e.target.value)}
-          className="w-28 rounded-lg border border-white/10 bg-black/30 px-2.5 py-1.5 font-mono text-sm text-white/90 outline-none focus:border-indigo-400/40"
+          aria-label="Teklif, milyon euro"
+          className="input t-mono"
+          style={{ width: 112, padding: "7px 10px" }}
         />
         <span className="text-[12px] text-muted">milyon €</span>
         <button
           type="button"
           disabled={pending}
           onClick={submit}
-          className="rounded-lg bg-indigo-500/90 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-400 disabled:opacity-50"
+          className="btn btn-sm btn-primary"
         >
           Gönder
         </button>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/60 transition hover:bg-white/10"
+          className="btn btn-sm"
         >
           Vazgeç
         </button>

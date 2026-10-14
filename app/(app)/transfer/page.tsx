@@ -16,8 +16,12 @@ export default async function TransferPage() {
   return (
     <div className="space-y-8">
       <LiveRefresh intervalMs={30000} />
-      <OffersPanel offers={offers} />
+      {/* Offers lead the page only when there are some. Empty, the panel was
+          a full-width "no offers yet" box above the market itself — on a
+          phone the first screen of the transfer tab was that box. */}
+      {offers.length > 0 && <OffersPanel offers={offers} />}
       <TransferUi data={data} />
+      {offers.length === 0 && <OffersPanel offers={offers} />}
     </div>
   );
 }

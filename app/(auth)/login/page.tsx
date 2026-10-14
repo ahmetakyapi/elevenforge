@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Check } from "lucide-react";
 import { GlassCard } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/toast";
 import { PitchPatternSide } from "@/components/auth/pitch-side";
@@ -11,11 +10,37 @@ import { login } from "./actions";
 
 type Status = "idle" | "pending" | "error";
 
+/**
+ * Where to go after signing in.
+ *
+ * proxy.ts sends a signed-out visitor to `/login?from=/transfer`, but the
+ * form always went to /dashboard — a bookmark or an expired session lost the
+ * page it was opened for. Read at submit time (not with useSearchParams, which
+ * would need its own Suspense boundary here), and only a same-site path: an
+ * absolute URL or a protocol-relative "//host" would make this an open
+ * redirect.
+ */
+function returnPath(): string {
+  try {
+    const from = new URLSearchParams(window.location.search).get("from");
+    // Backslashes too: URL parsing treats "/\\host" like "//host".
+    if (
+      from &&
+      from.startsWith("/") &&
+      !from.startsWith("//") &&
+      !from.includes("\\") &&
+      !from.startsWith("/login")
+    ) {
+      return from;
+    }
+  } catch {}
+  return "/dashboard";
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
-  const [remember, setRemember] = useState(true);
   const [status, setStatus] = useState<Status>("idle");
   const [err, setErr] = useState<string | null>(null);
   const toast = useToast();
@@ -36,7 +61,7 @@ export default function LoginPage() {
       body: "Takımın seni bekliyor.",
       accent: "var(--emerald)",
     });
-    router.push("/dashboard");
+    router.push(returnPath());
   };
 
   return (
@@ -83,9 +108,9 @@ export default function LoginPage() {
               width: "100%",
             }}
           >
-            <div className="t-h1" style={{ marginBottom: 8 }}>
-              Tekrar hoş geldin.
-            </div>
+            <h1 className="t-h1" style={{ marginBottom: 8 }}>
+              Tekrar Hoş Geldin
+            </h1>
             <div style={{ color: "var(--muted)", fontSize: 14, marginBottom: 24 }}>
               Kaldığın yerden devam et.
             </div>
@@ -100,16 +125,10 @@ export default function LoginPage() {
                   autoComplete="email"
                 />
               </LabeledField>
-              <LabeledField
-                label="Şifre"
-                right={
-                  <span
-                    style={{ fontSize: 12, color: "var(--muted)", cursor: "pointer" }}
-                  >
-                    Şifremi unuttum
-                  </span>
-                }
-              >
+              {/* "Şifremi unuttum" sat here as a pointer-cursor span that did
+                  nothing: there is no reset flow (no e-mail is sent anywhere
+                  in the app). A link that goes nowhere is worse than none. */}
+              <LabeledField label="Şifre">
                 <input
                   className="input"
                   type="password"
@@ -119,23 +138,9 @@ export default function LoginPage() {
                   autoComplete="current-password"
                 />
               </LabeledField>
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  cursor: "pointer",
-                  marginTop: 4,
-                }}
-              >
-                <Checkbox
-                  checked={remember}
-                  onChange={() => setRemember(!remember)}
-                />
-                <span style={{ fontSize: 13, color: "var(--text-2)" }}>
-                  Beni hatırla
-                </span>
-              </label>
+              {/* "Beni hatırla" was removed with the same reasoning: the
+                  checkbox toggled local state that nothing read — every
+                  session is a 30-day JWT whether it was ticked or not. */}
               {err && (
                 <div
                   style={{
@@ -166,7 +171,7 @@ export default function LoginPage() {
                 style={{ justifyContent: "center", textDecoration: "none" }}
               >
                 Hesabın yok mu?{" "}
-                <span style={{ color: "var(--indigo)" }}>Hesap aç</span>
+                <span style={{ color: "var(--indigo)" }}>Hesap Aç</span>
               </Link>
             </div>
           </form>
@@ -178,48 +183,18 @@ export default function LoginPage() {
 
 function LabeledField({
   label,
-  right,
   children,
 }: {
   label: string;
-  right?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  // A <label>, so the input inside it is named by its caption. As a div with
+  // a span, "E-posta" and "Şifre" were only visual — a screen reader
+  // announced two unnamed edit fields.
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <span className="t-label">{label}</span>
-        {right}
-      </div>
+    <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <span className="t-label">{label}</span>
       {children}
-    </div>
-  );
-}
-
-function Checkbox({
-  checked,
-  onChange,
-}: {
-  checked: boolean;
-  onChange: () => void;
-}) {
-  return (
-    <div
-      onClick={onChange}
-      style={{
-        width: 16,
-        height: 16,
-        borderRadius: 4,
-        background: checked ? "var(--accent)" : "var(--panel)",
-        border: `1px solid ${checked ? "var(--accent)" : "var(--border-strong)"}`,
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        cursor: "pointer",
-        transition: "opacity var(--t) var(--ease), transform var(--t) var(--ease), color var(--t) var(--ease), background-color var(--t) var(--ease), border-color var(--t) var(--ease), box-shadow var(--t) var(--ease)",
-      }}
-    >
-      {checked && <Check size={11} strokeWidth={2.5} color="#fff" />}
-    </div>
+    </label>
   );
 }

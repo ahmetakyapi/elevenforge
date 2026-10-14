@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Timer } from "lucide-react";
+import { durationTr } from "@/lib/time-words";
 
 /**
- * Live ticking "X hours Y minutes" pill until the next fixture.
+ * Live "2 gün 23 saat" pill until the next fixture. It printed "71s 28dk",
+ * where "s" read as seconds rather than hours.
  * Kept client-side so `Date.now()` doesn't fire during server render
  * (would mismatch hydration + warn under React 19 strict).
  */
@@ -21,12 +24,11 @@ export function NextMatchCountdown({
   if (now === null) return null;
   const seconds = Math.max(0, Math.floor((scheduledAtMs - now) / 1000));
   if (seconds <= 0) return null;
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
   return (
     <div className="chip chip-success" style={{ marginTop: 8 }}>
-      <span className="t-mono" style={{ fontSize: 12, fontWeight: 700 }}>
-        ⏱ {hours}s {minutes}dk
+      <Timer size={13} strokeWidth={1.8} aria-hidden />
+      <span style={{ fontSize: 12.5, fontWeight: 600 }}>
+        {durationTr(seconds)} kaldı
       </span>
     </div>
   );

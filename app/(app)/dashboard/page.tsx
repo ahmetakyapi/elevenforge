@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Flame, Heart, Star, Wallet } from "lucide-react";
 import {
   Crest,
   FormDot,
@@ -75,9 +75,9 @@ export default async function DashboardPage() {
             }}
           />
           <div>
-            <div className="t-h2" style={{ fontSize: 19 }}>
+            <h1 className="t-h2" style={{ fontSize: 19 }}>
               {d.myClub.name}
-            </div>
+            </h1>
             <div className="t-small" style={{ color: "var(--muted)" }}>
               Teknik Direktör · {ctx.user.name}
             </div>
@@ -89,13 +89,17 @@ export default async function DashboardPage() {
           value={
             <span className="t-mono">{fmtEUR(d.myClub.balanceEur)}</span>
           }
-          icon={<span style={{ color: "var(--emerald)" }}>◉</span>}
+          icon={<Wallet size={15} strokeWidth={1.8} color="var(--emerald)" aria-hidden />}
         />
-        <StatChip label="Moral" value={`${d.myClub.morale}/5`} icon="❤" />
+        <StatChip
+          label="Moral"
+          value={`${d.myClub.morale}/5`}
+          icon={<Heart size={15} strokeWidth={1.8} color="var(--danger)" aria-hidden />}
+        />
         <StatChip
           label="Sıralama"
           value={`${d.myClub.position}.`}
-          icon={<span style={{ color: "var(--gold)" }}>★</span>}
+          icon={<Star size={15} strokeWidth={1.8} color="var(--gold)" aria-hidden />}
         />
         <StreakBanner streak={d.streak} />
       </div>
@@ -153,7 +157,9 @@ export default async function DashboardPage() {
               </span>
               {d.nextFixture?.isDerby && (
                 <span className="chip chip-gold">
-                  🔥 ŞEHİR DERBİSİ · 2× bahis
+                  {/* Was "🔥 ŞEHİR DERBİSİ · 2× bahis" — there is no betting
+                      anywhere in the game, and the label shouted in caps. */}
+                  <Flame size={12} strokeWidth={2} aria-hidden /> Şehir Derbisi
                 </span>
               )}
             </div>
@@ -398,9 +404,12 @@ export default async function DashboardPage() {
             className="t-small"
             style={{ color: "var(--muted)", display: "flex", gap: 12 }}
           >
-            <span>🩹 {d.squadStatus.injured}</span>
-            <span>🟥 {d.squadStatus.suspended}</span>
-            <span>💪 {d.squadStatus.training}</span>
+            {/* Words, not 🩹 🟥 💪: the emoji alone did not say which
+                number was which, and screen readers read them as
+                "adhesive bandage". */}
+            <span>{d.squadStatus.injured} sakat</span>
+            <span>{d.squadStatus.suspended} cezalı</span>
+            <span>{d.squadStatus.training} antrenmanda</span>
           </div>
         </GlassCard>
         <GlassCard pad={18} hover={false}>
@@ -581,25 +590,35 @@ export default async function DashboardPage() {
             ))}
           </div>
         </GlassCard>
-        <GlassCard pad={20} hover={false}>
+        <GlassCard
+          pad={20}
+          hover={false}
+          style={{ display: "flex", flexDirection: "column" }}
+        >
           <SectionHead
-            title="Crew feed'i"
+            title="Lig Akışı"
             right={
               <Link
                 href="/crew"
                 className="btn btn-ghost btn-sm"
                 style={{ textDecoration: "none" }}
               >
-                Tümünü gör
+                Tümünü Gör
               </Link>
             }
           />
+          {/* Fills the card instead of stopping at 400px: beside the
+              eighteen-row table the list was cut mid-item ("2 dakika önce"
+              sliced in half) above 250px of empty card. A zero basis lets
+              the table set the row height; on a phone, where the two stack,
+              the minimum keeps a readable window. */}
           <div
             style={{
               display: "flex",
               flexDirection: "column",
               gap: 10,
-              maxHeight: 400,
+              flex: "1 1 0",
+              minHeight: 320,
               overflowY: "auto",
               paddingRight: 4,
             }}
@@ -632,7 +651,7 @@ export default async function DashboardPage() {
                     {f.text}
                   </span>
                   <div className="t-caption" style={{ marginTop: 2 }}>
-                    {f.relativeTime} önce
+                    {f.relativeTime}
                   </div>
                 </div>
               </div>

@@ -59,9 +59,9 @@ export default async function FinancesPage() {
           <Wallet size={22} strokeWidth={1.6} />
         </div>
         <div>
-          <div className="t-h1">
+          <h1 className="t-h1">
             {ctx.club.name}
-          </div>
+          </h1>
           <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>
             Finans · son 30 gün
           </div>
@@ -89,9 +89,19 @@ export default async function FinancesPage() {
             ],
             [
               "Net",
-              `${d.netEur >= 0 ? "+" : "−"}${fmtEUR(Math.abs(d.netEur))}`,
-              d.netEur >= 0 ? "var(--emerald)" : "var(--danger)",
-              d.netEur >= 0 ? "Kâr ediyorsun" : "Zarar ediyorsun",
+              // Zero is neither: it read "+€0 · Kâr ediyorsun" before the
+              // first match had paid anything in or out.
+              `${d.netEur > 0 ? "+" : d.netEur < 0 ? "−" : ""}${fmtEUR(Math.abs(d.netEur))}`,
+              d.netEur > 0
+                ? "var(--emerald)"
+                : d.netEur < 0
+                  ? "var(--danger)"
+                  : "var(--text-2)",
+              d.netEur > 0
+                ? "Kâr ediyorsun"
+                : d.netEur < 0
+                  ? "Zarar ediyorsun"
+                  : "Henüz hareket yok",
             ],
           ] as Array<[string, string, string, string]>
         ).map(([label, value, tint, hint]) => (
@@ -137,8 +147,10 @@ export default async function FinancesPage() {
             color: "var(--muted)",
           }}
         >
-          Henüz para hareketi yok. İlk maçından sonra gişe hasılatı, maaşlar ve
-          sponsor ödemeleri burada görünecek.
+          {/* Wages were removed from the game (contracts and salaries went in
+              2109c4b); this line still promised them. */}
+          Henüz para hareketi yok. İlk maçından sonra gişe hasılatı, sponsor
+          ödemeleri ve transferler burada görünecek.
         </div>
       ) : (
         <>
