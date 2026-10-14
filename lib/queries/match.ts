@@ -1,4 +1,4 @@
-import { and, desc, eq, or } from "drizzle-orm";
+import { and, asc, desc, eq, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { formatInZone } from "@/lib/match-time";
 import { clubs, fixtures } from "@/lib/schema";
@@ -140,5 +140,79 @@ export async function loadLatestMatch(
     playedAtLabel: formatInZone(new Date(fixture.playedAt!), ctx.league.timeZone),
     events,
     stats,
+  };
+}
+
+/**
+ * The next fixture, for the match screen before anything has been played.
+ *
+ * "Henüz maç oynanmadı" with a button to the dashboard was all a new manager
+ * saw on the Maç tab — one of the six tabs in the phone's bottom bar — for
+ * the whole first day. The fixture list already knows who they play and
+ * when; the empty screen now says so.
+ */
+export type NextFixturePreview = {
+  homeClubName: string;
+  homeClubCrest: CrestInfo;
+  homeClubId: string;
+  awayClubName: string;
+  awayClubCrest: CrestInfo;
+  awayClubId: string;
+  isHome: boolean;
+  scheduledAtMs: number;
+  /** Pre-formatted in the league timezone. */
+  scheduledAtLabel: string;
+  weekNumber: number;
+} | null;
+
+export async function loadNextFixturePreview(
+  ctx: LeagueContext,
+): Promise<NextFixturePreview> {
+  const [next] = await db
+    .select()
+    .from(fixtures)
+    .where(
+      and(
+        eq(fixtures.leagueId, ctx.league.id),
+        eq(fixtures.status, "scheduled"),
+        or(
+          eq(fixtures.homeClubId, ctx.club.id),
+          eq(fixtures.awayClubId, ctx.club.id),
+        ),
+      ),
+    )
+    .orderBy(asc(fixtures.scheduledAt))
+    .limit(1);
+  if (!next) return null;
+
+  const [home, away] = await Promise.all([
+    db.select().from(clubs).where(eq(clubs.id, next.homeClubId)).limit(1),
+    db.select().from(clubs).where(eq(clubs.id, next.awayClubId)).limit(1),
+  ]);
+  if (!home[0] || !away[0]) return null;
+
+  const crest = (c: typeof home[0]): CrestInfo => ({
+    color: c.color,
+    color2: c.color2,
+    short: c.shortName,
+  });
+  const at = new Date(next.scheduledAt);
+  return {
+    homeClubName: home[0].name,
+    homeClubCrest: crest(home[0]),
+    homeClubId: home[0].id,
+    awayClubName: away[0].name,
+    awayClubCrest: crest(away[0]),
+    awayClubId: away[0].id,
+    isHome: next.homeClubId === ctx.club.id,
+    scheduledAtMs: at.getTime(),
+    scheduledAtLabel: formatInZone(at, ctx.league.timeZone, {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+    weekNumber: next.weekNumber,
   };
 }

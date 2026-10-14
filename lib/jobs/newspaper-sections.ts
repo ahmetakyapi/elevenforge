@@ -189,6 +189,17 @@ function scorersOf(
 }
 
 /**
+ * Which tier a week's paper covers: the top flight when it played, otherwise
+ * whichever tier has fixtures. Exported because the cover (lib/jobs/
+ * newspaper.ts) must pick its hero match from the SAME tier as the lead
+ * article built here — see the comment there.
+ */
+export function paperDivision(weekFixtures: Pick<Fixture, "division">[]): number {
+  const played = [...new Set(weekFixtures.map((f) => f.division))];
+  return played.includes(1) ? 1 : played[0];
+}
+
+/**
  * Build every section for one league's week.
  *
  * `weekFixtures` are the finished fixtures being reported on; they are passed
@@ -218,8 +229,7 @@ export async function buildSections(opts: {
     The top flight is the front page when it played; otherwise the paper
     covers whichever tier actually has fixtures.
   */
-  const divisionsPlayed = [...new Set(opts.weekFixtures.map((f) => f.division))];
-  const division = divisionsPlayed.includes(1) ? 1 : divisionsPlayed[0];
+  const division = paperDivision(opts.weekFixtures);
   const weekFixtures = opts.weekFixtures.filter((f) => f.division === division);
   if (weekFixtures.length === 0) return EMPTY_SECTIONS;
 

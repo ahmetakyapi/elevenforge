@@ -51,10 +51,11 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
   if (!paper) {
     return (
       <div style={{ maxWidth: 720, margin: "80px auto", padding: "0 24px" }}>
+        <h1 className="sr-only">Gazete</h1>
         <GlassCard pad={0} hover={false} className="glass-hero">
           <EmptyState
             Icon={NewspaperIcon}
-            title="Henüz gazete çıkmadı"
+            title="Henüz Gazete Çıkmadı"
             description="İlk haftanın maçları oynandıktan sonra ElevenForge Spor'un manşeti, haftanın bütün maç raporları, puan durumu ve transfer borsası burada yayımlanır."
             tint="var(--gold)"
             action={
@@ -63,7 +64,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
                 className="btn btn-outline"
                 style={{ textDecoration: "none" }}
               >
-                Haftayı oyna
+                Ana Sayfaya Dön
               </Link>
             }
           />
@@ -94,7 +95,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
           <LeadStory paper={paper} />
 
           {sections.results.length > 1 && (
-            <Section title="Haftanın Diğer Maçları" kicker="Raporlar">
+            <Section title="Haftanın Diğer Maçları">
               <div data-paper-grid style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "22px 34px" }}>
                 {sections.results
                   .filter((r) => r.homeClubId !== cover.heroHomeClubId)
@@ -106,7 +107,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
           )}
 
           {sections.clubOfWeek && (
-            <Section title="Haftanın Takımı" kicker="Seçim">
+            <Section title="Haftanın Takımı">
               <div
                 style={{
                   border: `3px double ${INK}`,
@@ -143,13 +144,13 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
           )}
 
           {sections.table.length > 0 && (
-            <Section title="Puan Durumu" kicker="Baskıya Girerken">
+            <Section title="Puan Durumu">
               <StandingsTable rows={sections.table} />
             </Section>
           )}
 
           {sections.column && (
-            <Section title={sections.column.title} kicker="Köşe Yazısı">
+            <Section title={sections.column.title} note="Köşe Yazısı">
               <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
                 <Byline name={sections.column.author} />
                 <div
@@ -176,7 +177,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
           )}
 
           {sections.managerCards.length > 0 && (
-            <Section title="Menajer Karnesi" kicker="Not Verildi">
+            <Section title="Menajer Karnesi">
               <div
                 data-paper-grid
                 style={{
@@ -245,7 +246,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
           )}
 
           {paper.totw.length > 0 && (
-            <Section title="Haftanın On Biri" kicker="Seçki">
+            <Section title="Haftanın On Biri">
               <TotwStrip paper={paper} />
             </Section>
           )}
@@ -264,7 +265,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
           </div>
 
           {sections.weekStats.length > 0 && (
-            <Section title="Rakamlarla Hafta" kicker="İstatistik">
+            <Section title="Rakamlarla Hafta">
               <div
                 data-paper-grid
                 style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}
@@ -297,7 +298,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
           {(sections.transfers.length > 0 || sections.discipline.length > 0) && (
             <div data-paper-grid style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 34 }}>
               {sections.transfers.length > 0 && (
-                <Section title="Transfer Borsası" kicker="Piyasa">
+                <Section title="Transfer Borsası">
                   <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
                     {sections.transfers.map((t, i) => (
                       <li
@@ -320,7 +321,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
                 </Section>
               )}
               {sections.discipline.length > 0 && (
-                <Section title="Disiplin" kicker="Kart Cetveli">
+                <Section title="Disiplin">
                   <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
                     {sections.discipline.map((d, i) => (
                       <li
@@ -367,7 +368,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
           )}
 
           {sections.managerOfWeek && (
-            <Section title="Haftanın Teknik Direktörü" kicker="Övgü">
+            <Section title="Haftanın Teknik Direktörü">
               <blockquote
                 style={{
                   margin: 0,
@@ -386,7 +387,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
           )}
 
           {sections.quotes.length > 0 && (
-            <Section title="Tribün Köşesi" kicker="Sesler">
+            <Section title="Tribün Köşesi">
               <div
                 data-paper-grid
                 style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}
@@ -421,7 +422,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
           {(sections.rumours.length > 0 || sections.letters.length > 0) && (
             <div data-paper-grid style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 34 }}>
               {sections.rumours.length > 0 && (
-                <Section title="Söylenti Masası" kicker="Doğrulanmadı">
+                <Section title="Söylenti Masası" note="Doğrulanmadı">
                   <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
                     {sections.rumours.map((t, i) => (
                       <li
@@ -446,7 +447,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
                 </Section>
               )}
               {sections.letters.length > 0 && (
-                <Section title="Okuyucu Mektupları" kicker="Posta">
+                <Section title="Okuyucu Mektupları">
                   {sections.letters.map((l, i) => (
                     <div
                       key={`le-${i}`}
@@ -472,7 +473,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
           )}
 
           {sections.predictions.length > 0 && (
-            <Section title="Falcı Köşesi" kicker="Kehanet">
+            <Section title="Falcı Köşesi">
               <div
                 data-paper-grid
                 style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 30px" }}
@@ -512,7 +513,7 @@ export default function NewspaperUi({ paper }: { paper: NewspaperData }) {
           )}
 
           {sections.upcoming.length > 0 && (
-            <Section title="Gelecek Hafta" kicker="Program">
+            <Section title="Gelecek Hafta">
               <div
                 data-paper-grid
                 style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px 24px" }}
@@ -636,16 +637,6 @@ function LeadStory({ paper }: { paper: NonNullable<NewspaperData> }) {
   );
   return (
     <div style={{ paddingTop: 24 }}>
-      <div
-        style={{
-          fontSize: 13.5,
-          color: RED,
-          fontWeight: 700,
-          marginBottom: 10,
-        }}
-      >
-        Manşet
-      </div>
       <h2
         style={{
           margin: 0,
@@ -1002,7 +993,7 @@ function ChartList({
   unit: string;
 }) {
   return (
-    <Section title={title} kicker="Sıralama">
+    <Section title={title}>
       {rows.length === 0 ? (
         <p style={{ fontSize: 13.5, color: INK_3, margin: 0 }}>
           Henüz kimse listeye giremedi.
@@ -1133,40 +1124,58 @@ function PullQuote({ text }: { text: string }) {
 
 function Section({
   title,
-  kicker,
+  note,
   children,
 }: {
   title: string;
-  kicker?: string;
+  /**
+   * A short qualifier set on the heading's own line, to the right — "Köşe
+   * Yazısı", "Doğrulanmadı". These used to be red kicker lines ABOVE every
+   * section heading ("Raporlar", "Seçim", "Posta"…); the owner's rule is no
+   * kickers over headings, and most of them repeated the heading anyway. The
+   * two that say something the heading does not stay, beside it.
+   */
+  note?: string;
   children: React.ReactNode;
 }) {
   return (
     <section style={{ marginTop: 34 }}>
-      <div style={{ marginBottom: 14 }}>
-        {kicker && (
-          <div
-            style={{
-              fontSize: 13.5,
-              color: RED,
-              fontWeight: 700,
-            }}
-          >
-            {kicker}
-          </div>
-        )}
+      <div
+        style={{
+          marginBottom: 14,
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+          borderBottom: `2px solid ${INK}`,
+          paddingBottom: 8,
+        }}
+      >
         <h3
           style={{
-            margin: "4px 0 0",
+            margin: 0,
             fontFamily: "var(--font-manrope)",
             fontWeight: 800,
             fontSize: "clamp(20px, 2.6vw, 28px)",
             letterSpacing: "-0.02em",
-            borderBottom: `2px solid ${INK}`,
-            paddingBottom: 8,
+            textWrap: "balance",
           }}
         >
           {title}
         </h3>
+        {note && (
+          <span
+            style={{
+              fontFamily: SERIF,
+              fontStyle: "italic",
+              fontSize: 14,
+              color: RED,
+            }}
+          >
+            {note}
+          </span>
+        )}
       </div>
       {children}
     </section>

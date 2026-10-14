@@ -4,12 +4,19 @@ import { useCallback, useState } from "react";
 import Link from "next/link";
 import { PlayCircle } from "lucide-react";
 import { Crest, EmptyState, GlassCard } from "@/components/ui/primitives";
-import type { MatchReplayData } from "@/lib/queries/match";
+import type { MatchReplayData, NextFixturePreview } from "@/lib/queries/match";
+import { NextMatchCountdown } from "../dashboard/next-match-countdown";
 import { MatchReplay } from "./replay";
 
 type StatsTab = "feed" | "stats";
 
-export default function MatchUi({ match }: { match: MatchReplayData }) {
+export default function MatchUi({
+  match,
+  next = null,
+}: {
+  match: MatchReplayData;
+  next?: NextFixturePreview;
+}) {
   const [tab, setTab] = useState<StatsTab>("feed");
   /*
     Do not spoil the result.
@@ -29,23 +36,28 @@ export default function MatchUi({ match }: { match: MatchReplayData }) {
 
   if (!match) {
     return (
-      <div style={{ maxWidth: 720, margin: "80px auto", padding: "0 24px" }}>
+      <div style={{ maxWidth: 720, margin: "64px auto", padding: "0 24px" }}>
+        <h1 className="sr-only">Maç</h1>
         <GlassCard pad={0} hover={false} className="glass-hero">
-          <EmptyState
-            Icon={PlayCircle}
-            title="Henüz maç oynanmadı"
-            description="Takımının ilk maçı henüz simüle edilmedi. Dashboard'dan haftayı oyna, canlı anlatım burada belirecek."
-            tint="var(--emerald)"
-            action={
-              <Link
-                href="/dashboard"
-                className="btn btn-primary"
-                style={{ textDecoration: "none" }}
-              >
-                Dashboard&apos;a git
-              </Link>
-            }
-          />
+          {next ? (
+            <NextFixtureCard next={next} />
+          ) : (
+            <EmptyState
+              Icon={PlayCircle}
+              title="Henüz Maç Oynanmadı"
+              description="Takımının ilk maçı henüz oynanmadı. Maç oynandığında canlı anlatım burada başlar."
+              tint="var(--emerald)"
+              action={
+                <Link
+                  href="/dashboard"
+                  className="btn btn-primary"
+                  style={{ textDecoration: "none" }}
+                >
+                  Ana Sayfaya Dön
+                </Link>
+              }
+            />
+          )}
         </GlassCard>
       </div>
     );
@@ -55,6 +67,11 @@ export default function MatchUi({ match }: { match: MatchReplayData }) {
 
   return (
     <div style={{ maxWidth: 1400, margin: "0 auto", padding: "16px 24px" }}>
+      {/* The scoreboard is the visual title; this names the page for screen
+          readers without giving away the score. */}
+      <h1 className="sr-only">
+        Maç Raporu: {match.homeClubName} – {match.awayClubName}
+      </h1>
       {/* Scoreboard — dramatic full-bleed treatment with giant score,
           80px crests, and winner-highlighting via color weight. */}
       {(() => {
@@ -510,6 +527,87 @@ function StatsPanel({ match }: { match: NonNullable<MatchReplayData> }) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Before the first whistle: who, where and when — and the one useful thing
+ * to do meanwhile, which is set the line-up.
+ */
+function NextFixtureCard({ next }: { next: NonNullable<NextFixturePreview> }) {
+  const side = (
+    clubId: string,
+    name: string,
+    crest: NonNullable<NextFixturePreview>["homeClubCrest"],
+  ) => (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 10,
+        minWidth: 0,
+        flex: 1,
+      }}
+    >
+      <Crest clubId={clubId} size={64} club={crest} />
+      <span className="t-h4" style={{ textAlign: "center", textWrap: "balance" }}>
+        {name}
+      </span>
+    </div>
+  );
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 18,
+        padding: "40px 24px",
+        textAlign: "center",
+      }}
+    >
+      <div className="t-h2" style={{ textWrap: "balance" }}>
+        Sıradaki Maçın
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 16,
+          width: "100%",
+          maxWidth: 460,
+        }}
+      >
+        {side(next.homeClubId, next.homeClubName, next.homeClubCrest)}
+        <span
+          className="t-mono"
+          style={{ fontSize: 22, fontWeight: 700, color: "var(--muted-2)" }}
+        >
+          vs
+        </span>
+        {side(next.awayClubId, next.awayClubName, next.awayClubCrest)}
+      </div>
+      <div className="t-small" style={{ color: "var(--text-2)" }}>
+        {next.weekNumber}. Hafta · {next.isHome ? "İç Saha" : "Deplasman"} ·{" "}
+        {next.scheduledAtLabel}
+      </div>
+      <NextMatchCountdown scheduledAtMs={next.scheduledAtMs} />
+      <p
+        className="t-small"
+        style={{ color: "var(--muted)", maxWidth: 380, margin: 0 }}
+      >
+        Maç oynandığında canlı anlatım burada başlar. O zamana kadar ilk
+        11&apos;ini ve taktiğini hazırlayabilirsin.
+      </p>
+      <Link
+        href="/tactic"
+        className="btn btn-primary"
+        style={{ textDecoration: "none" }}
+      >
+        Taktik Hazırla
+      </Link>
     </div>
   );
 }

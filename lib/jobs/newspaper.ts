@@ -16,22 +16,25 @@ import {
   players,
 } from "@/lib/schema";
 import { buildTOTW, type WeekPerformance } from "@/lib/engine/totw";
-import { buildSections, EMPTY_SECTIONS } from "./newspaper-sections";
+import { buildSections, EMPTY_SECTIONS, paperDivision } from "./newspaper-sections";
 import type { MatchEvent } from "@/lib/engine/match";
 
 // Hero-match headline template. Only the diff-scaled "UÇURDU / FARK ATTI /
 // NETLİĞİ GÖSTERDİ / GÜCÜ" variant is used currently; kept in an array
 // shape so future variants can be slotted in (one per week seed, say)
 // without reshaping the call site.
+// tr-TR casing: plain toUpperCase() printed "GENÇLERBIRLIĞI" for
+// Gençlerbirliği — dotless I where Turkish has İ.
+const trUpper = (s: string) => s.toLocaleUpperCase("tr-TR");
 const HEADLINES: Array<(home: string, away: string, diff: number) => string> = [
   (home, _away, diff) =>
     diff >= 4
-      ? `${home.toUpperCase()} UÇURDU`
+      ? `${trUpper(home)} UÇURDU`
       : diff >= 3
-        ? `${home.toUpperCase()} FARK ATTI`
+        ? `${trUpper(home)} FARK ATTI`
         : diff === 2
-          ? `${home.toUpperCase()} NETLİĞİ GÖSTERDİ`
-          : `${home.toUpperCase()} GÜCÜ`,
+          ? `${trUpper(home)} NETLİĞİ GÖSTERDİ`
+          : `${trUpper(home)} GÜCÜ`,
 ];
 
 export async function generateNewspaper(opts: {
@@ -54,8 +57,18 @@ export async function generateNewspaper(opts: {
     );
   if (weekFixtures.length === 0) return null;
 
-  // Hero: biggest goal differential
-  const hero = [...weekFixtures]
+  /*
+    Hero: biggest goal differential — within the tier the paper covers.
+
+    The cover used to pick from EVERY finished fixture while the lead article
+    (buildSections) picked from the top flight only. Whenever a 1. Lig match
+    had the bigger margin the front page contradicted itself: "ESR FARK ATTI"
+    and a Muğlaspor 1–4 Esenler score box above a lead story about Samsunspor
+    and Alanyaspor. Same tier, same order, same stable sort → same match.
+  */
+  const division = paperDivision(weekFixtures);
+  const hero = weekFixtures
+    .filter((f) => f.division === division)
     .sort(
       (a, b) =>
         Math.abs((b.homeScore ?? 0) - (b.awayScore ?? 0)) -
@@ -76,7 +89,8 @@ export async function generateNewspaper(opts: {
   const winner =
     (hero.homeScore ?? 0) > (hero.awayScore ?? 0) ? heroHome : heroAway;
   const loser = winner.id === heroHome.id ? heroAway : heroHome;
-  const headline = HEADLINES[0](winner.shortName, loser.shortName, diff);
+  // Full names: the short codes made headlines like "ESR FARK ATTI".
+  const headline = HEADLINES[0](winner.name, loser.name, diff);
 
   // TOTW — only players who actually took the field this week.
   //
