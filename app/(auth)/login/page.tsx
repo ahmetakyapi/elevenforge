@@ -24,18 +24,28 @@ type Status = "idle" | "pending" | "error";
  * The URL parser drops tabs and newlines, so "/%09/evil.com" passed a
  * `startsWith("/") && !startsWith("//")` test and then navigated to
  * //evil.com after a successful login.
+ *
+ * The resolved path is checked AGAIN before it is returned: dot segments
+ * collapse during parsing, so "/.//evil.com" or "/a/..//evil.com" resolve to
+ * the right origin with the pathname "//evil.com" — which, pushed as-is, is a
+ * protocol-relative URL to evil.com.
  */
 function returnPath(): string {
   try {
+    const origin = window.location.origin;
     const from = new URLSearchParams(window.location.search).get("from");
     if (from && from.startsWith("/")) {
-      const url = new URL(from, window.location.origin);
+      const url = new URL(from, origin);
+      const path = `${url.pathname}${url.search}${url.hash}`;
       if (
-        url.origin === window.location.origin &&
+        url.origin === origin &&
+        !path.startsWith("//") &&
+        !path.startsWith("/\\") &&
+        new URL(path, origin).origin === origin &&
         url.pathname !== "/login" &&
         !url.pathname.startsWith("/login/")
       ) {
-        return `${url.pathname}${url.search}${url.hash}`;
+        return path;
       }
     }
   } catch {}
