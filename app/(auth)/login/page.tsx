@@ -19,19 +19,24 @@ type Status = "idle" | "pending" | "error";
  * would need its own Suspense boundary here), and only a same-site path: an
  * absolute URL or a protocol-relative "//host" would make this an open
  * redirect.
+ *
+ * Checked by resolving it the way the browser will, not by string prefix.
+ * The URL parser drops tabs and newlines, so "/%09/evil.com" passed a
+ * `startsWith("/") && !startsWith("//")` test and then navigated to
+ * //evil.com after a successful login.
  */
 function returnPath(): string {
   try {
     const from = new URLSearchParams(window.location.search).get("from");
-    // Backslashes too: URL parsing treats "/\\host" like "//host".
-    if (
-      from &&
-      from.startsWith("/") &&
-      !from.startsWith("//") &&
-      !from.includes("\\") &&
-      !from.startsWith("/login")
-    ) {
-      return from;
+    if (from && from.startsWith("/")) {
+      const url = new URL(from, window.location.origin);
+      if (
+        url.origin === window.location.origin &&
+        url.pathname !== "/login" &&
+        !url.pathname.startsWith("/login/")
+      ) {
+        return `${url.pathname}${url.search}${url.hash}`;
+      }
     }
   } catch {}
   return "/dashboard";
