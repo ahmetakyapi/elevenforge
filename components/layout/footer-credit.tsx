@@ -62,7 +62,7 @@ export function FooterCredit() {
         </span>
       </a>
       <span style={{ opacity: 0.5 }}>·</span>
-      <span>Ahmet Akyapı yaptı</span>
+      <span>Geliştiren: Ahmet Akyapı</span>
     </footer>
   );
 }

@@ -59,7 +59,8 @@ export function PitchPatternSide() {
           className="t-small"
           style={{ marginTop: 8, color: "var(--muted)" }}
         >
-          16 kişilik özel ligini kur, her akşam 21:00&apos;de maç oyna.
+          Ligini kur, arkadaşlarını davet et; maçlar her gün seçtiğin saatte
+          oynanır.
         </div>
       </div>
     </div>

@@ -623,7 +623,7 @@ function CreateWizard({
             </button>
           ) : (
             <button type="button" className="btn btn-primary" onClick={onDone}>
-              Dashboard&apos;a Git <ArrowRight size={14} strokeWidth={1.6} />
+              Ana Sayfaya Git <ArrowRight size={14} strokeWidth={1.6} />
             </button>
           )}
         </div>

@@ -86,8 +86,10 @@ export async function generateNewspaper(opts: {
   const diff = Math.abs(
     (hero.homeScore ?? 0) - (hero.awayScore ?? 0),
   );
+  // `>=`, as in buildSections: on a level score (a week of draws) the lead
+  // article names the home side, so the headline must too.
   const winner =
-    (hero.homeScore ?? 0) > (hero.awayScore ?? 0) ? heroHome : heroAway;
+    (hero.homeScore ?? 0) >= (hero.awayScore ?? 0) ? heroHome : heroAway;
   const loser = winner.id === heroHome.id ? heroAway : heroHome;
   // Full names: the short codes made headlines like "ESR FARK ATTI".
   const headline = HEADLINES[0](winner.name, loser.name, diff);

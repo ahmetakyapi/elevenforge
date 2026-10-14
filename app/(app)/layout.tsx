@@ -13,12 +13,15 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <div className="app-bg" aria-hidden />
       {/* A column, so the footer sits at the bottom of the window on short
           pages (an empty match or newspaper screen) instead of floating
-          mid-screen with the background showing underneath it. */}
+          mid-screen with the background showing underneath it. The height
+          lives in `.app-shell` (globals.css): below 900px the fixed bottom
+          nav covers the window's last 70px, and a full-height shell put the
+          footer underneath it. */}
       <div
+        className="app-shell"
         style={{
           position: "relative",
           zIndex: 1,
-          minHeight: "100vh",
           display: "flex",
           flexDirection: "column",
         }}

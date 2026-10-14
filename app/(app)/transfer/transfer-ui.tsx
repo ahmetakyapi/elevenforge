@@ -999,7 +999,18 @@ function TransferRow({
         <div
           style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {/* Wraps: the auction chip now spells its time out ("Açık
+              Artırma · 1 gün 23 saat kaldı", ~215px), which in one line
+              squeezed the name to a single word per line and ran under the
+              position column, on a phone and at 1440 alike. */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "4px 8px",
+            }}
+          >
             {/* The whole row toggles the details on click, but a div is not
                 reachable by keyboard and cannot be a button (it holds its own
                 buttons). The name is the keyboard handle for the same toggle. */}
@@ -1027,12 +1038,16 @@ function TransferRow({
             {isAuction && (
               <span
                 title={closesLabel}
+                // Read from Date.now() during render, so the server's minute
+                // and the hydrating browser's can differ by one.
+                suppressHydrationWarning
                 style={{
                   fontSize: 12,
                   fontWeight: 600,
                   padding: "2px 7px",
-                  borderRadius: 999,
-                  whiteSpace: "nowrap",
+                  // 10, not 999: still a pill on one line, and a rounded box
+                  // on the rare phone row where the long countdown wraps.
+                  borderRadius: 10,
                   background:
                     "color-mix(in oklab, var(--gold) 18%, transparent)",
                   color: "var(--gold)",

@@ -66,7 +66,7 @@ export default function AppError({
           className="btn btn-ghost btn-sm"
           style={{ textDecoration: "none" }}
         >
-          Dashboard
+          Ana Sayfa
         </Link>
       </div>
     </div>

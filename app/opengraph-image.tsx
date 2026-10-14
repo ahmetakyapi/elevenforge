@@ -6,7 +6,7 @@ import { ImageResponse } from "next/og";
  * tagline + a subtle pitch-line motif so the preview reads as a
  * football-menajer product, not a generic SaaS card.
  */
-export const alt = "ElevenForge — 16 arkadaş. 1 lig. 1 efsane.";
+export const alt = "ElevenForge — 36 kulüp. 2 lig. 1 efsane.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -117,7 +117,7 @@ export default function OpenGraphImage() {
               display: "flex",
             }}
           >
-            16 arkadaş.
+            36 kulüp.
           </div>
           <div
             style={{
@@ -132,7 +132,7 @@ export default function OpenGraphImage() {
               color: "transparent",
             }}
           >
-            1 lig. 1 efsane.
+            2 lig. 1 efsane.
           </div>
         </div>
 
@@ -155,8 +155,8 @@ export default function OpenGraphImage() {
               display: "flex",
             }}
           >
-            Davet kodu ile kur · her gece 21:00 maç · canlı Türkçe anlatım ·
-            transfer pazarı
+            Davet koduyla kur · her gün maç · canlı Türkçe anlatım · transfer
+            pazarı
           </div>
           <div
             style={{
@@ -169,14 +169,13 @@ export default function OpenGraphImage() {
             <div
               style={{
                 fontFamily: "sans-serif",
-                fontSize: 14,
+                fontSize: 20,
                 fontWeight: 700,
-                letterSpacing: "0.18em",
                 color: "#10b981",
                 display: "flex",
               }}
             >
-              SÜPER LİG · 2025-26
+              Süper Lig 2026-27 Kadroları
             </div>
             <div
               style={{

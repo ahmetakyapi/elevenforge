@@ -212,6 +212,7 @@ export default function LandingUi() {
             margin-top: 8px !important;
           }
         }
+        @media (max-width: 600px) { [data-lp-sep] { display: none; } }
         /* No heading may leave one word alone on its last line ("Herkesin
            Kendi / Kulübü"). */
         [data-landing] h1, [data-landing] h2 { text-wrap: balance; }
@@ -418,8 +419,9 @@ function Hero() {
                 color: "var(--emerald)",
               }}
             >
-              {/* Was "Sezon 3 · 1.248 Aktif Lig" — an invented number. */}
-              Süper Lig 2025-26 Kadroları
+              {/* Was "Sezon 3 · 1.248 Aktif Lig" — an invented number. The
+                  squads are the 2026-27 ones (lib/squad-packs.ts header). */}
+              Süper Lig 2026-27 Kadroları
             </span>
           </div>
         </div>
@@ -471,8 +473,11 @@ function Hero() {
               lineHeight: 1.25,
             }}
           >
-            <span style={{ color: "var(--text)" }}>16 arkadaş.</span>{" "}
-            <span style={{ color: "var(--indigo)" }}>1 lig.</span>{" "}
+            {/* "16 arkadaş" was the 16-club league of an older version; a
+                league is now 36 clubs in two tiers, any of them open to a
+                friend. */}
+            <span style={{ color: "var(--text)" }}>36 kulüp.</span>{" "}
+            <span style={{ color: "var(--indigo)" }}>2 lig.</span>{" "}
             <span style={{ color: "var(--emerald)" }}>1 efsane.</span>
           </p>
           <p
@@ -544,10 +549,12 @@ function Hero() {
         >
           {/* "Türkçe · İngilizce" promised an English version that does not
               exist; the game is Turkish only. */}
+          {/* The dashes go on phones (`data-lp-sep`): the row wraps there,
+              and a separator was left hanging at the end of the first line. */}
           <span>Birkaç dakikada lig</span>
-          <span aria-hidden style={{ opacity: 0.4 }}>—</span>
+          <span data-lp-sep aria-hidden style={{ opacity: 0.4 }}>—</span>
           <span>Canlı maç anlatımı</span>
-          <span aria-hidden style={{ opacity: 0.4 }}>—</span>
+          <span data-lp-sep aria-hidden style={{ opacity: 0.4 }}>—</span>
           <span>Tamamen Türkçe</span>
         </div>
 
@@ -1494,7 +1501,10 @@ function TacticSection() {
             aspectRatio: "5/7",
             width: "100%",
             maxWidth: 520,
-            minHeight: 540,
+            // No minHeight: with aspect-ratio 5/7 a 540px floor became a
+            // 386px minimum WIDTH, wider than a phone's content box. The
+            // grid column grew to fit it and the paragraph beside the pitch
+            // ran under the right edge at 390px ("sertliğe 7 / tel…").
             margin: "0 auto",
             opacity: on ? 1 : 0,
             transform: on ? "translateX(0)" : "translateX(-40px)",
@@ -1785,10 +1795,11 @@ function NewspaperStack() {
           }}
         >
           {/* "Her pazar" was wrong: a paper comes out after every played
-              round, and rounds are daily. */}
+              round, and rounds are daily. And it is one paper per league
+              (lib/queries/newspaper.ts), not one per club. */}
           Her Hafta{" "}
           <span style={{ fontStyle: "italic", fontWeight: 500, color: "var(--muted)" }}>
-            Kulübüne Özel
+            Ligine Özel
           </span>
           <br />
           Bir Gazete

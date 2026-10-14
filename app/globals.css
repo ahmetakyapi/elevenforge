@@ -761,6 +761,20 @@ body[data-modal-open="true"] { overflow: hidden; }
 @media (max-width: 899px) {
   .desktop-only { display: none !important; }
 }
+
+/* The (app) shell is at least a window tall so short pages keep the footer
+   at the bottom. Below 900px the fixed bottom nav (~70px with the iOS home
+   indicator) covers the window's last strip, so the shell stops above it —
+   otherwise the footer of a short page sat underneath the nav. Up to 760px
+   the body already pads for the nav; between 761 and 899px nothing did, so
+   the shell carries that gap itself. */
+.app-shell { min-height: 100vh; }
+@media (max-width: 899px) {
+  .app-shell { min-height: calc(100svh - 70px - env(safe-area-inset-bottom, 0px)); }
+}
+@media (min-width: 761px) and (max-width: 899px) {
+  .app-shell { margin-bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
+}
 @media (min-width: 900px) {
   .mobile-only { display: none !important; }
 }

@@ -402,14 +402,22 @@ export default async function DashboardPage() {
           </div>
           <div
             className="t-small"
-            style={{ color: "var(--muted)", display: "flex", gap: 12 }}
+            style={{
+              color: "var(--muted)",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "2px 12px",
+            }}
           >
             {/* Words, not 🩹 🟥 💪: the emoji alone did not say which
                 number was which, and screen readers read them as
-                "adhesive bandage". */}
-            <span>{d.squadStatus.injured} sakat</span>
-            <span>{d.squadStatus.suspended} cezalı</span>
-            <span>{d.squadStatus.training} antrenmanda</span>
+                "adhesive bandage". Each pair stays on one line and the row
+                wraps between them: in the half-width card on a phone the
+                three squeezed into "0 / sakat" stacks and "antrenmanda"
+                ran past the card edge. */}
+            <span style={{ whiteSpace: "nowrap" }}>{d.squadStatus.injured} sakat</span>
+            <span style={{ whiteSpace: "nowrap" }}>{d.squadStatus.suspended} cezalı</span>
+            <span style={{ whiteSpace: "nowrap" }}>{d.squadStatus.training} antrenmanda</span>
           </div>
         </GlassCard>
         <GlassCard pad={18} hover={false}>
