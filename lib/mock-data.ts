@@ -41,7 +41,7 @@ export const SQUAD: Player[] = USER_PACK.players;
 // anything derived from the pack data.
 
 export const COMMENTARY: Commentary[] = [
-  { m: 74, icon: "⚽", type: "goal",     text: "TALISCA! Ceza yayının sağından, dış kötü ayakla kaleciyi çaresiz bırakacak bir vuruş. Fenerbahçe 2-1 öne geçti. Derbilerde ilk golü atan takım bu sezon %71 kazanıyor." },
+  { m: 74, icon: "⚽", type: "goal",     text: "TALISCA! Ceza yayının sağından, dış kötü ayakla kaleciyi çaresiz bırakacak bir vuruş. Fenerbahçe 2-1 öne geçti." },
   { m: 72, icon: "🎯", type: "shot",     text: "Kerem Aktürkoğlu sol kanattan içeri döndü, vuruşu direğin dibinden auta gitti. Kadıköy inledi." },
   { m: 68, icon: "🟨", type: "card",     text: "Galatasaray forveti sert girdi — sarı kart. Kanté kaşları çatık halde soğukkanlılık çağrısı yapıyor." },
   { m: 64, icon: "🔄", type: "sub",      text: "Sidiki Cherif yerine Dorgeles Nene — taze bacaklar, kanat baskısı." },
@@ -57,7 +57,7 @@ export const GLOBAL_TRANSFERS: GlobalTransfer[] = [
   { buyer: "Ahmet D.",  buyerClub: "sam", player: "M. Guendouzi",     price: 32000000, seller: "bot" },
   { buyer: "Elif Ö.",   buyerClub: "bjk", player: "Talisca",       price: 30000000, seller: "bot" },
   { buyer: "Kaan T.",   buyerClub: "ts",  player: "C. Ndiaye",        price:  9500000, seller: "user", sellerName: "Mehmet S." },
-  { buyer: "Deniz A.",  buyerClub: "kay", player: "M. Asensio",       price: 24000000, seller: "bot" },
+  { buyer: "Deniz A.",  buyerClub: "koc", player: "M. Asensio",       price: 24000000, seller: "bot" },
   { buyer: "Zeynep K.", buyerClub: "gs",  player: "V. Osimhen",        price: 85000000, seller: "bot" },
   { buyer: "Ceren P.",  buyerClub: "gfk", player: "A. Brown",         price: 16000000, seller: "bot" },
 ];

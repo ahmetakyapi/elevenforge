@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type ReactNode,
+  type RefObject,
 } from "react";
 import { ArrowRight, Play, Plus } from "lucide-react";
 import { Crest } from "@/components/ui/primitives";
@@ -48,48 +49,130 @@ function useReveal(threshold = 0.15) {
   return [ref, on] as const;
 }
 
-function useScrollY() {
-  const [y, setY] = useState(0);
+/*
+ * Scroll and pointer effects WITHOUT React state.
+ *
+ * The landing page used to keep `scrollY` and the mouse position in useState:
+ * the root component held one copy, the nav another, the crew section a
+ * third, and the hero a fourth for the pointer. Every scroll frame and every
+ * mouse move re-rendered the whole 2,000-line tree of inline styles: 8–15 s
+ * of main-thread script and 76–110 layouts for one scripted pass down the
+ * page (dev build, three runs). After this change the same pass measured
+ * 0.3–1.2 s and 7–11 layouts. None of it needed React: the values only feed
+ * transforms and opacities.
+ *
+ * Now one listener writes three CSS custom properties on the hero
+ * (`--sy` scroll px, `--mx`/`--my` pointer offset in -0.5…0.5) and the styles
+ * read them with calc(). The nav keeps a boolean, which only changes when it
+ * crosses its threshold.
+ */
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(false);
   useEffect(() => {
-    let raf = 0;
-    const on = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => setY(window.scrollY));
-    };
-    window.addEventListener("scroll", on, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", on);
-      cancelAnimationFrame(raf);
-    };
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const on = () => setReduced(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
   }, []);
-  return y;
+  return reduced;
 }
 
-function useMouse() {
-  const [p, setP] = useState({ x: 0.5, y: 0.5 });
+function useScrolledPast(threshold: number): boolean {
+  const [past, setPast] = useState(false);
   useEffect(() => {
-    const on = (e: MouseEvent) =>
-      setP({ x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight });
-    window.addEventListener("mousemove", on);
-    return () => window.removeEventListener("mousemove", on);
+    const on = () => setPast(window.scrollY > threshold);
+    on();
+    window.addEventListener("scroll", on, { passive: true });
+    return () => window.removeEventListener("scroll", on);
+  }, [threshold]);
+  return past;
+}
+
+function useHeroMotionVars(ref: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let raf = 0;
+    let mx = 0;
+    let my = 0;
+    const write = () => {
+      raf = 0;
+      // Past ~1000px the hero is gone; stop restyling it on every frame.
+      el.style.setProperty("--sy", String(Math.min(window.scrollY, 1000)));
+      el.style.setProperty("--mx", mx.toFixed(3));
+      el.style.setProperty("--my", my.toFixed(3));
+    };
+    const schedule = () => {
+      if (!raf) raf = requestAnimationFrame(write);
+    };
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerType !== "mouse") return;
+      mx = e.clientX / window.innerWidth - 0.5;
+      my = e.clientY / window.innerHeight - 0.5;
+      if (window.scrollY < 1000) schedule();
+    };
+    const onScroll = () => {
+      const past = window.scrollY >= 1100;
+      if (!past) schedule();
+      // The hero's own small loops (live dot, scroll hint) stop with it.
+      el.toggleAttribute("data-paused", past);
+    };
+    write();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("pointermove", onMove, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("pointermove", onMove);
+      cancelAnimationFrame(raf);
+    };
+  }, [ref]);
+}
+
+/**
+ * Pause an element's CSS loops while it is off-screen (`data-paused`, see the
+ * landing stylesheet) and report whether it is in view, so JS timers can stop
+ * too. The marquees, orbit and tickers ran forever, scrolled past or not.
+ */
+function useInViewPause<T extends HTMLElement>(): [RefObject<T | null>, boolean] {
+  const ref = useRef<T | null>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        // The LAST entry: a fast scroll can queue "entered" and "left" for
+        // the same element in one batch, and the first one is stale.
+        const e = entries[entries.length - 1];
+        setInView(e.isIntersecting);
+        if (e.isIntersecting) el.removeAttribute("data-paused");
+        else el.setAttribute("data-paused", "");
+      },
+      { rootMargin: "120px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
   }, []);
-  return p;
+  return [ref, inView];
 }
 
 // ─── Main ─────────────────────────────────────────────────
 export default function LandingUi() {
-  const y = useScrollY();
   return (
-    <div style={{ position: "relative", overflow: "hidden", background: "var(--bg)" }}>
+    <div
+      data-landing
+      style={{ position: "relative", overflow: "hidden", background: "var(--bg)" }}
+    >
       <LandingNav />
-      <Hero y={y} />
+      <Hero />
       <MarqueeBand />
       <CrewSection />
       <StadiumSection />
       <MarketSection />
       <TacticSection />
       <NewspaperStack />
-      <TestimonialWall />
       <FaqBlock />
       <ClosingCTA />
       <LandingFooter />
@@ -129,21 +212,25 @@ export default function LandingUi() {
             margin-top: 8px !important;
           }
         }
+        /* No heading may leave one word alone on its last line ("Herkesin
+           Kendi / Kulübü"). */
+        [data-landing] h1, [data-landing] h2 { text-wrap: balance; }
+        /* Loops stop while their section is off-screen (useInViewPause). */
+        [data-paused], [data-paused] * { animation-play-state: paused !important; }
+        /* Reduced motion: no loops, no parallax, no entrance travel. The
+           scroll/pointer variables are never written in this mode either. */
+        @media (prefers-reduced-motion: reduce) {
+          [data-landing] *, [data-landing] *::before, [data-landing] *::after {
+            animation: none !important;
+            transition: none !important;
+          }
+        }
+        @keyframes lp-orbit-upright { to { transform: rotate(-360deg); } }
+        @keyframes lp-fade-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
         @keyframes scroll-hint { 0%{opacity:0;transform:translateY(0);} 40%{opacity:1;} 100%{opacity:0;transform:translateY(10px);} }
         @keyframes formSwap { 0%{opacity:0;transform:translateY(-4px);} 100%{opacity:1;transform:translateY(0);} }
         @keyframes posGlow { 0%,100%{opacity:0.4;transform:scale(1);} 50%{opacity:0.8;transform:scale(1.2);} }
-        @keyframes dragPulse { 0%,100%{filter:drop-shadow(0 0 0 transparent);transform:translateX(0);} 50%{filter:drop-shadow(0 6px 18px color-mix(in oklab, var(--warn) 40%, transparent));transform:translateX(4px);} }
         @keyframes foldBreathe { 0%,100%{opacity:0.6;} 50%{opacity:1;} }
-        @keyframes headlineType { 0%{clip-path:inset(0 100% 0 0);} 100%{clip-path:inset(0 0 0 0);} }
-        @keyframes dragPath {
-          0%{left:30%;top:50%;transform:translate(-50%,-50%) scale(1);opacity:0;}
-          8%{opacity:1;transform:translate(-50%,-50%) scale(1.15);}
-          15%{left:30%;top:50%;transform:translate(-50%,-50%) scale(1.1);}
-          55%{left:50%;top:20%;transform:translate(-50%,-50%) scale(1.1);}
-          62%{left:50%;top:20%;transform:translate(-50%,-50%) scale(1.4);opacity:1;}
-          70%{left:50%;top:20%;transform:translate(-50%,-50%) scale(1);opacity:1;}
-          100%{left:50%;top:20%;transform:translate(-50%,-50%) scale(1);opacity:0;}
-        }
       `}</style>
     </div>
   );
@@ -151,8 +238,7 @@ export default function LandingUi() {
 
 // ─── Nav ──────────────────────────────────────────────────
 function LandingNav() {
-  const y = useScrollY();
-  const solid = y > 40;
+  const solid = useScrolledPast(40);
   return (
     <nav
       data-lp-nav
@@ -212,12 +298,12 @@ function LandingNav() {
 }
 
 // ─── Hero ─────────────────────────────────────────────────
-function Hero({ y }: { y: number }) {
-  const m = useMouse();
-  const parallax = (d: number) =>
-    `translate3d(${(m.x - 0.5) * d}px, ${(m.y - 0.5) * d}px, 0)`;
+function Hero() {
+  const ref = useRef<HTMLElement | null>(null);
+  useHeroMotionVars(ref);
   return (
     <section
+      ref={ref}
       style={{
         position: "relative",
         minHeight: "100vh",
@@ -236,11 +322,11 @@ function Hero({ y }: { y: number }) {
         style={{
           position: "absolute",
           inset: 0,
-          opacity: Math.max(0, 1 - y / 800),
+          opacity: "max(0, calc(1 - var(--sy, 0) / 800))",
           pointerEvents: "none",
         }}
       >
-        <StadiumBackdrop mouse={m} scrollY={y} />
+        <StadiumBackdrop />
       </div>
       <div
         aria-hidden
@@ -256,7 +342,13 @@ function Hero({ y }: { y: number }) {
       `}</style>
       <div
         aria-hidden
-        style={{ position: "absolute", inset: 0, pointerEvents: "none", transform: parallax(20) }}
+        style={{
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+          transform:
+            "translate3d(calc(var(--mx, 0) * 20px), calc(var(--my, 0) * 20px), 0)",
+        }}
       >
         <div
           style={{
@@ -296,7 +388,7 @@ function Hero({ y }: { y: number }) {
           display: "grid",
           gridTemplateColumns: "minmax(0, 1fr)",
           justifyItems: "center",
-          transform: `translateY(${y * -0.1}px)`,
+          transform: "translateY(calc(var(--sy, 0) * -0.1px))",
           transition: "transform 0.1s linear",
         }}
       >
@@ -326,7 +418,8 @@ function Hero({ y }: { y: number }) {
                 color: "var(--emerald)",
               }}
             >
-              Sezon 3 · 1.248 Aktif Lig
+              {/* Was "Sezon 3 · 1.248 Aktif Lig" — an invented number. */}
+              Süper Lig 2025-26 Kadroları
             </span>
           </div>
         </div>
@@ -353,7 +446,6 @@ function Hero({ y }: { y: number }) {
           <span
             style={{
               color: "var(--accent)",
-              animation: "shimmer 6s linear infinite",
               display: "inline-block",
             }}
           >
@@ -391,10 +483,10 @@ function Hero({ y }: { y: number }) {
               lineHeight: 1.65,
             }}
           >
-            Her akşam 21:00&apos;de maçlar simule olur, canlı maç anlatımı saniye
-            saniye gelişmeleri aktarır.
+            Maçlar her akşam ligin seçtiği saatte oynanır; canlı anlatım
+            maçı dakika dakika aktarır.
             <br />
-            Derbilerinde{" "}
+            Derbilerde{" "}
             <em
               style={{
                 color: "var(--text-2)",
@@ -402,9 +494,9 @@ function Hero({ y }: { y: number }) {
                 borderBottom: "1px dashed var(--border-strong)",
               }}
             >
-              kulübünün tarihini
+              tribünün sesi
             </em>{" "}
-            hatırlatır.
+            de anlatıma girer.
           </p>
         </div>
         <div
@@ -450,11 +542,13 @@ function Hero({ y }: { y: number }) {
             justifyContent: "center",
           }}
         >
-          <span>⚡ 5 dakikada lig</span>
-          <span style={{ opacity: 0.4 }}>—</span>
-          <span>🏟 Canlı maç anlatımı</span>
-          <span style={{ opacity: 0.4 }}>—</span>
-          <span>🇹🇷 Türkçe · İngilizce</span>
+          {/* "Türkçe · İngilizce" promised an English version that does not
+              exist; the game is Turkish only. */}
+          <span>Birkaç dakikada lig</span>
+          <span aria-hidden style={{ opacity: 0.4 }}>—</span>
+          <span>Canlı maç anlatımı</span>
+          <span aria-hidden style={{ opacity: 0.4 }}>—</span>
+          <span>Tamamen Türkçe</span>
         </div>
 
         <div
@@ -481,7 +575,7 @@ function Hero({ y }: { y: number }) {
           alignItems: "center",
           gap: 6,
           color: "var(--muted)",
-          opacity: Math.max(0, 1 - y / 200),
+          opacity: "max(0, calc(1 - var(--sy, 0) / 200))",
         }}
       >
         <span className="t-label" style={{ fontSize: 12, color: "var(--muted)" }}>
@@ -513,15 +607,7 @@ function Hero({ y }: { y: number }) {
   );
 }
 
-function StadiumBackdrop({
-  mouse,
-  scrollY,
-}: {
-  mouse: { x: number; y: number };
-  scrollY: number;
-}) {
-  const tiltX = (mouse.x - 0.5) * 8;
-  const tiltY = (mouse.y - 0.5) * 4;
+function StadiumBackdrop() {
   return (
     <div
       style={{
@@ -537,7 +623,9 @@ function StadiumBackdrop({
         style={{
           position: "absolute",
           inset: 0,
-          transform: `rotateX(${62 + tiltY}deg) rotateZ(${tiltX}deg) translateY(${scrollY * 0.25}px)`,
+          // --mx/--my/--sy come from useHeroMotionVars on the hero section.
+          transform:
+            "rotateX(calc(62deg + var(--my, 0) * 4deg)) rotateZ(calc(var(--mx, 0) * 8deg)) translateY(calc(var(--sy, 0) * 0.25px))",
           transformStyle: "preserve-3d",
           transition: "transform 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
         }}
@@ -578,14 +666,10 @@ function StadiumBackdrop({
             <rect x="100" y="340" width="80" height="240" />
             <rect x="1420" y="340" width="80" height="240" />
           </g>
-          <rect x="0" y="0" width="1600" height="900" fill="url(#line-grad)" opacity="0.05">
-            <animate
-              attributeName="opacity"
-              values="0.03;0.12;0.03"
-              dur="6s"
-              repeatCount="indefinite"
-            />
-          </rect>
+          {/* Static. It was a SMIL opacity loop on a full-viewport layer
+              that ran forever, scrolled past or not, under reduced motion
+              too — and swung between 3% and 12% of a gradient. */}
+          <rect x="0" y="0" width="1600" height="900" fill="url(#line-grad)" opacity="0.06" />
         </svg>
       </div>
     </div>
@@ -594,17 +678,23 @@ function StadiumBackdrop({
 
 function HeroLiveCard() {
   const [idx, setIdx] = useState(0);
+  const [ref, inView] = useInViewPause<HTMLDivElement>();
+  const reduced = usePrefersReducedMotion();
   const feed = [
     { m: 74, text: "ARDA! 21 yaşındaki 10 numara — köşeye bıraktı.", type: "goal" },
     { m: 72, text: "Kerem soldan içeri döndü, direğin dibinden auta.", type: "shot" },
     { m: 68, text: "Hakan'ın pası Arda'yı tamamen boşa çıkardı.", type: "analysis" },
   ];
+  // Rotates only while on screen, and not at all under reduced motion — it
+  // used to tick (and re-render) forever, once per copy of the card.
   useEffect(() => {
+    if (!inView || reduced) return;
     const iv = setInterval(() => setIdx((i) => (i + 1) % feed.length), 2600);
     return () => clearInterval(iv);
-  }, [feed.length]);
+  }, [feed.length, inView, reduced]);
   return (
     <div
+      ref={ref}
       className="glass"
       style={{
         padding: 0,
@@ -759,22 +849,18 @@ function HeroLiveCard() {
 
 // ─── Marquee ──────────────────────────────────────────────
 function MarqueeBand() {
-  const words = [
-    "SÜPER LİG",
-    "PREMIER LEAGUE",
-    "LA LIGA",
-    "SERIE A",
-    "BUNDESLIGA",
-    "LIGUE 1",
-    "EREDIVISIE",
-    "ŞAMPİYONLAR LİGİ",
-    "AVRUPA LİGİ",
-    "PRIMEIRA LIGA",
-    "MLS",
-  ];
+  /*
+    The clubs you can actually manage. This band used to scroll Premier
+    League, La Liga, Serie A, MLS and the Champions League past — none of
+    which exist in the game, which is the Süper Lig and the 1. Lig.
+  */
+  const words = CLUBS.map((c) => c.name);
   const items = [...words, ...words, ...words];
+  const [ref] = useInViewPause<HTMLDivElement>();
   return (
     <div
+      ref={ref}
+      aria-hidden
       style={{
         borderTop: "1px solid var(--border)",
         borderBottom: "1px solid var(--border)",
@@ -830,7 +916,7 @@ function MarqueeBand() {
 // ─── Crew ─────────────────────────────────────────────────
 function CrewSection() {
   const [ref, on] = useReveal();
-  const y = useScrollY();
+  const [orbitRef] = useInViewPause<HTMLDivElement>();
   return (
     <section
       ref={ref}
@@ -862,9 +948,9 @@ function CrewSection() {
               lineHeight: 1.05,
             }}
           >
-            16 kişiye kadar
+            Aynı Lig,
             <br />
-            <span style={{ color: "var(--muted)" }}>tek bir kulüp hikayesi.</span>
+            <span style={{ color: "var(--muted)" }}>Ayrı Kulüpler</span>
           </h2>
           <p
             style={{
@@ -875,14 +961,18 @@ function CrewSection() {
               maxWidth: 500,
             }}
           >
-            Davet linkiyle ligini kur. Boş kalan slotları bot takımlar doldurur.
-            Her üye farklı şehri yönetir; 18 takımlı Süper Lig ve altındaki 1. Lig kıyasıya rekabet eder.
+            Ligi kur, davet kodunu paylaş. Her arkadaşın bir kulübü devralır;
+            kalanları kendi kişiliği olan bot menajerler yönetir. 18 takımlı
+            Süper Lig ve altındaki 1. Lig arasında her sezon üç kulüp iner, üç
+            kulüp çıkar.
           </p>
           <div style={{ display: "flex", gap: 18, marginTop: 26 }}>
+            {/* Was 16 / "10 Kişi + 6 Bot" / 7 — a league from an older
+                version of the game. These come from the current rules. */}
             {[
-              ["16", "Takım"],
-              ["10", "Kişi + 6 Bot"],
-              ["7", "Hazır Taktik"],
+              ["36", "Kulüp"],
+              ["2", "Lig"],
+              ["6", "Diziliş"],
             ].map(([v, l]) => (
               <div key={l}>
                 <div
@@ -903,7 +993,9 @@ function CrewSection() {
           </div>
         </div>
         <div
+          ref={orbitRef}
           data-lp-orbit
+          aria-hidden
           style={{
             position: "relative",
             aspectRatio: "1/1",
@@ -915,8 +1007,8 @@ function CrewSection() {
             transition: "opacity 900ms var(--ease), transform 900ms var(--ease), color 900ms var(--ease), background-color 900ms var(--ease), border-color 900ms var(--ease), box-shadow 900ms var(--ease)",
           }}
         >
-          <OrbitRing clubs={CLUBS.slice(0, 8)} sizePct={88} crestSize={40} duration={40} y={y} />
-          <OrbitRing clubs={CLUBS.slice(8, 16)} sizePct={56} crestSize={32} duration={24} reverse y={y} />
+          <OrbitRing clubs={CLUBS.slice(0, 9)} sizePct={88} crestSize={40} duration={40} />
+          <OrbitRing clubs={CLUBS.slice(9, 18)} sizePct={56} crestSize={32} duration={24} reverse />
           <div
             data-lp-orbit-core
             style={{
@@ -965,17 +1057,22 @@ function OrbitRing({
   crestSize,
   duration,
   reverse,
-  y,
 }: {
   clubs: typeof CLUBS;
   sizePct: number;
   crestSize: number;
   duration: number;
   reverse?: boolean;
-  y: number;
 }) {
-  const spin = y * 0.2 * (reverse ? -1 : 1);
   const inset = `${(100 - sizePct) / 2}%`;
+  /*
+    The ring spins with a CSS animation and each crest counter-spins with the
+    same duration, so the crests orbit but stay upright. Before, the
+    counter-rotation was driven by scroll position (a React re-render per
+    frame) while the ring's own transform was overridden by the animation —
+    so the crests just tumbled, letters sideways.
+  */
+  const direction = reverse ? "reverse" : "normal";
   return (
     <div
       style={{
@@ -986,25 +1083,35 @@ function OrbitRing({
         bottom: inset,
         borderRadius: "50%",
         border: "1px dashed color-mix(in oklab, var(--text) 10%, transparent)",
-        animation: `spin ${duration}s linear infinite ${reverse ? "reverse" : ""}`,
-        transform: `rotate(${spin}deg)`,
+        animation: `spin ${duration}s linear infinite ${direction}`,
       }}
     >
       {clubs.map((c, i) => {
         const angle = (i / clubs.length) * Math.PI * 2;
-        const cx = Math.cos(angle) * 50;
-        const cy = Math.sin(angle) * 50;
+        // Rounded: Node and the browser disagree in the last digits of
+        // Math.sin/cos (6.698729810778076 vs …083), and an unrounded value
+        // made the server HTML and the client render differ — a hydration
+        // mismatch on every visit.
+        const cx = (Math.cos(angle) * 50).toFixed(3);
+        const cy = (Math.sin(angle) * 50).toFixed(3);
         return (
           <div
             key={c.id}
             style={{
               position: "absolute",
-              top: `${50 + cy}%`,
-              left: `${50 + cx}%`,
-              transform: `translate(-50%,-50%) rotate(${-spin}deg)`,
+              top: `calc(50% + ${cy}%)`,
+              left: `calc(50% + ${cx}%)`,
+              transform: "translate(-50%,-50%)",
             }}
           >
-            <Crest clubId={c.id} size={crestSize} />
+            <div
+              style={{
+                display: "flex",
+                animation: `lp-orbit-upright ${duration}s linear infinite ${direction}`,
+              }}
+            >
+              <Crest clubId={c.id} size={crestSize} />
+            </div>
           </div>
         );
       })}
@@ -1049,7 +1156,7 @@ function StadiumSection() {
               paddingBottom: 8,
             }}
           >
-            Canlı maç anlatımı,
+            Canlı Maç Anlatımı,
             <br />
             <span
               style={{
@@ -1062,9 +1169,9 @@ function StadiumSection() {
                 lineHeight: 1.15,
               }}
             >
-              maçları
+              Dakika Dakika
             </span>{" "}
-            saniye saniye yayınlar.
+            Ekranında
           </h2>
           <p
             style={{
@@ -1075,8 +1182,11 @@ function StadiumSection() {
               margin: "16px auto 0",
             }}
           >
-            Her vuruş, her değişiklik, her kart — anlık anlatım. &ldquo;Neden
-            kaybettim?&rdquo; butonuyla motor kararlarını açıklar.
+            {/* There is no "Neden kaybettim?" button anywhere in the app; this
+                described a feature that was never built. What the match
+                screen really does is keep the score hidden until it happens. */}
+            Her şut, her kart, her değişiklik sırayla anlatılır. Skor, gol
+            anı gelene kadar gizli kalır; sonucu merak eden tek tıkla açar.
           </p>
         </div>
         <div
@@ -1176,7 +1286,7 @@ function StadiumSection() {
                 textDecoration: "none",
               }}
             >
-              Canlı maçı aç <ArrowRight size={13} strokeWidth={1.8} />
+              Canlı Maçı Aç <ArrowRight size={13} strokeWidth={1.8} />
             </Link>
           </div>
         </div>
@@ -1188,6 +1298,7 @@ function StadiumSection() {
 // ─── Market ───────────────────────────────────────────────
 function MarketSection() {
   const [ref, on] = useReveal();
+  const [tickerRef] = useInViewPause<HTMLDivElement>();
   return (
     <section ref={ref} id="akis" data-lp-section style={{ padding: "120px 0 120px", position: "relative", scrollMarginTop: 80 }}>
       <div
@@ -1209,12 +1320,14 @@ function MarketSection() {
             lineHeight: 1.05,
           }}
         >
-          Arkadaşının transferi,
+          Arkadaşının Transferi,
           <br />
-          <span style={{ color: "var(--muted)" }}>senin akışında.</span>
+          <span style={{ color: "var(--muted)" }}>Senin Akışında</span>
         </h2>
       </div>
       <div
+        ref={tickerRef}
+        aria-hidden
         style={{
           position: "relative",
           padding: "40px 0",
@@ -1232,7 +1345,7 @@ function MarketSection() {
           className="btn btn-sm"
           style={{ textDecoration: "none" }}
         >
-          Pazara bak <ArrowRight size={13} strokeWidth={1.8} />
+          Pazara Bak <ArrowRight size={13} strokeWidth={1.8} />
         </Link>
       </div>
     </section>
@@ -1260,10 +1373,13 @@ function TickerRow({ speed = 60, reverse }: { speed?: number; reverse?: boolean 
         }}
       >
         {list.map((t, i) => (
+          // No `.glass` here: that class carries backdrop-filter: blur(16px),
+          // and these are 54 pills sliding past continuously — a blur
+          // re-sampled under every one of them, every frame.
           <div
             key={i}
-            className="glass"
             style={{
+              border: "1px solid var(--border)",
               padding: "10px 18px",
               display: "flex",
               alignItems: "center",
@@ -1336,7 +1452,10 @@ const TACTIC_POSITIONS: Record<
 function TacticSection() {
   const [ref, on] = useReveal();
   const [form, setForm] = useState<TForm>("4-3-3");
+  const [pitchRef, pitchInView] = useInViewPause<HTMLDivElement>();
+  const reduced = usePrefersReducedMotion();
   useEffect(() => {
+    if (!pitchInView || reduced) return;
     const iv = setInterval(
       () =>
         setForm((f) => {
@@ -1346,7 +1465,7 @@ function TacticSection() {
       3800,
     );
     return () => clearInterval(iv);
-  }, []);
+  }, [pitchInView, reduced]);
   const roleColor = (r: string): string => {
     if (r === "GK") return "#f59e0b";
     if (["LB", "CB", "RB"].includes(r)) return "#3b82f6";
@@ -1369,6 +1488,7 @@ function TacticSection() {
         }}
       >
         <div
+          ref={pitchRef}
           style={{
             position: "relative",
             aspectRatio: "5/7",
@@ -1387,6 +1507,9 @@ function TacticSection() {
               inset: 0,
               borderRadius: 16,
               overflow: "hidden",
+              // A size container, so the player discs can be placed with
+              // cqw/cqh inside a transform (see below).
+              containerType: "size",
               background: "linear-gradient(180deg, #0d4a2b 0%, #062014 100%)",
               border: "1px solid var(--border-strong)",
               boxShadow:
@@ -1473,11 +1596,13 @@ function TacticSection() {
                   key={i}
                   style={{
                     position: "absolute",
-                    left: `${p.x}%`,
-                    top: `${p.y}%`,
-                    transform: "translate(-50%,-50%)",
-                    transition:
-                      "left 900ms cubic-bezier(0.65, 0, 0.35, 1), top 900ms cubic-bezier(0.65, 0, 0.35, 1)",
+                    left: 0,
+                    top: 0,
+                    // Moved by transform, not by animating left/top: the
+                    // formation change re-laid-out eleven discs on every
+                    // frame of a 900ms transition, every 3.8 seconds.
+                    transform: `translate(calc(${p.x}cqw - 50%), calc(${p.y}cqh - 50%))`,
+                    transition: "transform 900ms cubic-bezier(0.65, 0, 0.35, 1)",
                     zIndex: 3,
                   }}
                 >
@@ -1550,17 +1675,19 @@ function TacticSection() {
               lineHeight: 1.05,
             }}
           >
+            {/* Was "Sürükle, bırak, ligi yönet." over a looping drop-shadow
+                filter. The tactic board has no drag and drop: you tap a
+                substitute, then the player he replaces. */}
             <span
               style={{
                 display: "inline-block",
                 color: "var(--warn)",
-                animation: "dragPulse 2.4s var(--ease) infinite",
               }}
             >
-              Sürükle, bırak,
+              Dizilişini Seç,
             </span>
             <br />
-            <span style={{ color: "var(--muted)" }}>ligi yönet.</span>
+            <span style={{ color: "var(--muted)" }}>Taktiğini Kur</span>
           </h2>
           <p
             style={{
@@ -1571,9 +1698,10 @@ function TacticSection() {
               maxWidth: 500,
             }}
           >
-            6 preset formation, mentalite-pressing-tempo sliderı, 7 kayıtlı
-            taktik slotu. Maç sırasında değiştirebilirsin — motor gerçek zamanlı
-            tepki verir.
+            6 diziliş, 6 hazır kurulum ve mentaliteden sertliğe 7 taktik ayarı.
+            Kurduğun taktiği 7 yuvaya kaydedip tek dokunuşla geri yüklersin; maç
+            içi değişiklikleri önceden planlarsın, motor dakikası gelince
+            uygular.
           </p>
           <div
             style={{ display: "flex", gap: 8, marginTop: 24, flexWrap: "wrap" }}
@@ -1604,22 +1732,28 @@ type PaperCover = {
   clubId: string;
   week: number;
   score: string;
-  opp: string;
+  /** The rest of the standfirst after the club name, suffix included. */
+  oppTail: string;
 };
 
 function NewspaperStack() {
   const [ref, on] = useReveal(0.1);
   const [active, setActive] = useState(0);
+  const [stackRef, stackInView] = useInViewPause<HTMLDivElement>();
+  const reduced = usePrefersReducedMotion();
+  // Illustrative covers, but with clubs that exist in the game: the old ids
+  // ("ist", "tra", "izm") matched no club, so the crest box was empty, and
+  // the opponents ("Ankara Kale", "Bursa Bulut") were invented teams.
   const covers: PaperCover[] = [
-    { head: "ARDA UÇURDU", sub: "Derbi 4-1 bitti", tint: "#b91c1c", clubId: "ist", week: 7, score: "4-1", opp: "Ankara Kale" },
-    { head: "KARADENİZ DERSİ", sub: "Üst üste 3 galibiyet", tint: "#7c2d12", clubId: "tra", week: 7, score: "2-0", opp: "Bursa Bulut" },
-    { head: "NKEMBA ŞOV", sub: "İzmir'de fırtına", tint: "#047857", clubId: "izm", week: 7, score: "3-1", opp: "Gaziantep G." },
+    { head: "GÖZTEPE UÇURDU", sub: "İzmir'de gol yağmuru", tint: "#b91c1c", clubId: "gzt", week: 7, score: "4-1", oppTail: "Konyaspor'u 4-1 yendi" },
+    { head: "KARADENİZ DERSİ", sub: "Üst üste üçüncü galibiyet", tint: "#7c2d12", clubId: "ts", week: 7, score: "2-0", oppTail: "Kasımpaşa'yı 2-0 geçti" },
+    { head: "SAMSUN ŞOV", sub: "Karadeniz'de fırtına", tint: "#047857", clubId: "sam", week: 7, score: "3-1", oppTail: "Alanyaspor'u 3-1 yendi" },
   ];
   useEffect(() => {
-    if (!on) return;
+    if (!on || !stackInView || reduced) return;
     const iv = setInterval(() => setActive((a) => (a + 1) % covers.length), 3400);
     return () => clearInterval(iv);
-  }, [on, covers.length]);
+  }, [on, stackInView, reduced, covers.length]);
   return (
     <section
       ref={ref}
@@ -1650,15 +1784,18 @@ function NewspaperStack() {
             lineHeight: 1.05,
           }}
         >
-          Her pazar,{" "}
+          {/* "Her pazar" was wrong: a paper comes out after every played
+              round, and rounds are daily. */}
+          Her Hafta{" "}
           <span style={{ fontStyle: "italic", fontWeight: 500, color: "var(--muted)" }}>
-            kulübüne özel
+            Kulübüne Özel
           </span>
           <br />
-          gazete çıkar.
+          Bir Gazete
         </h2>
       </div>
       <div
+        ref={stackRef}
         style={{
           display: "flex",
           justifyContent: "center",
@@ -1814,14 +1951,13 @@ function NewspaperCard({
               fontWeight: 600,
             }}
           >
-            <span>Pazar · Sezon 3 · Hafta {cover.week}</span>
-            <span>No. 0{47 + idx}</span>
+            <span>Sezon 3 · Hafta {cover.week}</span>
           </div>
           <div
             style={{
               fontFamily: "Georgia, serif",
               fontWeight: 900,
-              fontSize: 38,
+              fontSize: 30,
               color: "#1a1410",
               letterSpacing: "-0.02em",
               lineHeight: 1,
@@ -1830,7 +1966,9 @@ function NewspaperCard({
               textShadow: "0 1px 0 rgba(139,110,50,0.15)",
             }}
           >
-            <span style={{ fontStyle: "italic" }}>The</span> Spor Times
+            {/* The app's paper is "ElevenForge Spor"; the mock-up now uses
+                the same masthead instead of an English one. */}
+            ElevenForge Spor
           </div>
           <div
             style={{
@@ -1841,20 +1979,10 @@ function NewspaperCard({
               marginTop: 2,
             }}
           >
-            — ElevenForge Liga —
+            Haftalık Futbol Gazetesi
           </div>
         </div>
         <div style={{ position: "relative", zIndex: 1, marginTop: 6 }}>
-          <div
-            style={{
-              fontSize: 12,
-              color: cover.tint,
-              fontWeight: 700,
-              marginBottom: 4,
-            }}
-          >
-            ★ Manşet ★
-          </div>
           <div
             style={{
               fontFamily: "Georgia, serif",
@@ -1863,7 +1991,8 @@ function NewspaperCard({
               lineHeight: 0.95,
               color: "#1a1410",
               letterSpacing: "-0.02em",
-              animation: isActive ? "headlineType 900ms var(--ease)" : "none",
+              // Fades up instead of wiping in with an animated clip-path.
+              animation: isActive ? "lp-fade-up 600ms var(--ease) both" : "none",
             }}
           >
             {cover.head}
@@ -1877,7 +2006,7 @@ function NewspaperCard({
               fontFamily: "Georgia, serif",
             }}
           >
-            {cover.sub} — {club?.name}, {cover.opp}&apos;ı {cover.score} mağlup etti.
+            {cover.sub} — {club?.name} {cover.oppTail}.
           </div>
         </div>
         <div
@@ -1971,102 +2100,34 @@ function NewspaperCard({
           }}
         >
           <span>s. 1 / 18</span>
-          <span>₺ 12.50</span>
+          <span>No. 0{47 + idx}</span>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Testimonials ─────────────────────────────────────────
-function TestimonialWall() {
-  const [ref, on] = useReveal();
-  const items = [
-    { name: "Baran Y.", club: "ist", text: "Derbiyi kaybedince anlatıcı geçen sezonun acısını hatırlatıyor. Yazarları var sanki.", delay: 0 },
-    { name: "Elif Ö.", club: "izm", text: "Scout sistemi bağımlılık yapar. Her sabah rapor bekleyen adama dönüştüm.", delay: 100 },
-    { name: "Mehmet S.", club: "tra", text: "Ligimizin WhatsApp grubu bu uygulama sayesinde Cehennem Chat oldu.", delay: 200 },
-    { name: "Ceren P.", club: "gaz", text: "Taktik sliderı gerçekten çalışıyor. Tempoyu hızlandırınca gol yedim.", delay: 50 },
-    { name: "Deniz A.", club: "kay", text: "Gazete kapağım evde çerçeveli duruyor artık. Ciddiyim.", delay: 150 },
-    { name: "Ahmet D.", club: "ank", text: "Neden kaybettim butonu kafamın içindeki tartışmaya son verdi.", delay: 250 },
-  ];
-  return (
-    <section
-      ref={ref}
-      data-lp-section style={{ padding: "120px 32px", maxWidth: 1300, margin: "0 auto" }}
-    >
-      <div style={{ textAlign: "center", marginBottom: 50 }}>
-        <h2
-          className="t-h1"
-          style={{
-            fontSize: "clamp(36px, 4.5vw, 56px)",
-            letterSpacing: "-0.03em",
-            lineHeight: 1.05,
-          }}
-        >
-          Grupta iyi giden hiçbir{" "}
-          <span style={{ color: "var(--muted)" }}>şaka</span> yok.
-        </h2>
-      </div>
-      <div className="testimonial-grid" style={{ columnCount: 3, columnGap: 18 }}>
-        {items.map((t, i) => (
-          <div
-            key={i}
-            className="glass"
-            style={{
-              padding: 20,
-              marginBottom: 18,
-              breakInside: "avoid",
-              opacity: on ? 1 : 0,
-              transform: on ? "translateY(0)" : "translateY(30px)",
-              transition: `all 600ms ${t.delay}ms var(--ease)`,
-            }}
-          >
-            <p
-              style={{
-                fontSize: 15,
-                lineHeight: 1.6,
-                color: "var(--text)",
-                margin: 0,
-                letterSpacing: "-0.005em",
-              }}
-            >
-              &ldquo;{t.text}&rdquo;
-            </p>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                marginTop: 14,
-              }}
-            >
-              <Crest clubId={t.club} size={22} />
-              <span style={{ fontSize: 13, fontWeight: 600 }}>{t.name}</span>
-              <span className="t-caption">
-                · {clubById(t.club)?.name}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-      <style>{`
-        @media (max-width: 900px) { .testimonial-grid { column-count: 2 !important; } }
-        @media (max-width: 600px) { .testimonial-grid { column-count: 1 !important; } }
-      `}</style>
-    </section>
-  );
-}
+// Testimonials were removed: six invented quotes from invented people
+// ("Baran Y.", "Elif Ö."…) presented as players of the game.
 
 // ─── FAQ ──────────────────────────────────────────────────
 function FaqBlock() {
   const [open, setOpen] = useState(0);
   const [ref, on] = useReveal();
+  /*
+    Answers checked against the code. Three of the old ones described features
+    that do not exist: a bot difficulty setting ("kolay / normal / rekabetçi"),
+    buying from users in OTHER leagues (the market is per league), and price
+    drops you configure yourself (they are automatic). The commentary answer
+    claimed it used a club's past seasons and players' stories; it knows the
+    match, the referee and whether it is a derby.
+  */
   const items: Array<{ q: string; a: ReactNode }> = [
-    { q: "Maç hangi saatte oynanır?", a: "Ligi kurarken sabit saat seçersin (ör. 21:00). Tüm maçlar her gün o saatte aynı anda simüle edilir." },
-    { q: "Arkadaşım katılmazsa?", a: "Boş slotları bot takımlar doldurur. Bot zorluğu kolay / normal / rekabetçi ayarlanabilir." },
-    { q: "Transfer piyasası nasıl işliyor?", a: "5 slota kadar listeleme yapabilir, saat bazlı otomatik fiyat düşüşü kurarsın. Diğer ligdeki kullanıcılardan da alabilirsin." },
-    { q: "Canlı maç anlatımı kulübümü gerçekten tanıyor mu?", a: "Evet. Kulübünün geçmiş sezonlarını, derbi geçmişini ve yıldız oyuncularının hikayesini kullanarak anlatım yapar." },
-    { q: "Mobil cihazda kullanılır mı?", a: "Evet, önce mobil-yatay için tasarlandı. Dikey ve masaüstünde de aynı tasarım ölçeklenir." },
+    { q: "Maçlar ne zaman oynanır?", a: "Ligi kurarken bir saat seçersin, örneğin 21:00. Her gün o saatte haftanın bütün maçları aynı anda oynanır. İstersen ligin ayarlarından haftayı elle oynatan bir buton da açabilirsin." },
+    { q: "Arkadaşlarım katılmazsa ne olur?", a: "Boş kulüpleri bot menajerler yönetir. Her birinin kendi kişiliği var: kadrosunu dizer, transfer yapar, sana teklif götürür. Arkadaşın sonradan katılınca bir bot kulübü devralır." },
+    { q: "Transfer pazarı nasıl işliyor?", a: "Pazar her lig için ayrıdır. Aynı anda en fazla 5 oyuncunu satışa çıkarabilirsin; satılmayan ilanın fiyatı zamanla kendiliğinden düşer. İyi oyuncular açık artırmaya çıkar, listede olmayan bir oyuncu için kulübüne doğrudan teklif de götürebilirsin. Pazar yalnızca transfer dönemlerinde açıktır." },
+    { q: "Maç anlatımı neye göre yazılıyor?", a: "Maç motorunun ürettiği olaylara göre: şutlar, kurtarışlar, kartlar, değişiklikler ve goller dakika dakika anlatılır. Hakemin sertliği ve maçın derbi olup olmadığı da anlatıma yansır." },
+    { q: "Telefonda oynanır mı?", a: "Evet. Telefonda alt menüyle bütün ekranlara ulaşırsın; kadro, taktik ve maç ekranları dar ekrana göre düzenlenir." },
   ];
   return (
     <section
@@ -2079,7 +2140,7 @@ function FaqBlock() {
           marginBottom: 40,
           opacity: on ? 1 : 0,
           transform: on ? "translateY(0)" : "translateY(30px)",
-          transition: "opacity 700ms var(--ease), transform 700ms var(--ease), color 700ms var(--ease), background-color 700ms var(--ease), border-color 700ms var(--ease), box-shadow 700ms var(--ease)",
+          transition: "opacity 700ms var(--ease), transform 700ms var(--ease)",
         }}
       >
         <h2
@@ -2087,67 +2148,85 @@ function FaqBlock() {
           style={{
             fontSize: "clamp(36px, 4.5vw, 56px)",
             letterSpacing: "-0.03em",
-            }}
+          }}
         >
-          Sık sorulanlar.
+          Sık Sorulan Sorular
         </h2>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {items.map((it, i) => (
-          <div
-            key={i}
-            className="glass"
-            style={{
-              padding: 0,
-              cursor: "pointer",
-              borderColor:
-                open === i
+        {items.map((it, i) => {
+          const isOpen = open === i;
+          const panelId = `faq-panel-${i}`;
+          return (
+            <div
+              key={i}
+              className="glass"
+              style={{
+                padding: 0,
+                borderColor: isOpen
                   ? "color-mix(in oklab, var(--accent) 30%, var(--border))"
                   : "var(--border)",
-            }}
-            onClick={() => setOpen(open === i ? -1 : i)}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "18px 22px",
               }}
             >
-              <span className="t-h3" style={{ fontSize: 16 }}>
-                {it.q}
-              </span>
+              {/* A real button with aria-expanded: the question used to be a
+                  clickable div, unreachable by keyboard and silent to screen
+                  readers. */}
+              <h3 style={{ margin: 0 }}>
+                <button
+                  type="button"
+                  aria-expanded={isOpen}
+                  aria-controls={panelId}
+                  onClick={() => setOpen(isOpen ? -1 : i)}
+                  style={{
+                    display: "flex",
+                    width: "100%",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 16,
+                    padding: "18px 22px",
+                    background: "none",
+                    border: 0,
+                    color: "inherit",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    borderRadius: "var(--r-lg)",
+                  }}
+                >
+                  <span className="t-h3" style={{ fontSize: 16 }}>
+                    {it.q}
+                  </span>
+                  <span
+                    aria-hidden
+                    style={{
+                      display: "inline-flex",
+                      flexShrink: 0,
+                      transform: isOpen ? "rotate(45deg)" : "rotate(0)",
+                      transition: "transform 300ms var(--ease)",
+                      color: isOpen ? "var(--accent)" : "var(--muted)",
+                    }}
+                  >
+                    <Plus size={18} strokeWidth={1.8} />
+                  </span>
+                </button>
+              </h3>
+              {/* Shown or not, then faded in. It used to animate max-height,
+                  which re-lays-out the page on every frame of the opening. */}
               <div
-                style={{
-                  transform: open === i ? "rotate(45deg)" : "rotate(0)",
-                  transition: "transform 300ms var(--ease)",
-                  color: open === i ? "var(--accent)" : "var(--muted)",
-                }}
-              >
-                <Plus size={18} strokeWidth={1.8} />
-              </div>
-            </div>
-            <div
-              style={{
-                maxHeight: open === i ? 200 : 0,
-                overflow: "hidden",
-                transition: "max-height 400ms var(--ease)",
-              }}
-            >
-              <div
+                id={panelId}
+                hidden={!isOpen}
                 style={{
                   padding: "0 22px 18px",
                   color: "var(--text-2)",
                   fontSize: 14,
                   lineHeight: 1.65,
+                  animation: isOpen ? "lp-fade-up 260ms var(--ease) both" : "none",
                 }}
               >
                 {it.a}
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
@@ -2200,7 +2279,7 @@ function ClosingCTA() {
               color: "var(--emerald)",
             }}
           >
-            Kur.
+            Kur
           </span>
         </h2>
         <p
